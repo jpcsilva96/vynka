@@ -6,19 +6,21 @@ import {
   openCart,
   useCartTotals,
   buildWhatsAppLink,
-  STORE_NAME,
 } from "@/lib/cart";
+import { useStorefront } from "@/lib/storefront-context";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { label: "Início", to: "/loja", exact: true },
-  { label: "Novidades", to: "/loja", hash: "novidades" },
-  { label: "Categorias", to: "/loja", hash: "categorias" },
-  { label: "Promoções", to: "/loja", hash: "promocoes" },
-  { label: "Contato", to: "/loja", hash: "contato" },
+const NAV: { label: string; hash?: string }[] = [
+  { label: "Início" },
+  { label: "Novidades", hash: "novidades" },
+  { label: "Categorias", hash: "categorias" },
+  { label: "Promoções", hash: "promocoes" },
+  { label: "Contato", hash: "contato" },
 ];
 
 export function StoreHeader() {
+  const store = useStorefront();
+  const slug = store.slug;
   const { count } = useCartTotals();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -40,7 +42,7 @@ export function StoreHeader() {
       )}
     >
       <div className="mx-auto grid h-16 max-w-[1400px] grid-cols-[auto_1fr_auto] items-center gap-6 px-6 md:h-20 md:px-10">
-        <Link to="/loja" className="flex items-center gap-3">
+        <Link to="/loja/$slug" params={{ slug }} className="flex items-center gap-3">
           <VynkaLogo className="h-4 md:h-5" />
         </Link>
 
@@ -48,7 +50,8 @@ export function StoreHeader() {
           {NAV.map((n) => (
             <Link
               key={n.label}
-              to={n.to}
+              to="/loja/$slug"
+              params={{ slug }}
               hash={n.hash}
               className="text-[12px] font-medium uppercase tracking-[0.18em] text-neutral-700 transition-colors hover:text-black"
             >
@@ -73,7 +76,7 @@ export function StoreHeader() {
             )}
           </IconButton>
           <a
-            href={buildWhatsAppLink(`Olá ${STORE_NAME}! Gostaria de mais informações.`)}
+            href={buildWhatsAppLink(`Olá ${store.name}! Gostaria de mais informações.`, store.whatsapp)}
             target="_blank"
             rel="noreferrer"
             className="ml-1 hidden items-center gap-2 rounded-full border border-black/10 px-3.5 py-1.5 text-[12px] font-medium text-neutral-800 transition-colors hover:border-black hover:text-black md:inline-flex"
@@ -101,7 +104,8 @@ export function StoreHeader() {
             {NAV.map((n) => (
               <Link
                 key={n.label}
-                to={n.to}
+                to="/loja/$slug"
+                params={{ slug }}
                 hash={n.hash}
                 onClick={() => setMobileOpen(false)}
                 className="py-3 text-[13px] font-medium uppercase tracking-[0.18em] text-neutral-800"

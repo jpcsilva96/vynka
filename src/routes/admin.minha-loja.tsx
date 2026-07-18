@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Store, ArrowUpRight, Link as LinkIcon } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 
-export const Route = createFileRoute("/minha-loja")({
+export const Route = createFileRoute("/admin/minha-loja")({
   head: () => ({
     meta: [
       { title: "Minha Loja · VYNKA" },

@@ -20,7 +20,7 @@ import {
 import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/produtos/")({
+export const Route = createFileRoute("/admin/produtos/")({
   head: () => ({
     meta: [
       { title: "Produtos · VYNKA" },
@@ -104,7 +104,7 @@ function ProdutosPage() {
       description="Gerencie o catálogo, variações e destaques da sua loja."
       actions={
         <Link
-          to="/produtos/novo"
+          to="/admin/produtos/novo"
           className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-graphite"
         >
           <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
