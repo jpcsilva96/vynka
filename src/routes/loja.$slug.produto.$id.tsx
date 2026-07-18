@@ -15,7 +15,7 @@ import { ProductCard } from "@/components/loja/product-card";
 import { WhatsAppIcon } from "@/components/loja/store-header";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/loja/produto/$id")({
+export const Route = createFileRoute("/loja/$slug/produto/$id")({
   head: ({ loaderData }: { loaderData?: { product: PublicProductDetail } }) => ({
     meta: [
       { title: loaderData?.product?.name ? `${loaderData.product.name} — VYNKA` : "Produto — VYNKA" },

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ArrowUpRight, Package, ShoppingBag, Users, Eye } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/admin/")({
   head: () => ({
     meta: [
       { title: "Dashboard · VYNKA" },

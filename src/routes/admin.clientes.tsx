@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Users } from "lucide-react";
 import { PageShell, EmptyState } from "@/components/page-shell";
 
-export const Route = createFileRoute("/clientes")({
+export const Route = createFileRoute("/admin/clientes")({
   head: () => ({
     meta: [
       { title: "Clientes · VYNKA" },

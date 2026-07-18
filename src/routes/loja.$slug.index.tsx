@@ -9,7 +9,7 @@ import {
 } from "@/lib/public-shop";
 import { STORE_NAME } from "@/lib/cart";
 
-export const Route = createFileRoute("/loja/")({
+export const Route = createFileRoute("/loja/$slug/")({
   head: () => ({
     meta: [
       { title: `${STORE_NAME} — Coleção` },

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/page-shell";
 
-export const Route = createFileRoute("/configuracoes")({
+export const Route = createFileRoute("/admin/configuracoes")({
   head: () => ({
     meta: [
       { title: "Configurações · VYNKA" },

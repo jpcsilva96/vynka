@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Tags, Plus } from "lucide-react";
 import { PageShell, EmptyState } from "@/components/page-shell";
 
-export const Route = createFileRoute("/categorias")({
+export const Route = createFileRoute("/admin/categorias")({
   head: () => ({
     meta: [
       { title: "Categorias · VYNKA" },

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ShoppingBag } from "lucide-react";
 import { PageShell, EmptyState } from "@/components/page-shell";
 
-export const Route = createFileRoute("/pedidos")({
+export const Route = createFileRoute("/admin/pedidos")({
   head: () => ({
     meta: [
       { title: "Pedidos · VYNKA" },

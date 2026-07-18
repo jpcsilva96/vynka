@@ -4,7 +4,7 @@ import { StoreFooter } from "@/components/loja/store-footer";
 import { CartDrawer } from "@/components/loja/cart-drawer";
 import { useCartHydration } from "@/lib/cart";
 
-export const Route = createFileRoute("/loja")({
+export const Route = createFileRoute("/loja/$slug")({
   component: LojaLayout,
 });
 

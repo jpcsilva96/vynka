@@ -17,7 +17,7 @@ import {
 import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/produtos/novo")({
+export const Route = createFileRoute("/admin/produtos/novo")({
   head: () => ({
     meta: [
       { title: "Novo produto · VYNKA" },
@@ -97,7 +97,7 @@ function NovoProduto() {
       <div className="sticky top-16 z-10 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-6 py-3 md:px-10">
           <Link
-            to="/produtos"
+            to="/admin/produtos"
             className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
