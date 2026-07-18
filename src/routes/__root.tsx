@@ -7,6 +7,7 @@ import {
   useRouterState,
   HeadContent,
   Scripts,
+  useNavigate,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -14,6 +15,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { StoreProvider, useStoreContext } from "@/lib/store-context";
+import { Loader2 } from "lucide-react";
 
 function NotFoundComponent() {
   return (
@@ -47,9 +50,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-[15px] font-medium tracking-tight text-foreground">
-          Esta página não carregou
-        </h1>
+        <h1 className="text-[15px] font-medium tracking-tight text-foreground">Esta página não carregou</h1>
         <p className="mt-2 text-[13px] text-muted-foreground">
           Algo deu errado. Tente novamente ou volte ao início.
         </p>
@@ -128,21 +129,60 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const isPublicShop = pathname.startsWith("/loja");
-
   return (
     <QueryClientProvider client={queryClient}>
-      {isPublicShop ? (
-        <Outlet />
-      ) : (
-        <SidebarProvider>
-          <div className="flex min-h-svh w-full bg-background">
-            <AppSidebar />
-            <Outlet />
-          </div>
-        </SidebarProvider>
-      )}
+      <StoreProvider>
+        <RouteSwitch />
+      </StoreProvider>
     </QueryClientProvider>
   );
+}
+
+function RouteSwitch() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  const isPublicShop = pathname.startsWith("/loja");
+  const isLogin = pathname === "/login";
+  const isMaster = pathname.startsWith("/master");
+  const isHome = pathname === "/";
+
+  // Rotas públicas / auth / master gerenciam o próprio layout.
+  if (isPublicShop || isLogin || isMaster || isHome) {
+    return <Outlet />;
+  }
+
+  // Rotas administrativas da lojista: sidebar + guard de sessão.
+  return (
+    <LojistaGuard>
+      <SidebarProvider>
+        <div className="flex min-h-svh w-full bg-background">
+          <AppSidebar />
+          <Outlet />
+        </div>
+      </SidebarProvider>
+    </LojistaGuard>
+  );
+}
+
+function LojistaGuard({ children }: { children: ReactNode }) {
+  const { loading, user, memberships } = useStoreContext();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      navigate({ to: "/login", replace: true });
+    } else if (memberships.length === 0) {
+      navigate({ to: "/login", search: { reason: "no-store" }, replace: true });
+    }
+  }, [loading, user, memberships, navigate]);
+
+  if (loading || !user || memberships.length === 0) {
+    return (
+      <div className="grid min-h-svh w-full place-items-center bg-background">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
+      </div>
+    );
+  }
+  return <>{children}</>;
 }

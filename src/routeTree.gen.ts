@@ -12,14 +12,23 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ProdutosRouteImport } from './routes/produtos'
 import { Route as PedidosRouteImport } from './routes/pedidos'
 import { Route as MinhaLojaRouteImport } from './routes/minha-loja'
+import { Route as MasterRouteImport } from './routes/master'
 import { Route as LojaRouteImport } from './routes/loja'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as CategoriasRouteImport } from './routes/categorias'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProdutosIndexRouteImport } from './routes/produtos.index'
+import { Route as MasterIndexRouteImport } from './routes/master.index'
 import { Route as LojaIndexRouteImport } from './routes/loja.index'
 import { Route as ProdutosNovoRouteImport } from './routes/produtos.novo'
+import { Route as MasterUsuariosRouteImport } from './routes/master.usuarios'
+import { Route as MasterPlanosRouteImport } from './routes/master.planos'
+import { Route as MasterLojasRouteImport } from './routes/master.lojas'
+import { Route as MasterLoginRouteImport } from './routes/master.login'
+import { Route as MasterConfiguracoesRouteImport } from './routes/master.configuracoes'
+import { Route as MasterAssinaturasRouteImport } from './routes/master.assinaturas'
 import { Route as LojaProdutoIdRouteImport } from './routes/loja.produto.$id'
 
 const ProdutosRoute = ProdutosRouteImport.update({
@@ -37,9 +46,19 @@ const MinhaLojaRoute = MinhaLojaRouteImport.update({
   path: '/minha-loja',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MasterRoute = MasterRouteImport.update({
+  id: '/master',
+  path: '/master',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LojaRoute = LojaRouteImport.update({
   id: '/loja',
   path: '/loja',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
@@ -67,6 +86,11 @@ const ProdutosIndexRoute = ProdutosIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProdutosRoute,
 } as any)
+const MasterIndexRoute = MasterIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MasterRoute,
+} as any)
 const LojaIndexRoute = LojaIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -76,6 +100,36 @@ const ProdutosNovoRoute = ProdutosNovoRouteImport.update({
   id: '/novo',
   path: '/novo',
   getParentRoute: () => ProdutosRoute,
+} as any)
+const MasterUsuariosRoute = MasterUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterPlanosRoute = MasterPlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterLojasRoute = MasterLojasRouteImport.update({
+  id: '/lojas',
+  path: '/lojas',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterLoginRoute = MasterLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterConfiguracoesRoute = MasterConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterAssinaturasRoute = MasterAssinaturasRouteImport.update({
+  id: '/assinaturas',
+  path: '/assinaturas',
+  getParentRoute: () => MasterRoute,
 } as any)
 const LojaProdutoIdRoute = LojaProdutoIdRouteImport.update({
   id: '/produto/$id',
@@ -88,12 +142,21 @@ export interface FileRoutesByFullPath {
   '/categorias': typeof CategoriasRoute
   '/clientes': typeof ClientesRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/login': typeof LoginRoute
   '/loja': typeof LojaRouteWithChildren
+  '/master': typeof MasterRouteWithChildren
   '/minha-loja': typeof MinhaLojaRoute
   '/pedidos': typeof PedidosRoute
   '/produtos': typeof ProdutosRouteWithChildren
+  '/master/assinaturas': typeof MasterAssinaturasRoute
+  '/master/configuracoes': typeof MasterConfiguracoesRoute
+  '/master/login': typeof MasterLoginRoute
+  '/master/lojas': typeof MasterLojasRoute
+  '/master/planos': typeof MasterPlanosRoute
+  '/master/usuarios': typeof MasterUsuariosRoute
   '/produtos/novo': typeof ProdutosNovoRoute
   '/loja/': typeof LojaIndexRoute
+  '/master/': typeof MasterIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
   '/loja/produto/$id': typeof LojaProdutoIdRoute
 }
@@ -102,10 +165,18 @@ export interface FileRoutesByTo {
   '/categorias': typeof CategoriasRoute
   '/clientes': typeof ClientesRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/login': typeof LoginRoute
   '/minha-loja': typeof MinhaLojaRoute
   '/pedidos': typeof PedidosRoute
+  '/master/assinaturas': typeof MasterAssinaturasRoute
+  '/master/configuracoes': typeof MasterConfiguracoesRoute
+  '/master/login': typeof MasterLoginRoute
+  '/master/lojas': typeof MasterLojasRoute
+  '/master/planos': typeof MasterPlanosRoute
+  '/master/usuarios': typeof MasterUsuariosRoute
   '/produtos/novo': typeof ProdutosNovoRoute
   '/loja': typeof LojaIndexRoute
+  '/master': typeof MasterIndexRoute
   '/produtos': typeof ProdutosIndexRoute
   '/loja/produto/$id': typeof LojaProdutoIdRoute
 }
@@ -115,12 +186,21 @@ export interface FileRoutesById {
   '/categorias': typeof CategoriasRoute
   '/clientes': typeof ClientesRoute
   '/configuracoes': typeof ConfiguracoesRoute
+  '/login': typeof LoginRoute
   '/loja': typeof LojaRouteWithChildren
+  '/master': typeof MasterRouteWithChildren
   '/minha-loja': typeof MinhaLojaRoute
   '/pedidos': typeof PedidosRoute
   '/produtos': typeof ProdutosRouteWithChildren
+  '/master/assinaturas': typeof MasterAssinaturasRoute
+  '/master/configuracoes': typeof MasterConfiguracoesRoute
+  '/master/login': typeof MasterLoginRoute
+  '/master/lojas': typeof MasterLojasRoute
+  '/master/planos': typeof MasterPlanosRoute
+  '/master/usuarios': typeof MasterUsuariosRoute
   '/produtos/novo': typeof ProdutosNovoRoute
   '/loja/': typeof LojaIndexRoute
+  '/master/': typeof MasterIndexRoute
   '/produtos/': typeof ProdutosIndexRoute
   '/loja/produto/$id': typeof LojaProdutoIdRoute
 }
@@ -131,12 +211,21 @@ export interface FileRouteTypes {
     | '/categorias'
     | '/clientes'
     | '/configuracoes'
+    | '/login'
     | '/loja'
+    | '/master'
     | '/minha-loja'
     | '/pedidos'
     | '/produtos'
+    | '/master/assinaturas'
+    | '/master/configuracoes'
+    | '/master/login'
+    | '/master/lojas'
+    | '/master/planos'
+    | '/master/usuarios'
     | '/produtos/novo'
     | '/loja/'
+    | '/master/'
     | '/produtos/'
     | '/loja/produto/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -145,10 +234,18 @@ export interface FileRouteTypes {
     | '/categorias'
     | '/clientes'
     | '/configuracoes'
+    | '/login'
     | '/minha-loja'
     | '/pedidos'
+    | '/master/assinaturas'
+    | '/master/configuracoes'
+    | '/master/login'
+    | '/master/lojas'
+    | '/master/planos'
+    | '/master/usuarios'
     | '/produtos/novo'
     | '/loja'
+    | '/master'
     | '/produtos'
     | '/loja/produto/$id'
   id:
@@ -157,12 +254,21 @@ export interface FileRouteTypes {
     | '/categorias'
     | '/clientes'
     | '/configuracoes'
+    | '/login'
     | '/loja'
+    | '/master'
     | '/minha-loja'
     | '/pedidos'
     | '/produtos'
+    | '/master/assinaturas'
+    | '/master/configuracoes'
+    | '/master/login'
+    | '/master/lojas'
+    | '/master/planos'
+    | '/master/usuarios'
     | '/produtos/novo'
     | '/loja/'
+    | '/master/'
     | '/produtos/'
     | '/loja/produto/$id'
   fileRoutesById: FileRoutesById
@@ -172,7 +278,9 @@ export interface RootRouteChildren {
   CategoriasRoute: typeof CategoriasRoute
   ClientesRoute: typeof ClientesRoute
   ConfiguracoesRoute: typeof ConfiguracoesRoute
+  LoginRoute: typeof LoginRoute
   LojaRoute: typeof LojaRouteWithChildren
+  MasterRoute: typeof MasterRouteWithChildren
   MinhaLojaRoute: typeof MinhaLojaRoute
   PedidosRoute: typeof PedidosRoute
   ProdutosRoute: typeof ProdutosRouteWithChildren
@@ -201,11 +309,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MinhaLojaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/master': {
+      id: '/master'
+      path: '/master'
+      fullPath: '/master'
+      preLoaderRoute: typeof MasterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/loja': {
       id: '/loja'
       path: '/loja'
       fullPath: '/loja'
       preLoaderRoute: typeof LojaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/configuracoes': {
@@ -243,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProdutosIndexRouteImport
       parentRoute: typeof ProdutosRoute
     }
+    '/master/': {
+      id: '/master/'
+      path: '/'
+      fullPath: '/master/'
+      preLoaderRoute: typeof MasterIndexRouteImport
+      parentRoute: typeof MasterRoute
+    }
     '/loja/': {
       id: '/loja/'
       path: '/'
@@ -256,6 +385,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/produtos/novo'
       preLoaderRoute: typeof ProdutosNovoRouteImport
       parentRoute: typeof ProdutosRoute
+    }
+    '/master/usuarios': {
+      id: '/master/usuarios'
+      path: '/usuarios'
+      fullPath: '/master/usuarios'
+      preLoaderRoute: typeof MasterUsuariosRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/planos': {
+      id: '/master/planos'
+      path: '/planos'
+      fullPath: '/master/planos'
+      preLoaderRoute: typeof MasterPlanosRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/lojas': {
+      id: '/master/lojas'
+      path: '/lojas'
+      fullPath: '/master/lojas'
+      preLoaderRoute: typeof MasterLojasRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/login': {
+      id: '/master/login'
+      path: '/login'
+      fullPath: '/master/login'
+      preLoaderRoute: typeof MasterLoginRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/configuracoes': {
+      id: '/master/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/master/configuracoes'
+      preLoaderRoute: typeof MasterConfiguracoesRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/assinaturas': {
+      id: '/master/assinaturas'
+      path: '/assinaturas'
+      fullPath: '/master/assinaturas'
+      preLoaderRoute: typeof MasterAssinaturasRouteImport
+      parentRoute: typeof MasterRoute
     }
     '/loja/produto/$id': {
       id: '/loja/produto/$id'
@@ -279,6 +450,29 @@ const LojaRouteChildren: LojaRouteChildren = {
 
 const LojaRouteWithChildren = LojaRoute._addFileChildren(LojaRouteChildren)
 
+interface MasterRouteChildren {
+  MasterAssinaturasRoute: typeof MasterAssinaturasRoute
+  MasterConfiguracoesRoute: typeof MasterConfiguracoesRoute
+  MasterLoginRoute: typeof MasterLoginRoute
+  MasterLojasRoute: typeof MasterLojasRoute
+  MasterPlanosRoute: typeof MasterPlanosRoute
+  MasterUsuariosRoute: typeof MasterUsuariosRoute
+  MasterIndexRoute: typeof MasterIndexRoute
+}
+
+const MasterRouteChildren: MasterRouteChildren = {
+  MasterAssinaturasRoute: MasterAssinaturasRoute,
+  MasterConfiguracoesRoute: MasterConfiguracoesRoute,
+  MasterLoginRoute: MasterLoginRoute,
+  MasterLojasRoute: MasterLojasRoute,
+  MasterPlanosRoute: MasterPlanosRoute,
+  MasterUsuariosRoute: MasterUsuariosRoute,
+  MasterIndexRoute: MasterIndexRoute,
+}
+
+const MasterRouteWithChildren =
+  MasterRoute._addFileChildren(MasterRouteChildren)
+
 interface ProdutosRouteChildren {
   ProdutosNovoRoute: typeof ProdutosNovoRoute
   ProdutosIndexRoute: typeof ProdutosIndexRoute
@@ -298,7 +492,9 @@ const rootRouteChildren: RootRouteChildren = {
   CategoriasRoute: CategoriasRoute,
   ClientesRoute: ClientesRoute,
   ConfiguracoesRoute: ConfiguracoesRoute,
+  LoginRoute: LoginRoute,
   LojaRoute: LojaRouteWithChildren,
+  MasterRoute: MasterRouteWithChildren,
   MinhaLojaRoute: MinhaLojaRoute,
   PedidosRoute: PedidosRoute,
   ProdutosRoute: ProdutosRouteWithChildren,

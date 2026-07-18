@@ -88,7 +88,6 @@ export const skuKey = (options: Record<string, string>) =>
     .map((k) => `${k}:${options[k]}`)
     .join("|");
 
-/** Gera todas as combinações de variações a partir das opções. */
 export function generateVariants(
   options: ProductOption[],
   existing: ProductVariant[] = [],
@@ -139,7 +138,6 @@ export async function uploadProductImage(file: File): Promise<ProductImage> {
     upsert: false,
   });
   if (error) throw error;
-  // Bucket privado — usamos signed URL longa (10 anos) para o protótipo.
   const { data, error: sErr } = await supabase.storage
     .from("product-images")
     .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
@@ -147,44 +145,49 @@ export async function uploadProductImage(file: File): Promise<ProductImage> {
   return { url: data.signedUrl, storage_path: path, position: 0 };
 }
 
-export async function listCategories(): Promise<Category[]> {
+export async function listCategories(storeId: string): Promise<Category[]> {
   const { data, error } = await supabase
     .from("categories")
-    .select("id, name, slug, position")
-    .order("position");
+    .select("id, name, slug, display_order")
+    .eq("store_id", storeId)
+    .order("display_order");
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((c) => ({ id: c.id, name: c.name, slug: c.slug, position: c.display_order }));
 }
 
-export async function listProducts(): Promise<ProductRecord[]> {
+export async function listProducts(storeId: string): Promise<ProductRecord[]> {
   const { data, error } = await supabase
     .from("products")
     .select(
       `id, name, description, category_id, price, promo_price, featured, status, created_at, updated_at,
-       category:categories(id,name,slug,position),
+       category:categories(id,name,slug,display_order),
        product_images(url,position),
        product_variants(id)`,
     )
+    .eq("store_id", storeId)
     .order("updated_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((p) => {
-    const images = (p.product_images ?? []).slice().sort((a, b) => a.position - b.position);
+  return (data ?? []).map((p: any) => {
+    const images = (p.product_images ?? []).slice().sort((a: any, b: any) => a.position - b.position);
     return {
       ...p,
-      category: p.category ?? null,
+      category: p.category
+        ? { id: p.category.id, name: p.category.name, slug: p.category.slug, position: p.category.display_order }
+        : null,
       primary_image: images[0]?.url ?? null,
       variant_count: p.product_variants?.length ?? 0,
     } as ProductRecord;
   });
 }
 
-export async function createProduct(form: ProductFormState): Promise<string> {
+export async function createProduct(storeId: string, form: ProductFormState): Promise<string> {
   const priceNum = Number(form.price.replace(",", ".")) || 0;
   const promo = form.promo_price ? Number(form.promo_price.replace(",", ".")) : null;
 
   const { data: prod, error } = await supabase
     .from("products")
     .insert({
+      store_id: storeId,
       name: form.name || "Produto sem nome",
       description: form.description,
       category_id: form.category_id,
@@ -228,6 +231,7 @@ export async function createProduct(form: ProductFormState): Promise<string> {
   if (form.variants.length) {
     await supabase.from("product_variants").insert(
       form.variants.map((v, i) => ({
+        store_id: storeId,
         product_id: productId,
         options: v.options,
         sku_key: v.sku_key,
