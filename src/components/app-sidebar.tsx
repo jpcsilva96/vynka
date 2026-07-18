@@ -1,0 +1,117 @@
+import { Link, useRouterState } from "@tanstack/react-router";
+import {
+  LayoutDashboard,
+  Package,
+  Tags,
+  ShoppingBag,
+  Users,
+  Store,
+  Settings,
+} from "lucide-react";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { VynkaLogo } from "@/components/vynka-logo";
+
+const primary = [
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Produtos", url: "/produtos", icon: Package },
+  { title: "Categorias", url: "/categorias", icon: Tags },
+  { title: "Pedidos", url: "/pedidos", icon: ShoppingBag },
+  { title: "Clientes", url: "/clientes", icon: Users },
+];
+
+const workspace = [
+  { title: "Minha Loja", url: "/minha-loja", icon: Store },
+  { title: "Configurações", url: "/configuracoes", icon: Settings },
+];
+
+export function AppSidebar() {
+  const currentPath = useRouterState({ select: (r) => r.location.pathname });
+  const isActive = (path: string) =>
+    path === "/" ? currentPath === "/" : currentPath.startsWith(path);
+
+  return (
+    <Sidebar collapsible="icon" className="border-r-0">
+      <SidebarHeader className="h-16 justify-center px-5">
+        <Link to="/" className="flex items-center">
+          <VynkaLogo variant="dark" />
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent className="px-3">
+        <SidebarGroup>
+          <SidebarGroupLabel className="px-2 text-[10px] font-medium uppercase tracking-[0.18em] text-white/40">
+            Gestão
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {primary.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
+                    tooltip={item.title}
+                    className="h-10 rounded-md text-white/70 hover:bg-white/5 hover:text-white data-[active=true]:bg-white/10 data-[active=true]:text-white data-[active=true]:font-medium"
+                  >
+                    <Link to={item.url}>
+                      <item.icon strokeWidth={1.5} className="h-4 w-4" />
+                      <span className="text-[13px]">{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup className="mt-2">
+          <SidebarGroupLabel className="px-2 text-[10px] font-medium uppercase tracking-[0.18em] text-white/40">
+            Loja
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {workspace.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
+                    tooltip={item.title}
+                    className="h-10 rounded-md text-white/70 hover:bg-white/5 hover:text-white data-[active=true]:bg-white/10 data-[active=true]:text-white data-[active=true]:font-medium"
+                  >
+                    <Link to={item.url}>
+                      <item.icon strokeWidth={1.5} className="h-4 w-4" />
+                      <span className="text-[13px]">{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="px-5 py-4">
+        <div className="flex items-center gap-3">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10 text-[11px] font-medium text-white">
+            AL
+          </div>
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+            <div className="truncate text-[13px] text-white">Ana Lima</div>
+            <div className="truncate text-[11px] text-white/40">Minha loja</div>
+          </div>
+        </div>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
