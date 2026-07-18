@@ -25,6 +25,7 @@ import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPreviewRouteImport } from './routes/admin.preview'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminOnboardingRouteImport } from './routes/admin.onboarding'
 import { Route as AdminMinhaLojaRouteImport } from './routes/admin.minha-loja'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
@@ -114,6 +115,11 @@ const AdminPedidosRoute = AdminPedidosRouteImport.update({
   path: '/pedidos',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOnboardingRoute = AdminOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMinhaLojaRoute = AdminMinhaLojaRouteImport.update({
   id: '/minha-loja',
   path: '/minha-loja',
@@ -164,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/minha-loja': typeof AdminMinhaLojaRoute
+  '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/preview': typeof AdminPreviewRoute
   '/admin/produtos': typeof AdminProdutosRouteWithChildren
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/minha-loja': typeof AdminMinhaLojaRoute
+  '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/preview': typeof AdminPreviewRoute
   '/master/assinaturas': typeof MasterAssinaturasRoute
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
   '/admin/minha-loja': typeof AdminMinhaLojaRoute
+  '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/preview': typeof AdminPreviewRoute
   '/admin/produtos': typeof AdminProdutosRouteWithChildren
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/configuracoes'
     | '/admin/minha-loja'
+    | '/admin/onboarding'
     | '/admin/pedidos'
     | '/admin/preview'
     | '/admin/produtos'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/configuracoes'
     | '/admin/minha-loja'
+    | '/admin/onboarding'
     | '/admin/pedidos'
     | '/admin/preview'
     | '/master/assinaturas'
@@ -289,6 +300,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/configuracoes'
     | '/admin/minha-loja'
+    | '/admin/onboarding'
     | '/admin/pedidos'
     | '/admin/preview'
     | '/admin/produtos'
@@ -429,6 +441,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPedidosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/onboarding': {
+      id: '/admin/onboarding'
+      path: '/onboarding'
+      fullPath: '/admin/onboarding'
+      preLoaderRoute: typeof AdminOnboardingRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/minha-loja': {
       id: '/admin/minha-loja'
       path: '/minha-loja'
@@ -507,6 +526,7 @@ interface AdminRouteChildren {
   AdminClientesRoute: typeof AdminClientesRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
   AdminMinhaLojaRoute: typeof AdminMinhaLojaRoute
+  AdminOnboardingRoute: typeof AdminOnboardingRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminPreviewRoute: typeof AdminPreviewRoute
   AdminProdutosRoute: typeof AdminProdutosRouteWithChildren
@@ -518,6 +538,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminClientesRoute: AdminClientesRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRoute,
   AdminMinhaLojaRoute: AdminMinhaLojaRoute,
+  AdminOnboardingRoute: AdminOnboardingRoute,
   AdminPedidosRoute: AdminPedidosRoute,
   AdminPreviewRoute: AdminPreviewRoute,
   AdminProdutosRoute: AdminProdutosRouteWithChildren,
