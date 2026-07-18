@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -101,7 +102,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap",
       },
     ],
   }),
@@ -127,15 +128,21 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isPublicShop = pathname.startsWith("/loja");
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <div className="flex min-h-svh w-full bg-background">
-          <AppSidebar />
-          <Outlet />
-        </div>
-      </SidebarProvider>
+      {isPublicShop ? (
+        <Outlet />
+      ) : (
+        <SidebarProvider>
+          <div className="flex min-h-svh w-full bg-background">
+            <AppSidebar />
+            <Outlet />
+          </div>
+        </SidebarProvider>
+      )}
     </QueryClientProvider>
   );
 }
