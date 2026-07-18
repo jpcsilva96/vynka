@@ -14,6 +14,7 @@ import {
   type ProductFormState,
   type ProductStatus,
 } from "@/lib/products";
+import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/produtos/novo")({
