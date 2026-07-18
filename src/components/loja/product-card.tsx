@@ -4,6 +4,7 @@ import { addToCart, buildWhatsAppLink, openCart } from "@/lib/cart";
 import { WhatsAppIcon } from "./store-header";
 import { formatBRL } from "@/lib/products";
 import { isNew, isOnSale, type PublicProduct } from "@/lib/public-shop";
+import { useStorefront } from "@/lib/storefront-context";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function ProductCard({ product, size = "sm" }: Props) {
+  const { slug } = useStorefront();
   const sale = isOnSale(product);
   const showNew = isNew(product.created_at);
   const displayPrice = sale ? product.promo_price! : product.price;
@@ -111,11 +113,12 @@ export function ProductCard({ product, size = "sm" }: Props) {
 }
 
 export function FeaturedProductCard({ product }: { product: PublicProduct }) {
+  const { slug } = useStorefront();
   const sale = isOnSale(product);
   return (
     <Link
-      to="/loja/produto/$id"
-      params={{ id: product.id }}
+      to="/loja/$slug/produto/$id"
+      params={{ slug, id: product.id }}
       className="group block"
     >
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-neutral-100">
