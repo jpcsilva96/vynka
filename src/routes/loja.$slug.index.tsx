@@ -15,6 +15,7 @@ export const Route = createFileRoute("/loja/$slug/")({
 
 function LojaIndex() {
   const store = useStorefront();
+  const slug = store.slug;
   const { data: products = [] } = useQuery({
     queryKey: ["public-products", store.id],
     queryFn: () => listActiveProducts(store.id),
@@ -60,6 +61,7 @@ function LojaIndex() {
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link
                     to="/loja/$slug"
+                    params={{ slug }}
                     hash="novidades"
                     className="inline-flex items-center gap-2 border border-white bg-white px-8 py-3.5 text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-900 transition-colors hover:bg-transparent hover:text-white"
                   >
@@ -67,6 +69,7 @@ function LojaIndex() {
                   </Link>
                   <Link
                     to="/loja/$slug"
+                    params={{ slug }}
                     hash="categorias"
                     className="inline-flex items-center gap-2 border border-white/70 px-8 py-3.5 text-[11px] font-medium uppercase tracking-[0.24em] text-white transition-colors hover:bg-white hover:text-neutral-900"
                   >
@@ -91,6 +94,7 @@ function LojaIndex() {
               <Link
                 key={c.id}
                 to="/loja/$slug"
+                params={{ slug }}
                 hash="novidades"
                 className="group relative block aspect-[4/5] overflow-hidden bg-neutral-100"
               >
