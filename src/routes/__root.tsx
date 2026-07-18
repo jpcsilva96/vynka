@@ -85,20 +85,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "VYNKA é a plataforma SaaS minimalista para criar seu catálogo digital e vender pelo site ou WhatsApp em minutos.",
+          "VYNKA é a plataforma SaaS para criar seu catálogo digital e vender pelo site ou WhatsApp em minutos.",
       },
       { name: "author", content: "VYNKA" },
       { property: "og:title", content: "VYNKA — Plataforma de catálogos de vendas" },
       {
         property: "og:description",
-        content: "Crie sua loja online em minutos. Simples para quem usa. Poderoso para quem vende.",
+        content: "VYNKA é a plataforma SaaS para criar seu catálogo digital e vender pelo site ou WhatsApp em minutos.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "VYNKA — Plataforma de catálogos de vendas" },
+      { name: "twitter:description", content: "VYNKA é a plataforma SaaS para criar seu catálogo digital e vender pelo site ou WhatsApp em minutos." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/504bb0b1-8c0c-47d2-9cc0-c4ca019202fe/id-preview-62a326ff--4efbd71c-8ed7-406a-b231-bc22ad703d8d.lovable.app-1784342808819.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/504bb0b1-8c0c-47d2-9cc0-c4ca019202fe/id-preview-62a326ff--4efbd71c-8ed7-406a-b231-bc22ad703d8d.lovable.app-1784342808819.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {

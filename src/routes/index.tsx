@@ -10,7 +10,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "VYNKA é a plataforma SaaS minimalista para criar seu catálogo digital e vender pelo site ou WhatsApp em minutos.",
+          "VYNKA é a plataforma SaaS para criar seu catálogo digital e vender pelo site ou WhatsApp em minutos.",
       },
     ],
   }),
