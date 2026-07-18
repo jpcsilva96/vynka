@@ -6,19 +6,21 @@ import {
   openCart,
   useCartTotals,
   buildWhatsAppLink,
-  STORE_NAME,
 } from "@/lib/cart";
+import { useStorefront } from "@/lib/storefront-context";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { label: "Início", to: "/loja", exact: true },
-  { label: "Novidades", to: "/loja", hash: "novidades" },
-  { label: "Categorias", to: "/loja", hash: "categorias" },
-  { label: "Promoções", to: "/loja", hash: "promocoes" },
-  { label: "Contato", to: "/loja", hash: "contato" },
+const NAV: { label: string; hash?: string }[] = [
+  { label: "Início" },
+  { label: "Novidades", hash: "novidades" },
+  { label: "Categorias", hash: "categorias" },
+  { label: "Promoções", hash: "promocoes" },
+  { label: "Contato", hash: "contato" },
 ];
 
 export function StoreHeader() {
+  const store = useStorefront();
+  const slug = store.slug;
   const { count } = useCartTotals();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
