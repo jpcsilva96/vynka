@@ -10,20 +10,22 @@ import { StorefrontProvider } from "@/lib/storefront-context";
 
 export const Route = createFileRoute("/loja/$slug")({
   component: LojaLayout,
-  notFoundComponent: () => (
+  notFoundComponent: () => <StoreMessage title="Loja não encontrada" message="Verifique o endereço ou volte ao início." />,
+});
+
+function StoreMessage({ title, message }: { title: string; message: string }) {
+  return (
     <div className="grid min-h-svh place-items-center bg-white px-6 text-center font-sans">
       <div>
-        <h1 className="font-serif text-4xl font-light text-neutral-900">Loja não encontrada</h1>
-        <p className="mt-2 text-[13px] text-neutral-600">
-          Verifique o endereço ou volte ao início.
-        </p>
+        <h1 className="font-serif text-4xl font-light text-neutral-900">{title}</h1>
+        <p className="mt-2 text-[13px] text-neutral-600">{message}</p>
         <Link to="/" className="mt-6 inline-block text-[12px] uppercase tracking-[0.2em] underline">
           Ir ao início
         </Link>
       </div>
     </div>
-  ),
-});
+  );
+}
 
 function LojaLayout() {
   const { slug } = Route.useParams();
@@ -41,8 +43,13 @@ function LojaLayout() {
       </div>
     );
   }
-  if (isError || !store) {
-    throw notFound();
+  if (isError || !store) throw notFound();
+
+  if (store.status === "suspended" || store.status === "cancelled") {
+    return <StoreMessage title="Loja indisponível" message="Esta loja não está aceitando pedidos no momento." />;
+  }
+  if (store.publication_status !== "published") {
+    return <StoreMessage title="Loja indisponível" message="Este catálogo ainda não está publicado." />;
   }
 
   return (

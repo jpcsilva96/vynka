@@ -7,6 +7,7 @@ import {
   Users,
   Store,
   Settings,
+  Compass,
 } from "lucide-react";
 
 import {
@@ -32,6 +33,7 @@ const primary = [
 ];
 
 const workspace = [
+  { title: "Configuração inicial", url: "/admin/onboarding", icon: Compass },
   { title: "Minha Loja", url: "/admin/minha-loja", icon: Store },
   { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
 ];
