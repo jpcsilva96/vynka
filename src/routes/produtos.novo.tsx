@@ -32,9 +32,12 @@ const DRAFT_KEY = "vynka:product-draft";
 function NovoProduto() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { currentStore } = useStoreContext();
+  const storeId = currentStore?.id ?? "";
   const { data: categories = [] } = useQuery({
-    queryKey: ["categories"],
-    queryFn: listCategories,
+    queryKey: ["categories", storeId],
+    queryFn: () => listCategories(storeId),
+    enabled: !!storeId,
   });
 
   const [form, setForm] = useState<ProductFormState>(() => {
@@ -68,11 +71,15 @@ function NovoProduto() {
   const patch = (p: Partial<ProductFormState>) => setForm((f) => ({ ...f, ...p }));
 
   const handleSave = async (nextStatus?: ProductStatus) => {
+    if (!storeId) {
+      alert("Nenhuma loja ativa. Faça login novamente.");
+      return;
+    }
     setSaving(true);
     try {
-      await createProduct({ ...form, status: nextStatus ?? form.status });
+      await createProduct(storeId, { ...form, status: nextStatus ?? form.status });
       window.localStorage.removeItem(DRAFT_KEY);
-      qc.invalidateQueries({ queryKey: ["products"] });
+      qc.invalidateQueries({ queryKey: ["products", storeId] });
       navigate({ to: "/produtos" });
     } catch (e) {
       console.error(e);

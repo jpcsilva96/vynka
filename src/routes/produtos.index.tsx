@@ -17,6 +17,7 @@ import {
   formatBRL,
   type ProductStatus,
 } from "@/lib/products";
+import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/produtos/")({
@@ -39,13 +40,17 @@ const statusTabs: { key: "all" | ProductStatus; label: string }[] = [
 type Order = "recent" | "name-asc" | "price-asc" | "price-desc";
 
 function ProdutosPage() {
+  const { currentStore } = useStoreContext();
+  const storeId = currentStore?.id ?? "";
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: listProducts,
+    queryKey: ["products", storeId],
+    queryFn: () => listProducts(storeId),
+    enabled: !!storeId,
   });
   const { data: categories = [] } = useQuery({
-    queryKey: ["categories"],
-    queryFn: listCategories,
+    queryKey: ["categories", storeId],
+    queryFn: () => listCategories(storeId),
+    enabled: !!storeId,
   });
 
   const [query, setQuery] = useState("");

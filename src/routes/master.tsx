@@ -11,14 +11,14 @@ export const Route = createFileRoute("/master")({
   component: MasterLayout,
 });
 
-const NAV = [
+const NAV: { to: string; label: string; icon: any; exact?: boolean }[] = [
   { to: "/master", label: "Dashboard", icon: BarChart3, exact: true },
   { to: "/master/lojas", label: "Lojas", icon: Store },
   { to: "/master/usuarios", label: "Usuários", icon: Users },
   { to: "/master/planos", label: "Planos", icon: Package },
   { to: "/master/assinaturas", label: "Assinaturas", icon: CreditCard },
   { to: "/master/configuracoes", label: "Configurações", icon: Settings },
-] as const;
+];
 
 function MasterLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
