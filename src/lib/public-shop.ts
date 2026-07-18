@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Category, ProductStatus } from "@/lib/products";
+import type { StorefrontStore } from "@/lib/storefront-context";
 
 export interface PublicProduct {
   id: string;
@@ -63,7 +64,18 @@ function mapProduct(p: any): PublicProduct {
   };
 }
 
-export async function listActiveProducts(): Promise<PublicProduct[]> {
+export async function getStoreBySlug(slug: string): Promise<StorefrontStore | null> {
+  const { data, error } = await supabase
+    .from("stores")
+    .select("id, slug, name, logo_url, whatsapp, status")
+    .eq("slug", slug)
+    .in("status", ["trial", "active"])
+    .maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+}
+
+export async function listActiveProducts(storeId: string): Promise<PublicProduct[]> {
   const { data, error } = await supabase
     .from("products")
     .select(
@@ -71,20 +83,26 @@ export async function listActiveProducts(): Promise<PublicProduct[]> {
        category:categories(id,name,slug,position),
        product_images(url,position)`,
     )
+    .eq("store_id", storeId)
     .eq("status", "active")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(mapProduct);
 }
 
-export async function listPublicCategories(): Promise<
-  (Category & { cover_url: string | null; count: number })[]
-> {
+export async function listPublicCategories(
+  storeId: string,
+): Promise<(Category & { cover_url: string | null; count: number })[]> {
   const [cats, prods] = await Promise.all([
-    supabase.from("categories").select("id, name, slug, position").order("position"),
+    supabase
+      .from("categories")
+      .select("id, name, slug, position")
+      .eq("store_id", storeId)
+      .order("position"),
     supabase
       .from("products")
       .select(`id, category_id, product_images(url,position)`)
+      .eq("store_id", storeId)
       .eq("status", "active"),
   ]);
   if (cats.error) throw cats.error;
@@ -106,7 +124,10 @@ export async function listPublicCategories(): Promise<
   });
 }
 
-export async function getPublicProduct(id: string): Promise<PublicProductDetail | null> {
+export async function getPublicProduct(
+  storeId: string,
+  id: string,
+): Promise<PublicProductDetail | null> {
   const { data, error } = await supabase
     .from("products")
     .select(
@@ -116,6 +137,7 @@ export async function getPublicProduct(id: string): Promise<PublicProductDetail 
        product_options(id,name,position,product_option_values(id,value,position)),
        product_variants(id,options,sku_key,price,image_url,available)`,
     )
+    .eq("store_id", storeId)
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
@@ -145,6 +167,7 @@ export async function getPublicProduct(id: string): Promise<PublicProductDetail 
 }
 
 export async function listRelatedProducts(
+  storeId: string,
   categoryId: string | null,
   excludeId: string,
   limit = 4,
@@ -156,6 +179,7 @@ export async function listRelatedProducts(
        category:categories(id,name,slug,position),
        product_images(url,position)`,
     )
+    .eq("store_id", storeId)
     .eq("status", "active")
     .neq("id", excludeId)
     .limit(limit);
