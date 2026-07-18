@@ -128,15 +128,21 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isPublicShop = pathname.startsWith("/loja");
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <div className="flex min-h-svh w-full bg-background">
-          <AppSidebar />
-          <Outlet />
-        </div>
-      </SidebarProvider>
+      {isPublicShop ? (
+        <Outlet />
+      ) : (
+        <SidebarProvider>
+          <div className="flex min-h-svh w-full bg-background">
+            <AppSidebar />
+            <Outlet />
+          </div>
+        </SidebarProvider>
+      )}
     </QueryClientProvider>
   );
 }
