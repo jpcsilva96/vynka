@@ -95,8 +95,8 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   } — ${formatBRL(displayPrice)} × ${qty}`;
 
   const { data: related = [] } = useQuery({
-    queryKey: ["related", product.id, product.category?.id],
-    queryFn: () => listRelatedProducts(product.category?.id ?? null, product.id, 4),
+    queryKey: ["related", store.id, product.id, product.category?.id],
+    queryFn: () => listRelatedProducts(store.id, product.category?.id ?? null, product.id, 4),
   });
 
   return (
