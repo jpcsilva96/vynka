@@ -82,7 +82,7 @@ export function StoreFooter() {
             <li className="flex items-start gap-2">
               <WhatsAppIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-500" />
               <a
-                href={buildWhatsAppLink(`Olá ${STORE_NAME}!`)}
+                href={waHref}
                 target="_blank"
                 rel="noreferrer"
                 className="transition-colors hover:text-black"
