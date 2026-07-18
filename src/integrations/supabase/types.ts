@@ -652,9 +652,19 @@ export type Database = {
       }
       stores: {
         Row: {
+          accepts_site_orders: boolean
+          accepts_whatsapp_orders: boolean
           address: string | null
+          banner_cta: string | null
+          banner_subtitle: string | null
+          banner_title: string | null
           banner_url: string | null
+          business_hours: string | null
+          city: string | null
+          combine_delivery_whatsapp: boolean
           created_at: string
+          delivery_available: boolean
+          delivery_notes: string | null
           description: string | null
           email: string | null
           facebook: string | null
@@ -662,20 +672,40 @@ export type Database = {
           instagram: string | null
           logo_url: string | null
           name: string
+          og_image_url: string | null
+          onboarding_completed_at: string | null
+          onboarding_current_step: number
+          onboarding_status: Database["public"]["Enums"]["onboarding_status"]
           phone: string | null
+          pickup_available: boolean
           plan_id: string | null
+          publication_status: Database["public"]["Enums"]["publication_status"]
+          published_at: string | null
+          segment: string | null
           slug: string
+          state: string | null
           status: Database["public"]["Enums"]["store_status"]
           subscription_ends_at: string | null
           tiktok: string | null
           trial_ends_at: string | null
           updated_at: string
           whatsapp: string | null
+          zip_code: string | null
         }
         Insert: {
+          accepts_site_orders?: boolean
+          accepts_whatsapp_orders?: boolean
           address?: string | null
+          banner_cta?: string | null
+          banner_subtitle?: string | null
+          banner_title?: string | null
           banner_url?: string | null
+          business_hours?: string | null
+          city?: string | null
+          combine_delivery_whatsapp?: boolean
           created_at?: string
+          delivery_available?: boolean
+          delivery_notes?: string | null
           description?: string | null
           email?: string | null
           facebook?: string | null
@@ -683,20 +713,40 @@ export type Database = {
           instagram?: string | null
           logo_url?: string | null
           name: string
+          og_image_url?: string | null
+          onboarding_completed_at?: string | null
+          onboarding_current_step?: number
+          onboarding_status?: Database["public"]["Enums"]["onboarding_status"]
           phone?: string | null
+          pickup_available?: boolean
           plan_id?: string | null
+          publication_status?: Database["public"]["Enums"]["publication_status"]
+          published_at?: string | null
+          segment?: string | null
           slug: string
+          state?: string | null
           status?: Database["public"]["Enums"]["store_status"]
           subscription_ends_at?: string | null
           tiktok?: string | null
           trial_ends_at?: string | null
           updated_at?: string
           whatsapp?: string | null
+          zip_code?: string | null
         }
         Update: {
+          accepts_site_orders?: boolean
+          accepts_whatsapp_orders?: boolean
           address?: string | null
+          banner_cta?: string | null
+          banner_subtitle?: string | null
+          banner_title?: string | null
           banner_url?: string | null
+          business_hours?: string | null
+          city?: string | null
+          combine_delivery_whatsapp?: boolean
           created_at?: string
+          delivery_available?: boolean
+          delivery_notes?: string | null
           description?: string | null
           email?: string | null
           facebook?: string | null
@@ -704,15 +754,25 @@ export type Database = {
           instagram?: string | null
           logo_url?: string | null
           name?: string
+          og_image_url?: string | null
+          onboarding_completed_at?: string | null
+          onboarding_current_step?: number
+          onboarding_status?: Database["public"]["Enums"]["onboarding_status"]
           phone?: string | null
+          pickup_available?: boolean
           plan_id?: string | null
+          publication_status?: Database["public"]["Enums"]["publication_status"]
+          published_at?: string | null
+          segment?: string | null
           slug?: string
+          state?: string | null
           status?: Database["public"]["Enums"]["store_status"]
           subscription_ends_at?: string | null
           tiktok?: string | null
           trial_ends_at?: string | null
           updated_at?: string
           whatsapp?: string | null
+          zip_code?: string | null
         }
         Relationships: [
           {
@@ -793,6 +853,7 @@ export type Database = {
     }
     Enums: {
       member_role: "owner" | "admin" | "seller"
+      onboarding_status: "not_started" | "in_progress" | "completed"
       order_source: "website" | "whatsapp" | "manual"
       order_status:
         | "pending"
@@ -802,6 +863,7 @@ export type Database = {
         | "cancelled"
       platform_role: "platform_owner" | "super_admin" | "support"
       product_status: "active" | "draft" | "archived"
+      publication_status: "draft" | "published" | "unpublished" | "suspended"
       store_status: "trial" | "active" | "suspended" | "cancelled"
       subscription_status:
         | "trial"
@@ -937,6 +999,7 @@ export const Constants = {
   public: {
     Enums: {
       member_role: ["owner", "admin", "seller"],
+      onboarding_status: ["not_started", "in_progress", "completed"],
       order_source: ["website", "whatsapp", "manual"],
       order_status: [
         "pending",
@@ -947,6 +1010,7 @@ export const Constants = {
       ],
       platform_role: ["platform_owner", "super_admin", "support"],
       product_status: ["active", "draft", "archived"],
+      publication_status: ["draft", "published", "unpublished", "suspended"],
       store_status: ["trial", "active", "suspended", "cancelled"],
       subscription_status: [
         "trial",

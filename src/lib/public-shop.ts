@@ -64,15 +64,17 @@ function mapProduct(p: any): PublicProduct {
   };
 }
 
+const STOREFRONT_COLUMNS =
+  "id,slug,name,description,logo_url,banner_url,og_image_url,banner_title,banner_subtitle,banner_cta,whatsapp,email,instagram,address,city,state,business_hours,status,publication_status";
+
 export async function getStoreBySlug(slug: string): Promise<StorefrontStore | null> {
   const { data, error } = await supabase
     .from("stores")
-    .select("id, slug, name, logo_url, whatsapp, status")
+    .select(STOREFRONT_COLUMNS)
     .eq("slug", slug)
-    .in("status", ["trial", "active"])
     .maybeSingle();
   if (error) throw error;
-  return data ?? null;
+  return (data as unknown as StorefrontStore) ?? null;
 }
 
 export async function listActiveProducts(storeId: string): Promise<PublicProduct[]> {

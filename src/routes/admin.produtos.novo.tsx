@@ -80,7 +80,7 @@ function NovoProduto() {
       await createProduct(storeId, { ...form, status: nextStatus ?? form.status });
       window.localStorage.removeItem(DRAFT_KEY);
       qc.invalidateQueries({ queryKey: ["products", storeId] });
-      navigate({ to: "/produtos" });
+      navigate({ to: "/admin/produtos" });
     } catch (e) {
       console.error(e);
       alert("Não foi possível salvar o produto.");

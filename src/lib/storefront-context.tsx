@@ -4,9 +4,22 @@ export interface StorefrontStore {
   id: string;
   slug: string;
   name: string;
+  description: string | null;
   logo_url: string | null;
+  banner_url: string | null;
+  og_image_url: string | null;
+  banner_title: string | null;
+  banner_subtitle: string | null;
+  banner_cta: string | null;
   whatsapp: string | null;
+  email: string | null;
+  instagram: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  business_hours: string | null;
   status: string;
+  publication_status: "draft" | "published" | "unpublished" | "suspended";
 }
 
 const Ctx = createContext<StorefrontStore | null>(null);
