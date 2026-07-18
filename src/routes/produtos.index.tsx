@@ -19,7 +19,7 @@ import {
 } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/produtos")({
+export const Route = createFileRoute("/produtos/")({
   head: () => ({
     meta: [
       { title: "Produtos · VYNKA" },
