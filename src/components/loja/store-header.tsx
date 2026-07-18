@@ -50,7 +50,8 @@ export function StoreHeader() {
           {NAV.map((n) => (
             <Link
               key={n.label}
-              to={n.to}
+              to="/loja/$slug"
+              params={{ slug }}
               hash={n.hash}
               className="text-[12px] font-medium uppercase tracking-[0.18em] text-neutral-700 transition-colors hover:text-black"
             >
@@ -75,7 +76,7 @@ export function StoreHeader() {
             )}
           </IconButton>
           <a
-            href={buildWhatsAppLink(`Olá ${STORE_NAME}! Gostaria de mais informações.`)}
+            href={buildWhatsAppLink(`Olá ${store.name}! Gostaria de mais informações.`, store.whatsapp)}
             target="_blank"
             rel="noreferrer"
             className="ml-1 hidden items-center gap-2 rounded-full border border-black/10 px-3.5 py-1.5 text-[12px] font-medium text-neutral-800 transition-colors hover:border-black hover:text-black md:inline-flex"
@@ -103,7 +104,8 @@ export function StoreHeader() {
             {NAV.map((n) => (
               <Link
                 key={n.label}
-                to={n.to}
+                to="/loja/$slug"
+                params={{ slug }}
                 hash={n.hash}
                 onClick={() => setMobileOpen(false)}
                 className="py-3 text-[13px] font-medium uppercase tracking-[0.18em] text-neutral-800"
