@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type MemberRole = "owner" | "admin" | "seller";
 export type StoreStatus = "trial" | "active" | "suspended" | "cancelled";
+export type OnboardingStatus = "not_started" | "in_progress" | "completed";
+export type PublicationStatus = "draft" | "published" | "unpublished" | "suspended";
 
 export interface StoreSummary {
   id: string;
@@ -12,6 +14,10 @@ export interface StoreSummary {
   status: StoreStatus;
   logo_url: string | null;
   plan_id: string | null;
+  onboarding_status: OnboardingStatus;
+  onboarding_current_step: number;
+  publication_status: PublicationStatus;
+  published_at: string | null;
 }
 
 export interface Membership {
@@ -35,6 +41,9 @@ interface Ctx {
 
 const StoreContext = createContext<Ctx | null>(null);
 
+const STORE_COLUMNS =
+  "id,name,slug,status,logo_url,plan_id,onboarding_status,onboarding_current_step,publication_status,published_at";
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
@@ -53,7 +62,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const [{ data: mem }, { data: plat }] = await Promise.all([
         supabase
           .from("store_members")
-          .select("id, store_id, role, active, store:stores(id,name,slug,status,logo_url,plan_id)")
+          .select(`id, store_id, role, active, store:stores(${STORE_COLUMNS})`)
           .eq("user_id", u.id)
           .eq("active", true),
         supabase
