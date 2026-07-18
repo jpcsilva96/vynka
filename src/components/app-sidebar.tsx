@@ -44,7 +44,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarHeader className="h-16 justify-center px-5">
-        <Link to="/" className="flex items-center">
+        <Link to="/admin" className="flex items-center">
           <VynkaLogo variant="dark" />
         </Link>
       </SidebarHeader>

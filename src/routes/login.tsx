@@ -36,7 +36,7 @@ function LoginPage() {
   // já autenticada e com loja → vai pro painel
   useEffect(() => {
     if (!ctxLoading && user && memberships.length > 0) {
-      navigate({ to: "/", replace: true });
+      navigate({ to: "/admin", replace: true });
     }
   }, [ctxLoading, user, memberships, navigate]);
 
@@ -64,7 +64,7 @@ function LoginPage() {
         throw new Error("Sua loja está suspensa ou cancelada. Entre em contato com a VYNKA.");
       }
       await refresh();
-      navigate({ to: "/", replace: true });
+      navigate({ to: "/admin", replace: true });
     } catch (err: any) {
       setError(err?.message ?? "Não foi possível entrar. Verifique suas credenciais.");
       if (!remember) await supabase.auth.signOut();
