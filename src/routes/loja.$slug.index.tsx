@@ -7,41 +7,28 @@ import {
   listPublicCategories,
   isOnSale,
 } from "@/lib/public-shop";
-import { STORE_NAME } from "@/lib/cart";
+import { useStorefront } from "@/lib/storefront-context";
 
 export const Route = createFileRoute("/loja/$slug/")({
-  head: () => ({
-    meta: [
-      { title: `${STORE_NAME} — Coleção` },
-      {
-        name: "description",
-        content:
-          "Peças essenciais, seleção cuidadosa. Descubra a nova coleção VYNKA.",
-      },
-      { property: "og:title", content: `${STORE_NAME} — Coleção` },
-      {
-        property: "og:description",
-        content: "Peças essenciais, seleção cuidadosa.",
-      },
-    ],
-  }),
   component: LojaIndex,
 });
 
 function LojaIndex() {
+  const store = useStorefront();
   const { data: products = [] } = useQuery({
-    queryKey: ["public-products"],
-    queryFn: listActiveProducts,
+    queryKey: ["public-products", store.id],
+    queryFn: () => listActiveProducts(store.id),
   });
   const { data: categories = [] } = useQuery({
-    queryKey: ["public-categories"],
-    queryFn: listPublicCategories,
+    queryKey: ["public-categories", store.id],
+    queryFn: () => listPublicCategories(store.id),
   });
 
   const featured = products.filter((p) => p.featured).slice(0, 3);
   const promos = products.filter(isOnSale);
   const visibleCategories = categories.filter((c) => c.count > 0);
   const hasContent = products.length > 0;
+
 
   return (
     <div>
