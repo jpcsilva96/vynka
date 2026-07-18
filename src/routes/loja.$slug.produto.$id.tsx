@@ -41,7 +41,7 @@ export const Route = createFileRoute("/loja/$slug/produto/$id")({
       <p className="mt-2 text-[13px] text-neutral-600">
         A peça que você procura pode ter saído da coleção.
       </p>
-      <Link to="/loja" className="mt-6 inline-block text-[12px] uppercase tracking-[0.2em] underline">
+      <Link to="/loja/$slug" className="mt-6 inline-block text-[12px] uppercase tracking-[0.2em] underline">
         Voltar à loja
       </Link>
     </div>
@@ -115,7 +115,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
       {/* Breadcrumb */}
       <div className="mx-auto max-w-[1400px] px-6 pt-8 md:px-10">
         <Link
-          to="/loja"
+          to="/loja/$slug"
           className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.22em] text-neutral-500 hover:text-black"
         >
           <ChevronLeft className="h-3 w-3" strokeWidth={1.5} />

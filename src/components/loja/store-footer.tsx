@@ -39,22 +39,22 @@ export function StoreFooter() {
           </div>
           <ul className="mt-5 space-y-3 text-[13px] text-neutral-700">
             <li>
-              <Link to="/loja" className="transition-colors hover:text-black">
+              <Link to="/loja/$slug" className="transition-colors hover:text-black">
                 Início
               </Link>
             </li>
             <li>
-              <Link to="/loja" hash="novidades" className="transition-colors hover:text-black">
+              <Link to="/loja/$slug" hash="novidades" className="transition-colors hover:text-black">
                 Novidades
               </Link>
             </li>
             <li>
-              <Link to="/loja" hash="categorias" className="transition-colors hover:text-black">
+              <Link to="/loja/$slug" hash="categorias" className="transition-colors hover:text-black">
                 Categorias
               </Link>
             </li>
             <li>
-              <Link to="/loja" hash="promocoes" className="transition-colors hover:text-black">
+              <Link to="/loja/$slug" hash="promocoes" className="transition-colors hover:text-black">
                 Promoções
               </Link>
             </li>

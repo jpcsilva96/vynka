@@ -34,8 +34,8 @@ export function ProductCard({ product, size = "sm" }: Props) {
   return (
     <div className="group flex flex-col">
       <Link
-        to="/loja/produto/$id"
-        params={{ id: product.id }}
+        to="/loja/$slug/produto/$id"
+        params={{ slug, id: product.id }}
         className="relative block overflow-hidden bg-neutral-100"
       >
         <div className={cn("relative aspect-[3/4] w-full")}>
@@ -71,8 +71,8 @@ export function ProductCard({ product, size = "sm" }: Props) {
 
       <div className="mt-4 flex flex-col gap-1">
         <Link
-          to="/loja/produto/$id"
-          params={{ id: product.id }}
+          to="/loja/$slug/produto/$id"
+          params={{ slug, id: product.id }}
           className="text-[13px] font-medium text-neutral-900 transition-colors hover:text-black"
         >
           {product.name}

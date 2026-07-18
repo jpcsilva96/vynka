@@ -40,7 +40,7 @@ export function StoreHeader() {
       )}
     >
       <div className="mx-auto grid h-16 max-w-[1400px] grid-cols-[auto_1fr_auto] items-center gap-6 px-6 md:h-20 md:px-10">
-        <Link to="/loja" className="flex items-center gap-3">
+        <Link to="/loja/$slug" className="flex items-center gap-3">
           <VynkaLogo className="h-4 md:h-5" />
         </Link>
 
