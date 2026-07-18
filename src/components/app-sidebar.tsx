@@ -24,16 +24,16 @@ import {
 import { VynkaLogo } from "@/components/vynka-logo";
 
 const primary = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Produtos", url: "/produtos", icon: Package },
-  { title: "Categorias", url: "/categorias", icon: Tags },
-  { title: "Pedidos", url: "/pedidos", icon: ShoppingBag },
-  { title: "Clientes", url: "/clientes", icon: Users },
+  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  { title: "Produtos", url: "/admin/produtos", icon: Package },
+  { title: "Categorias", url: "/admin/categorias", icon: Tags },
+  { title: "Pedidos", url: "/admin/pedidos", icon: ShoppingBag },
+  { title: "Clientes", url: "/admin/clientes", icon: Users },
 ];
 
 const workspace = [
-  { title: "Minha Loja", url: "/minha-loja", icon: Store },
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
+  { title: "Minha Loja", url: "/admin/minha-loja", icon: Store },
+  { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
 ];
 
 export function AppSidebar() {

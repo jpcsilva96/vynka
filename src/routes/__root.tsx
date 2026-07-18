@@ -141,17 +141,12 @@ function RootComponent() {
 function RouteSwitch() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const isPublicShop = pathname.startsWith("/loja");
-  const isLogin = pathname === "/login";
-  const isMaster = pathname.startsWith("/master");
-  const isHome = pathname === "/";
+  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
 
-  // Rotas públicas / auth / master gerenciam o próprio layout.
-  if (isPublicShop || isLogin || isMaster || isHome) {
+  if (!isAdmin) {
     return <Outlet />;
   }
 
-  // Rotas administrativas da lojista: sidebar + guard de sessão.
   return (
     <LojistaGuard>
       <SidebarProvider>
