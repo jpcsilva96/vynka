@@ -105,6 +105,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
       <div className="mx-auto max-w-[1400px] px-6 pt-8 md:px-10">
         <Link
           to="/loja/$slug"
+          params={{ slug }}
           className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.22em] text-neutral-500 hover:text-black"
         >
           <ChevronLeft className="h-3 w-3" strokeWidth={1.5} />
