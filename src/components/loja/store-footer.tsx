@@ -2,9 +2,14 @@ import { Link } from "@tanstack/react-router";
 import { Instagram, Facebook, MapPin, Clock } from "lucide-react";
 import { VynkaLogo } from "@/components/vynka-logo";
 import { WhatsAppIcon } from "./store-header";
-import { buildWhatsAppLink, STORE_NAME } from "@/lib/cart";
+import { buildWhatsAppLink } from "@/lib/cart";
+import { useStorefront } from "@/lib/storefront-context";
 
 export function StoreFooter() {
+  const store = useStorefront();
+  const slug = store.slug;
+  const STORE_NAME = store.name;
+  const waHref = buildWhatsAppLink(`Olá ${STORE_NAME}!`, store.whatsapp);
   return (
     <footer id="contato" className="border-t border-black/[0.06] bg-white">
       <div className="mx-auto grid max-w-[1400px] gap-12 px-6 py-16 md:grid-cols-4 md:px-10 md:py-24">
@@ -25,7 +30,7 @@ export function StoreFooter() {
               <TikTokIcon className="h-4 w-4" />
             </SocialLink>
             <SocialLink
-              href={buildWhatsAppLink(`Olá ${STORE_NAME}!`)}
+              href={waHref}
               label="WhatsApp"
             >
               <WhatsAppIcon className="h-4 w-4" />
@@ -39,22 +44,22 @@ export function StoreFooter() {
           </div>
           <ul className="mt-5 space-y-3 text-[13px] text-neutral-700">
             <li>
-              <Link to="/loja/$slug" className="transition-colors hover:text-black">
+              <Link to="/loja/$slug" params={{ slug }} className="transition-colors hover:text-black">
                 Início
               </Link>
             </li>
             <li>
-              <Link to="/loja/$slug" hash="novidades" className="transition-colors hover:text-black">
+              <Link to="/loja/$slug" params={{ slug }} hash="novidades" className="transition-colors hover:text-black">
                 Novidades
               </Link>
             </li>
             <li>
-              <Link to="/loja/$slug" hash="categorias" className="transition-colors hover:text-black">
+              <Link to="/loja/$slug" params={{ slug }} hash="categorias" className="transition-colors hover:text-black">
                 Categorias
               </Link>
             </li>
             <li>
-              <Link to="/loja/$slug" hash="promocoes" className="transition-colors hover:text-black">
+              <Link to="/loja/$slug" params={{ slug }} hash="promocoes" className="transition-colors hover:text-black">
                 Promoções
               </Link>
             </li>
