@@ -13,27 +13,10 @@ import { formatBRL, skuKey } from "@/lib/products";
 import { addToCart, buildWhatsAppLink, openCart } from "@/lib/cart";
 import { ProductCard } from "@/components/loja/product-card";
 import { WhatsAppIcon } from "@/components/loja/store-header";
+import { useStorefront } from "@/lib/storefront-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/loja/$slug/produto/$id")({
-  head: ({ loaderData }: { loaderData?: { product: PublicProductDetail } }) => ({
-    meta: [
-      { title: loaderData?.product?.name ? `${loaderData.product.name} — VYNKA` : "Produto — VYNKA" },
-      {
-        name: "description",
-        content: loaderData?.product?.description?.replace(/<[^>]+>/g, "").slice(0, 155) ??
-          "Descubra esta peça na loja VYNKA.",
-      },
-      ...(loaderData?.product?.primary_image
-        ? [{ property: "og:image", content: loaderData.product.primary_image }]
-        : []),
-    ],
-  }),
-  loader: async ({ params }) => {
-    const product = await getPublicProduct(params.id);
-    if (!product) throw notFound();
-    return { product };
-  },
   component: ProductPage,
   notFoundComponent: () => (
     <div className="mx-auto max-w-md px-6 py-32 text-center">
@@ -41,19 +24,25 @@ export const Route = createFileRoute("/loja/$slug/produto/$id")({
       <p className="mt-2 text-[13px] text-neutral-600">
         A peça que você procura pode ter saído da coleção.
       </p>
-      <Link to="/loja/$slug" className="mt-6 inline-block text-[12px] uppercase tracking-[0.2em] underline">
-        Voltar à loja
-      </Link>
     </div>
   ),
 });
 
 function ProductPage() {
-  const { product } = Route.useLoaderData();
+  const store = useStorefront();
+  const { id } = Route.useParams();
+  const { data: product, isLoading } = useQuery({
+    queryKey: ["public-product", store.id, id],
+    queryFn: () => getPublicProduct(store.id, id),
+  });
+  if (isLoading) return <div className="min-h-[60vh]" />;
+  if (!product) throw notFound();
   return <ProductView product={product} />;
 }
 
 function ProductView({ product }: { product: PublicProductDetail }) {
+  const store = useStorefront();
+  const slug = store.slug;
   const [selected, setSelected] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     for (const o of product.options) if (o.values[0]) init[o.name] = o.values[0].value;
