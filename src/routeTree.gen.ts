@@ -23,11 +23,15 @@ import { Route as MasterConfiguracoesRouteImport } from './routes/master.configu
 import { Route as MasterAssinaturasRouteImport } from './routes/master.assinaturas'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
 import { Route as AdminVenderRouteImport } from './routes/admin.vender'
+import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPreviewRouteImport } from './routes/admin.preview'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminOnboardingRouteImport } from './routes/admin.onboarding'
 import { Route as AdminMinhaLojaRouteImport } from './routes/admin.minha-loja'
+import { Route as AdminHistoricoRouteImport } from './routes/admin.historico'
+import { Route as AdminFinancasRouteImport } from './routes/admin.financas'
+import { Route as AdminEstatisticasRouteImport } from './routes/admin.estatisticas'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
@@ -106,6 +110,11 @@ const AdminVenderRoute = AdminVenderRouteImport.update({
   path: '/vender',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProdutosRoute = AdminProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
@@ -129,6 +138,21 @@ const AdminOnboardingRoute = AdminOnboardingRouteImport.update({
 const AdminMinhaLojaRoute = AdminMinhaLojaRouteImport.update({
   id: '/minha-loja',
   path: '/minha-loja',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminHistoricoRoute = AdminHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFinancasRoute = AdminFinancasRouteImport.update({
+  id: '/financas',
+  path: '/financas',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEstatisticasRoute = AdminEstatisticasRouteImport.update({
+  id: '/estatisticas',
+  path: '/estatisticas',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
@@ -175,11 +199,15 @@ export interface FileRoutesByFullPath {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/estatisticas': typeof AdminEstatisticasRoute
+  '/admin/financas': typeof AdminFinancasRoute
+  '/admin/historico': typeof AdminHistoricoRoute
   '/admin/minha-loja': typeof AdminMinhaLojaRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/preview': typeof AdminPreviewRoute
   '/admin/produtos': typeof AdminProdutosRouteWithChildren
+  '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/vender': typeof AdminVenderRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/master/assinaturas': typeof MasterAssinaturasRoute
@@ -201,10 +229,14 @@ export interface FileRoutesByTo {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/estatisticas': typeof AdminEstatisticasRoute
+  '/admin/financas': typeof AdminFinancasRoute
+  '/admin/historico': typeof AdminHistoricoRoute
   '/admin/minha-loja': typeof AdminMinhaLojaRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/preview': typeof AdminPreviewRoute
+  '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/vender': typeof AdminVenderRoute
   '/master/assinaturas': typeof MasterAssinaturasRoute
   '/master/configuracoes': typeof MasterConfiguracoesRoute
@@ -228,11 +260,15 @@ export interface FileRoutesById {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/estatisticas': typeof AdminEstatisticasRoute
+  '/admin/financas': typeof AdminFinancasRoute
+  '/admin/historico': typeof AdminHistoricoRoute
   '/admin/minha-loja': typeof AdminMinhaLojaRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/preview': typeof AdminPreviewRoute
   '/admin/produtos': typeof AdminProdutosRouteWithChildren
+  '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/vender': typeof AdminVenderRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/master/assinaturas': typeof MasterAssinaturasRoute
@@ -258,11 +294,15 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/configuracoes'
+    | '/admin/estatisticas'
+    | '/admin/financas'
+    | '/admin/historico'
     | '/admin/minha-loja'
     | '/admin/onboarding'
     | '/admin/pedidos'
     | '/admin/preview'
     | '/admin/produtos'
+    | '/admin/usuarios'
     | '/admin/vender'
     | '/loja/$slug'
     | '/master/assinaturas'
@@ -284,10 +324,14 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/configuracoes'
+    | '/admin/estatisticas'
+    | '/admin/financas'
+    | '/admin/historico'
     | '/admin/minha-loja'
     | '/admin/onboarding'
     | '/admin/pedidos'
     | '/admin/preview'
+    | '/admin/usuarios'
     | '/admin/vender'
     | '/master/assinaturas'
     | '/master/configuracoes'
@@ -310,11 +354,15 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/configuracoes'
+    | '/admin/estatisticas'
+    | '/admin/financas'
+    | '/admin/historico'
     | '/admin/minha-loja'
     | '/admin/onboarding'
     | '/admin/pedidos'
     | '/admin/preview'
     | '/admin/produtos'
+    | '/admin/usuarios'
     | '/admin/vender'
     | '/loja/$slug'
     | '/master/assinaturas'
@@ -439,6 +487,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminVenderRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/usuarios': {
+      id: '/admin/usuarios'
+      path: '/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AdminUsuariosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/produtos': {
       id: '/admin/produtos'
       path: '/produtos'
@@ -472,6 +527,27 @@ declare module '@tanstack/react-router' {
       path: '/minha-loja'
       fullPath: '/admin/minha-loja'
       preLoaderRoute: typeof AdminMinhaLojaRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/historico': {
+      id: '/admin/historico'
+      path: '/historico'
+      fullPath: '/admin/historico'
+      preLoaderRoute: typeof AdminHistoricoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/financas': {
+      id: '/admin/financas'
+      path: '/financas'
+      fullPath: '/admin/financas'
+      preLoaderRoute: typeof AdminFinancasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/estatisticas': {
+      id: '/admin/estatisticas'
+      path: '/estatisticas'
+      fullPath: '/admin/estatisticas'
+      preLoaderRoute: typeof AdminEstatisticasRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/configuracoes': {
@@ -544,11 +620,15 @@ interface AdminRouteChildren {
   AdminCategoriasRoute: typeof AdminCategoriasRoute
   AdminClientesRoute: typeof AdminClientesRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
+  AdminEstatisticasRoute: typeof AdminEstatisticasRoute
+  AdminFinancasRoute: typeof AdminFinancasRoute
+  AdminHistoricoRoute: typeof AdminHistoricoRoute
   AdminMinhaLojaRoute: typeof AdminMinhaLojaRoute
   AdminOnboardingRoute: typeof AdminOnboardingRoute
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminPreviewRoute: typeof AdminPreviewRoute
   AdminProdutosRoute: typeof AdminProdutosRouteWithChildren
+  AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminVenderRoute: typeof AdminVenderRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -557,11 +637,15 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCategoriasRoute: AdminCategoriasRoute,
   AdminClientesRoute: AdminClientesRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRoute,
+  AdminEstatisticasRoute: AdminEstatisticasRoute,
+  AdminFinancasRoute: AdminFinancasRoute,
+  AdminHistoricoRoute: AdminHistoricoRoute,
   AdminMinhaLojaRoute: AdminMinhaLojaRoute,
   AdminOnboardingRoute: AdminOnboardingRoute,
   AdminPedidosRoute: AdminPedidosRoute,
   AdminPreviewRoute: AdminPreviewRoute,
   AdminProdutosRoute: AdminProdutosRouteWithChildren,
+  AdminUsuariosRoute: AdminUsuariosRoute,
   AdminVenderRoute: AdminVenderRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
