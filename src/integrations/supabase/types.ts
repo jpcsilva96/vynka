@@ -213,38 +213,62 @@ export type Database = {
       }
       orders: {
         Row: {
+          change_due: number | null
           created_at: string
+          created_by: string | null
           customer_id: string | null
+          discount: number
           id: string
           notes: string | null
+          number: number | null
+          paid_amount: number | null
+          payment_details: Json
+          payment_method: string | null
           source: Database["public"]["Enums"]["order_source"]
           status: Database["public"]["Enums"]["order_status"]
           store_id: string
           subtotal: number
+          surcharge: number
           total: number
           updated_at: string
         }
         Insert: {
+          change_due?: number | null
           created_at?: string
+          created_by?: string | null
           customer_id?: string | null
+          discount?: number
           id?: string
           notes?: string | null
+          number?: number | null
+          paid_amount?: number | null
+          payment_details?: Json
+          payment_method?: string | null
           source?: Database["public"]["Enums"]["order_source"]
           status?: Database["public"]["Enums"]["order_status"]
           store_id: string
           subtotal?: number
+          surcharge?: number
           total?: number
           updated_at?: string
         }
         Update: {
+          change_due?: number | null
           created_at?: string
+          created_by?: string | null
           customer_id?: string | null
+          discount?: number
           id?: string
           notes?: string | null
+          number?: number | null
+          paid_amount?: number | null
+          payment_details?: Json
+          payment_method?: string | null
           source?: Database["public"]["Enums"]["order_source"]
           status?: Database["public"]["Enums"]["order_status"]
           store_id?: string
           subtotal?: number
+          surcharge?: number
           total?: number
           updated_at?: string
         }
