@@ -22,6 +22,7 @@ import { Route as MasterLoginRouteImport } from './routes/master.login'
 import { Route as MasterConfiguracoesRouteImport } from './routes/master.configuracoes'
 import { Route as MasterAssinaturasRouteImport } from './routes/master.assinaturas'
 import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
+import { Route as AdminVenderRouteImport } from './routes/admin.vender'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminPreviewRouteImport } from './routes/admin.preview'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
@@ -100,6 +101,11 @@ const LojaSlugRoute = LojaSlugRouteImport.update({
   path: '/loja/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminVenderRoute = AdminVenderRouteImport.update({
+  id: '/vender',
+  path: '/vender',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProdutosRoute = AdminProdutosRouteImport.update({
   id: '/produtos',
   path: '/produtos',
@@ -174,6 +180,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/preview': typeof AdminPreviewRoute
   '/admin/produtos': typeof AdminProdutosRouteWithChildren
+  '/admin/vender': typeof AdminVenderRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/master/assinaturas': typeof MasterAssinaturasRoute
   '/master/configuracoes': typeof MasterConfiguracoesRoute
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/preview': typeof AdminPreviewRoute
+  '/admin/vender': typeof AdminVenderRoute
   '/master/assinaturas': typeof MasterAssinaturasRoute
   '/master/configuracoes': typeof MasterConfiguracoesRoute
   '/master/login': typeof MasterLoginRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/admin/pedidos': typeof AdminPedidosRoute
   '/admin/preview': typeof AdminPreviewRoute
   '/admin/produtos': typeof AdminProdutosRouteWithChildren
+  '/admin/vender': typeof AdminVenderRoute
   '/loja/$slug': typeof LojaSlugRouteWithChildren
   '/master/assinaturas': typeof MasterAssinaturasRoute
   '/master/configuracoes': typeof MasterConfiguracoesRoute
@@ -254,6 +263,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/preview'
     | '/admin/produtos'
+    | '/admin/vender'
     | '/loja/$slug'
     | '/master/assinaturas'
     | '/master/configuracoes'
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/admin/onboarding'
     | '/admin/pedidos'
     | '/admin/preview'
+    | '/admin/vender'
     | '/master/assinaturas'
     | '/master/configuracoes'
     | '/master/login'
@@ -304,6 +315,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/preview'
     | '/admin/produtos'
+    | '/admin/vender'
     | '/loja/$slug'
     | '/master/assinaturas'
     | '/master/configuracoes'
@@ -420,6 +432,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/vender': {
+      id: '/admin/vender'
+      path: '/vender'
+      fullPath: '/admin/vender'
+      preLoaderRoute: typeof AdminVenderRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/produtos': {
       id: '/admin/produtos'
       path: '/produtos'
@@ -530,6 +549,7 @@ interface AdminRouteChildren {
   AdminPedidosRoute: typeof AdminPedidosRoute
   AdminPreviewRoute: typeof AdminPreviewRoute
   AdminProdutosRoute: typeof AdminProdutosRouteWithChildren
+  AdminVenderRoute: typeof AdminVenderRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -542,6 +562,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminPedidosRoute: AdminPedidosRoute,
   AdminPreviewRoute: AdminPreviewRoute,
   AdminProdutosRoute: AdminProdutosRouteWithChildren,
+  AdminVenderRoute: AdminVenderRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 

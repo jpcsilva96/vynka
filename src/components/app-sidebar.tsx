@@ -1,12 +1,16 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard,
+  ShoppingCart,
+  ClipboardList,
   Package,
-  Tags,
-  ShoppingBag,
+  Globe,
   Users,
-  Store,
+  History,
+  Wallet,
+  BarChart3,
+  UserCog,
   Settings,
+  LayoutDashboard,
   Compass,
 } from "lucide-react";
 
@@ -25,23 +29,27 @@ import {
 import { VynkaLogo } from "@/components/vynka-logo";
 
 const primary = [
-  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  { title: "Vender", url: "/admin/vender", icon: ShoppingCart },
+  { title: "Pedidos", url: "/admin/pedidos", icon: ClipboardList },
   { title: "Produtos", url: "/admin/produtos", icon: Package },
-  { title: "Categorias", url: "/admin/categorias", icon: Tags },
-  { title: "Pedidos", url: "/admin/pedidos", icon: ShoppingBag },
+  { title: "Catálogo Online", url: "/admin/minha-loja", icon: Globe },
   { title: "Clientes", url: "/admin/clientes", icon: Users },
+  { title: "Histórico", url: "/admin/historico", icon: History },
+  { title: "Finanças", url: "/admin/financas", icon: Wallet },
+  { title: "Estatísticas", url: "/admin/estatisticas", icon: BarChart3 },
+  { title: "Usuários", url: "/admin/usuarios", icon: UserCog },
+  { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
 ];
 
 const workspace = [
+  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Configuração inicial", url: "/admin/onboarding", icon: Compass },
-  { title: "Minha Loja", url: "/admin/minha-loja", icon: Store },
-  { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
 ];
 
 export function AppSidebar() {
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (path: string) =>
-    path === "/" ? currentPath === "/" : currentPath.startsWith(path);
+    path === "/admin" ? currentPath === "/admin" : currentPath.startsWith(path);
 
   return (
     <Sidebar collapsible="icon" className="border-r-0">
@@ -54,7 +62,7 @@ export function AppSidebar() {
       <SidebarContent className="px-3">
         <SidebarGroup>
           <SidebarGroupLabel className="px-2 text-[10px] font-medium uppercase tracking-[0.18em] text-white/40">
-            Gestão
+            Operação
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
