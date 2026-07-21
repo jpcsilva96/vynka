@@ -335,23 +335,29 @@ function VenderPage() {
           {/* Summary */}
           <div className="border-t border-border px-5 py-4">
             <SummaryRow label="Subtotal" value={formatBRL(subtotal)} />
-            <AdjustRow
-              label="Desconto"
-              mode={discountMode}
-              onMode={setDiscountMode}
-              value={discountInput}
-              onValue={setDiscountInput}
-              computed={-discount}
-            />
-            <AdjustRow
-              label="Acréscimo"
-              mode={surchargeMode}
-              onMode={setSurchargeMode}
-              value={surchargeInput}
-              onValue={setSurchargeInput}
-              computed={surcharge}
-            />
-            <div className="mt-2 flex items-baseline justify-between border-t border-border pt-3">
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <AdjustButton
+                label="Desconto"
+                amount={discount}
+                sign="minus"
+                onOpen={() => setAdjustModal("discount")}
+                onClear={() => setDiscountInput("")}
+                ctaLabel="Dar desconto"
+                disabled={subtotal <= 0}
+              />
+              <AdjustButton
+                label="Acréscimo"
+                amount={surcharge}
+                sign="plus"
+                onOpen={() => setAdjustModal("surcharge")}
+                onClear={() => setSurchargeInput("")}
+                ctaLabel="Adicionar acréscimo"
+                disabled={subtotal <= 0}
+              />
+            </div>
+
+            <div className="mt-3 flex items-baseline justify-between border-t border-border pt-3">
               <span className="text-[12px] uppercase tracking-[0.16em] text-muted-foreground">
                 Total
               </span>
