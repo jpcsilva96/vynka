@@ -42,6 +42,7 @@ export interface SavePayload {
   paidAmount: number | null;
   changeDue: number | null;
   notes?: string | null;
+  status?: "pending" | "confirmed";
 }
 
 export async function saveSale(p: SavePayload): Promise<SavedSale> {
@@ -53,7 +54,7 @@ export async function saveSale(p: SavePayload): Promise<SavedSale> {
     .insert({
       store_id: p.storeId,
       customer_id: p.customerId,
-      status: "confirmed",
+      status: p.status ?? "confirmed",
       source: "manual",
       subtotal: p.subtotal,
       discount: p.discount,
@@ -69,6 +70,7 @@ export async function saveSale(p: SavePayload): Promise<SavedSale> {
     .select("id, number, created_at")
     .single();
   if (error || !order) throw error ?? new Error("Falha ao registrar a venda.");
+
 
   const rows = p.items.map((i) => ({
     store_id: p.storeId,
