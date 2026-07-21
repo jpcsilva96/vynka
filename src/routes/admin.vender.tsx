@@ -437,6 +437,26 @@ function VenderPage() {
         />
       )}
 
+      {adjustModal && (
+        <AdjustModal
+          kind={adjustModal}
+          subtotal={subtotal}
+          initialMode={adjustModal === "discount" ? discountMode : surchargeMode}
+          initialValue={adjustModal === "discount" ? discountInput : surchargeInput}
+          onClose={() => setAdjustModal(null)}
+          onApply={(mode, value) => {
+            if (adjustModal === "discount") {
+              setDiscountMode(mode);
+              setDiscountInput(value);
+            } else {
+              setSurchargeMode(mode);
+              setSurchargeInput(value);
+            }
+            setAdjustModal(null);
+          }}
+        />
+      )}
+
       {receipt && (
         <ReceiptModal
           sale={receipt}
