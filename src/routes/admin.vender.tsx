@@ -1163,47 +1163,67 @@ function CustomerModal({
   );
 }
 
-// ---------------- Payment modal ----------------
+// ---------------- Checkout (full screen) ----------------
 
-function PaymentModal({
+function CheckoutScreen({
+  items,
+  customer,
+  subtotal,
+  discount,
+  surcharge,
   total,
   saving,
+  onOpenCustomer,
+  onClearCustomer,
+  onOpenDiscount,
+  onClearDiscount,
   onClose,
+  onDiscard,
   onConfirm,
 }: {
+  items: CartLine[];
+  customer: CustomerLite | null;
+  subtotal: number;
+  discount: number;
+  surcharge: number;
   total: number;
   saving: boolean;
+  onOpenCustomer: () => void;
+  onClearCustomer: () => void;
+  onOpenDiscount: () => void;
+  onClearDiscount: () => void;
   onClose: () => void;
+  onDiscard: () => void;
   onConfirm: (
     method: PaymentMethod,
     details: Record<string, unknown>,
     paid: number | null,
     change: number | null,
+    notes: string | null,
+    status: "pending" | "confirmed",
   ) => void;
 }) {
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [cashInput, setCashInput] = useState("");
-  const [note, setNote] = useState("");
   const [installments, setInstallments] = useState("1");
   const [brand, setBrand] = useState("");
   const [otherLabel, setOtherLabel] = useState("");
+  const [note, setNote] = useState("");
+  const [showNoteOnReceipt, setShowNoteOnReceipt] = useState(false);
+  const [itemsOpen, setItemsOpen] = useState(false);
 
   const cashValue = Number(cashInput.replace(",", ".")) || 0;
   const change = method === "cash" ? Math.max(0, cashValue - total) : 0;
   const cashInsufficient = method === "cash" && cashValue < total;
+  const itemCount = items.reduce((s, i) => s + i.quantity, 0);
 
-  const canConfirm = !saving && !cashInsufficient && (method !== "other" || otherLabel.trim());
-
-  const submit = () => {
+  const buildPayload = () => {
     let details: Record<string, unknown> = {};
     let paid: number | null = null;
     let ch: number | null = null;
     if (method === "cash") {
       paid = cashValue;
       ch = change;
-      if (note.trim()) details.note = note.trim();
-    } else if (method === "pix" || method === "transfer") {
-      if (note.trim()) details.note = note.trim();
     } else if (method === "credit") {
       details.installments = Number(installments) || 1;
       if (brand.trim()) details.brand = brand.trim();
@@ -1211,156 +1231,388 @@ function PaymentModal({
       if (brand.trim()) details.brand = brand.trim();
     } else if (method === "other") {
       details.label = otherLabel.trim();
-      if (note.trim()) details.note = note.trim();
     }
-    onConfirm(method, details, paid, ch);
+    if (note.trim()) {
+      details.note = note.trim();
+      details.show_on_receipt = showNoteOnReceipt;
+    }
+    return { details, paid, ch };
   };
 
-  const methods: PaymentMethod[] = ["cash", "pix", "debit", "credit", "transfer", "other"];
+  const canConcluir = !saving && !cashInsufficient && (method !== "other" || otherLabel.trim());
+  const canSalvar = !saving;
+
+  const doConcluir = () => {
+    const { details, paid, ch } = buildPayload();
+    onConfirm(method, details, paid, ch, note.trim() || null, "confirmed");
+  };
+  const doSalvar = () => {
+    const { details, paid, ch } = buildPayload();
+    onConfirm(method, details, paid, ch, note.trim() || null, "pending");
+  };
+
+  const methods: { key: PaymentMethod; label: string }[] = [
+    { key: "cash", label: "Dinheiro" },
+    { key: "debit", label: "Cartão de Débito" },
+    { key: "credit", label: "Cartão de Crédito" },
+    { key: "pix", label: "Pix" },
+    { key: "transfer", label: "Transferência" },
+    { key: "other", label: "Outros" },
+  ];
 
   return (
-    <ModalShell onClose={onClose} title="Pagamento">
-      <div className="mb-4 flex items-baseline justify-between border-b border-border pb-3">
-        <span className="text-[12px] uppercase tracking-[0.18em] text-muted-foreground">
-          Total
-        </span>
-        <span className="text-[22px] font-medium text-foreground">{formatBRL(total)}</span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {methods.map((m) => (
+    <div className="fixed inset-0 z-40 flex flex-col bg-background">
+      <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-xl">
+        <div className="flex h-16 items-center gap-4 px-6">
           <button
-            key={m}
-            onClick={() => setMethod(m)}
-            className={cn(
-              "rounded-md border px-3 py-2 text-[12.5px] transition-colors",
-              method === m
-                ? "border-foreground bg-foreground text-background"
-                : "border-border bg-surface text-foreground hover:border-foreground/40",
-            )}
+            onClick={onClose}
+            aria-label="Voltar"
+            className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            {paymentMethodLabel[m]}
+            <ArrowRight className="h-4 w-4 rotate-180" strokeWidth={1.6} />
           </button>
-        ))}
-      </div>
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-[17px] font-medium text-foreground">Vender</h1>
+            <span className="text-[15px] text-muted-foreground">{formatBRL(total)}</span>
+          </div>
+        </div>
+      </header>
 
-      <div className="mt-4 space-y-3">
-        {method === "cash" && (
-          <>
-            <Field label="Valor recebido">
-              <input
-                autoFocus
-                value={cashInput}
-                onChange={(e) => setCashInput(e.target.value.replace(/[^0-9.,]/g, ""))}
-                placeholder="0,00"
-                inputMode="decimal"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-right text-[14px] outline-none focus:border-foreground/40"
-              />
-            </Field>
-            <div className="flex items-baseline justify-between rounded-md bg-muted px-3 py-2">
-              <span className="text-[12px] text-muted-foreground">Troco</span>
-              <span className="text-[14px] font-medium text-foreground">
-                {formatBRL(change)}
-              </span>
+      <div className="flex-1 overflow-y-auto px-6 py-6 pb-32">
+        <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+          {/* Left column */}
+          <div className="space-y-4">
+            {/* Cliente */}
+            <div className="rounded-lg border border-border bg-surface p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[14px] font-medium text-foreground">Cliente</div>
+                {customer ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={onOpenCustomer}
+                      className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground hover:text-foreground"
+                    >
+                      Alterar
+                    </button>
+                    <button
+                      onClick={onClearCustomer}
+                      aria-label="Remover cliente"
+                      className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={onOpenCustomer}
+                    aria-label="Adicionar cliente"
+                    className="grid h-9 w-9 place-items-center rounded-md bg-foreground text-background hover:bg-graphite"
+                  >
+                    <Plus className="h-4 w-4" strokeWidth={1.8} />
+                  </button>
+                )}
+              </div>
+              {customer && (
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="grid h-9 w-9 place-items-center rounded-full bg-muted text-foreground">
+                    <User className="h-4 w-4" strokeWidth={1.5} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-[13px] font-medium text-foreground">
+                      {customer.name}
+                    </div>
+                    {(customer.phone || customer.email) && (
+                      <div className="truncate text-[11.5px] text-muted-foreground">
+                        {customer.phone ?? customer.email}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-            {cashInsufficient && (
-              <p className="text-[11.5px] text-red-600">
-                Valor recebido menor que o total.
-              </p>
-            )}
-          </>
-        )}
 
-        {(method === "pix" || method === "transfer" || method === "other") && (
-          <>
-            {method === "other" && (
-              <Field label="Descrição">
-                <input
-                  value={otherLabel}
-                  onChange={(e) => setOtherLabel(e.target.value)}
-                  placeholder="Ex: crédito na loja"
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
-                />
-              </Field>
-            )}
-            <Field label="Observação (opcional)">
+            {/* Observação */}
+            <div className="rounded-lg border border-border bg-surface p-5">
+              <div className="text-[14px] font-medium text-foreground">Observação</div>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                rows={2}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
+                rows={3}
+                placeholder="Digite aqui"
+                className="mt-3 w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground focus:border-foreground/40"
               />
-            </Field>
-          </>
-        )}
+              <label className="mt-3 flex cursor-pointer items-center gap-2 text-[12.5px] text-foreground">
+                <input
+                  type="checkbox"
+                  checked={showNoteOnReceipt}
+                  onChange={(e) => setShowNoteOnReceipt(e.target.checked)}
+                  className="h-3.5 w-3.5 rounded border-border"
+                />
+                Exibir no recibo
+              </label>
+            </div>
 
-        {method === "debit" && (
-          <Field label="Bandeira (opcional)">
-            <input
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              placeholder="Visa, Mastercard…"
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
-            />
-          </Field>
-        )}
-
-        {method === "credit" && (
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Parcelas">
-              <select
-                value={installments}
-                onChange={(e) => setInstallments(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
+            {/* Items collapsible */}
+            <div className="overflow-hidden rounded-lg border border-border bg-surface">
+              <button
+                onClick={() => setItemsOpen((v) => !v)}
+                className="flex w-full items-center justify-between px-5 py-4 text-left"
               >
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <option key={i + 1} value={String(i + 1)}>
-                    {i + 1}x
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Bandeira (opcional)">
-              <input
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                placeholder="Visa, Mastercard…"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
-              />
-            </Field>
+                <span className="text-[14px] font-medium text-foreground">
+                  {itemCount} {itemCount === 1 ? "item" : "itens"}
+                </span>
+                <ArrowRight
+                  className={cn(
+                    "h-4 w-4 text-muted-foreground transition-transform",
+                    itemsOpen ? "rotate-90" : "rotate-90",
+                  )}
+                  strokeWidth={1.6}
+                  style={{ transform: itemsOpen ? "rotate(-90deg)" : "rotate(90deg)" }}
+                />
+              </button>
+              {itemsOpen && (
+                <ul className="divide-y divide-border border-t border-border">
+                  {items.map((it) => (
+                    <li key={it.key} className="flex items-center gap-3 px-5 py-3">
+                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                        {it.image ? (
+                          <img src={it.image} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="grid h-full w-full place-items-center text-muted-foreground">
+                            <ImageIcon className="h-3.5 w-3.5" strokeWidth={1.4} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[12.5px] font-medium text-foreground">
+                          {it.product_name}
+                        </div>
+                        {it.variant_name && (
+                          <div className="truncate text-[11px] text-muted-foreground">
+                            {it.variant_name}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-[11.5px] text-muted-foreground">×{it.quantity}</div>
+                      <div className="w-20 text-right text-[12.5px] font-medium text-foreground">
+                        {formatBRL(it.unit_price * it.quantity)}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Right column */}
+          <div className="space-y-4">
+            {/* Resumo */}
+            <div className="rounded-lg border border-border bg-surface p-5">
+              <div className="text-[14px] font-medium text-foreground">Resumo do pedido</div>
+              <div className="mt-4 space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[12.5px] text-muted-foreground">Subtotal de produtos</span>
+                  <span className="text-[13px] text-foreground">{formatBRL(subtotal)}</span>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[12.5px] text-muted-foreground">Descontos</span>
+                  {discount > 0 ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] text-foreground">
+                        -{formatBRL(discount)}
+                      </span>
+                      <button
+                        onClick={onClearDiscount}
+                        aria-label="Remover desconto"
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3 w-3" strokeWidth={1.6} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={onOpenDiscount}
+                      className="text-[12.5px] font-medium text-foreground underline underline-offset-4 hover:text-graphite"
+                    >
+                      Dar desconto
+                    </button>
+                  )}
+                </div>
+                {surcharge > 0 && (
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[12.5px] text-muted-foreground">Acréscimo</span>
+                    <span className="text-[13px] text-foreground">+{formatBRL(surcharge)}</span>
+                  </div>
+                )}
+              </div>
+              <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
+                <span className="text-[13px] font-medium text-foreground">Total</span>
+                <span className="text-[20px] font-medium text-foreground">{formatBRL(total)}</span>
+              </div>
+            </div>
+
+            {/* Payment methods */}
+            <div className="rounded-lg border border-border bg-surface p-5">
+              <div className="text-[14px] font-medium text-foreground">
+                Selecione o meio de pagamento
+              </div>
+              <div className="mt-4 space-y-1">
+                {methods.map((m) => {
+                  const active = method === m.key;
+                  return (
+                    <div key={m.key}>
+                      <button
+                        onClick={() => setMethod(m.key)}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors",
+                          active ? "bg-muted" : "hover:bg-muted/60",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "grid h-4 w-4 place-items-center rounded-full border",
+                            active ? "border-foreground" : "border-border",
+                          )}
+                        >
+                          {active && <span className="h-2 w-2 rounded-full bg-foreground" />}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[13px]",
+                            active ? "font-medium text-foreground" : "text-foreground/80",
+                          )}
+                        >
+                          {m.label}
+                        </span>
+                      </button>
+                      {active && m.key === "cash" && (
+                        <div className="mt-2 px-3 pb-2">
+                          <Field label="Valor recebido">
+                            <input
+                              autoFocus
+                              value={cashInput}
+                              onChange={(e) =>
+                                setCashInput(e.target.value.replace(/[^0-9.,]/g, ""))
+                              }
+                              placeholder={formatBRL(total)}
+                              inputMode="decimal"
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
+                            />
+                          </Field>
+                          <div className="mt-2 flex items-baseline justify-between rounded-md bg-background px-3 py-2">
+                            <span className="text-[12px] text-muted-foreground">Troco</span>
+                            <span className="text-[13px] font-medium text-foreground">
+                              {formatBRL(change)}
+                            </span>
+                          </div>
+                          {cashInsufficient && (
+                            <p className="mt-1 text-[11.5px] text-red-600">
+                              Valor recebido menor que o total.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {active && m.key === "credit" && (
+                        <div className="mt-2 grid grid-cols-2 gap-2 px-3 pb-2">
+                          <Field label="Parcelas">
+                            <select
+                              value={installments}
+                              onChange={(e) => setInstallments(e.target.value)}
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
+                            >
+                              {Array.from({ length: 12 }).map((_, i) => (
+                                <option key={i + 1} value={String(i + 1)}>
+                                  {i + 1}x
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+                          <Field label="Bandeira">
+                            <input
+                              value={brand}
+                              onChange={(e) => setBrand(e.target.value)}
+                              placeholder="Visa, Master…"
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
+                            />
+                          </Field>
+                        </div>
+                      )}
+                      {active && m.key === "debit" && (
+                        <div className="mt-2 px-3 pb-2">
+                          <Field label="Bandeira (opcional)">
+                            <input
+                              value={brand}
+                              onChange={(e) => setBrand(e.target.value)}
+                              placeholder="Visa, Master…"
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
+                            />
+                          </Field>
+                        </div>
+                      )}
+                      {active && m.key === "other" && (
+                        <div className="mt-2 px-3 pb-2">
+                          <Field label="Descrição">
+                            <input
+                              value={otherLabel}
+                              onChange={(e) => setOtherLabel(e.target.value)}
+                              placeholder="Ex: crédito na loja"
+                              className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
+                            />
+                          </Field>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-5 flex justify-end gap-2 border-t border-border pt-3">
-        <button
-          onClick={onClose}
-          className="rounded-md border border-border px-4 py-2 text-[12.5px] text-muted-foreground hover:text-foreground"
-        >
-          Voltar
-        </button>
-        <button
-          disabled={!canConfirm}
-          onClick={submit}
-          className={cn(
-            "inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2 text-[12.5px] font-medium text-primary-foreground",
-            !canConfirm ? "cursor-not-allowed opacity-50" : "hover:bg-graphite",
-          )}
-        >
-          {saving ? (
-            <>
+      {/* Footer actions */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 flex justify-end px-6 pb-6">
+        <div className="pointer-events-auto flex items-center gap-1 rounded-lg border border-border bg-foreground p-1.5 shadow-xl">
+          <button
+            onClick={onDiscard}
+            disabled={saving}
+            className="rounded-md px-4 py-2.5 text-[12.5px] font-medium text-background/80 hover:bg-white/10 hover:text-background disabled:opacity-50"
+          >
+            Descartar venda
+          </button>
+          <button
+            onClick={doSalvar}
+            disabled={!canSalvar}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-md bg-surface px-4 py-2.5 text-[12.5px] font-medium text-foreground transition-colors",
+              !canSalvar ? "cursor-not-allowed opacity-60" : "hover:bg-background",
+            )}
+          >
+            {saving ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
-              Registrando…
-            </>
-          ) : (
-            <>
+            ) : (
+              <Printer className="h-3.5 w-3.5" strokeWidth={1.75} />
+            )}
+            Salvar pedido
+          </button>
+          <button
+            onClick={doConcluir}
+            disabled={!canConcluir}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-[12.5px] font-medium text-primary-foreground transition-colors",
+              !canConcluir ? "cursor-not-allowed opacity-60" : "hover:bg-graphite",
+            )}
+          >
+            {saving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.75} />
+            ) : (
               <Check className="h-3.5 w-3.5" strokeWidth={1.75} />
-              Confirmar venda
-            </>
-          )}
-        </button>
+            )}
+            Concluir venda
+          </button>
+        </div>
       </div>
-    </ModalShell>
+    </div>
   );
 }
 
