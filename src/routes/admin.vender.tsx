@@ -92,6 +92,7 @@ function VenderPage() {
   const [variantModal, setVariantModal] = useState<ProductRecord | null>(null);
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [adjustModal, setAdjustModal] = useState<"discount" | "surcharge" | null>(null);
   const [receipt, setReceipt] = useState<
     | (SavedSale & { snapshot: CompletedSaleSnapshot })
     | null
