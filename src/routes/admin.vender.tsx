@@ -433,10 +433,23 @@ function VenderPage() {
       )}
 
       {paymentOpen && (
-        <PaymentModal
+        <CheckoutScreen
+          items={cart}
+          customer={customer}
+          subtotal={subtotal}
+          discount={discount}
+          surcharge={surcharge}
           total={total}
           saving={saving}
+          onOpenCustomer={() => setCustomerModalOpen(true)}
+          onClearCustomer={() => setCustomer(null)}
+          onOpenDiscount={() => setAdjustModal("discount")}
+          onClearDiscount={() => setDiscountInput("")}
           onClose={() => setPaymentOpen(false)}
+          onDiscard={() => {
+            setPaymentOpen(false);
+            resetSale();
+          }}
           onConfirm={confirmSale}
         />
       )}
