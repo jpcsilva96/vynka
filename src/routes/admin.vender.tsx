@@ -168,6 +168,8 @@ function VenderPage() {
     details: Record<string, unknown>,
     paidAmount: number | null,
     changeDue: number | null,
+    notes: string | null,
+    status: "pending" | "confirmed",
   ) => {
     if (saving) return;
     if (!storeId || !userId) return;
@@ -187,6 +189,8 @@ function VenderPage() {
         paymentDetails: details,
         paidAmount,
         changeDue,
+        notes,
+        status,
       });
       setReceipt({
         ...saved,
