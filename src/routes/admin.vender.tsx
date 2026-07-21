@@ -18,7 +18,7 @@ import {
   Share2,
   ArrowRight,
   Percent,
-  BadgeDollarSign,
+
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useStoreContext } from "@/lib/store-context";
