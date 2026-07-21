@@ -18,7 +18,7 @@ import {
   Share2,
   ArrowRight,
   Percent,
-  BadgeDollarSign,
+
 } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useStoreContext } from "@/lib/store-context";
@@ -92,6 +92,7 @@ function VenderPage() {
   const [variantModal, setVariantModal] = useState<ProductRecord | null>(null);
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [adjustModal, setAdjustModal] = useState<"discount" | "surcharge" | null>(null);
   const [receipt, setReceipt] = useState<
     | (SavedSale & { snapshot: CompletedSaleSnapshot })
     | null
@@ -335,23 +336,29 @@ function VenderPage() {
           {/* Summary */}
           <div className="border-t border-border px-5 py-4">
             <SummaryRow label="Subtotal" value={formatBRL(subtotal)} />
-            <AdjustRow
-              label="Desconto"
-              mode={discountMode}
-              onMode={setDiscountMode}
-              value={discountInput}
-              onValue={setDiscountInput}
-              computed={-discount}
-            />
-            <AdjustRow
-              label="Acréscimo"
-              mode={surchargeMode}
-              onMode={setSurchargeMode}
-              value={surchargeInput}
-              onValue={setSurchargeInput}
-              computed={surcharge}
-            />
-            <div className="mt-2 flex items-baseline justify-between border-t border-border pt-3">
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <AdjustButton
+                label="Desconto"
+                amount={discount}
+                sign="minus"
+                onOpen={() => setAdjustModal("discount")}
+                onClear={() => setDiscountInput("")}
+                ctaLabel="Dar desconto"
+                disabled={subtotal <= 0}
+              />
+              <AdjustButton
+                label="Acréscimo"
+                amount={surcharge}
+                sign="plus"
+                onOpen={() => setAdjustModal("surcharge")}
+                onClear={() => setSurchargeInput("")}
+                ctaLabel="Adicionar acréscimo"
+                disabled={subtotal <= 0}
+              />
+            </div>
+
+            <div className="mt-3 flex items-baseline justify-between border-t border-border pt-3">
               <span className="text-[12px] uppercase tracking-[0.16em] text-muted-foreground">
                 Total
               </span>
@@ -427,6 +434,26 @@ function VenderPage() {
           saving={saving}
           onClose={() => setPaymentOpen(false)}
           onConfirm={confirmSale}
+        />
+      )}
+
+      {adjustModal && (
+        <AdjustModal
+          kind={adjustModal}
+          subtotal={subtotal}
+          initialMode={adjustModal === "discount" ? discountMode : surchargeMode}
+          initialValue={adjustModal === "discount" ? discountInput : surchargeInput}
+          onClose={() => setAdjustModal(null)}
+          onApply={(mode, value) => {
+            if (adjustModal === "discount") {
+              setDiscountMode(mode);
+              setDiscountInput(value);
+            } else {
+              setSurchargeMode(mode);
+              setSurchargeInput(value);
+            }
+            setAdjustModal(null);
+          }}
         />
       )}
 
@@ -676,62 +703,207 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function AdjustRow({
+function AdjustButton({
   label,
-  mode,
-  onMode,
-  value,
-  onValue,
-  computed,
+  amount,
+  sign,
+  onOpen,
+  onClear,
+  ctaLabel,
+  disabled,
 }: {
   label: string;
-  mode: "value" | "percent";
-  onMode: (m: "value" | "percent") => void;
-  value: string;
-  onValue: (v: string) => void;
-  computed: number;
+  amount: number;
+  sign: "minus" | "plus";
+  onOpen: () => void;
+  onClear: () => void;
+  ctaLabel: string;
+  disabled?: boolean;
 }) {
+  const active = amount > 0;
+  if (!active) {
+    return (
+      <button
+        type="button"
+        onClick={onOpen}
+        disabled={disabled}
+        className={cn(
+          "flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border bg-background px-3 py-2 text-[12px] font-medium text-foreground transition-colors",
+          disabled
+            ? "cursor-not-allowed opacity-50"
+            : "hover:border-foreground/40 hover:bg-muted",
+        )}
+      >
+        {sign === "minus" ? (
+          <Percent className="h-3 w-3" strokeWidth={1.75} />
+        ) : (
+          <Plus className="h-3 w-3" strokeWidth={1.75} />
+        )}
+        {ctaLabel}
+      </button>
+    );
+  }
   return (
-    <div className="mt-2 flex items-center gap-2">
-      <span className="w-[70px] shrink-0 text-[12px] text-muted-foreground">{label}</span>
-      <div className="inline-flex overflow-hidden rounded-md border border-border">
-        <button
-          onClick={() => onMode("value")}
-          className={cn(
-            "px-2 py-1 text-[11px]",
-            mode === "value"
-              ? "bg-foreground text-background"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-          aria-label="Valor"
-        >
-          <BadgeDollarSign className="h-3 w-3" strokeWidth={1.6} />
-        </button>
-        <button
-          onClick={() => onMode("percent")}
-          className={cn(
-            "px-2 py-1 text-[11px]",
-            mode === "percent"
-              ? "bg-foreground text-background"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-          aria-label="Percentual"
-        >
-          <Percent className="h-3 w-3" strokeWidth={1.6} />
-        </button>
+    <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex min-w-0 flex-col items-start text-left"
+      >
+        <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          {label}
+        </span>
+        <span className="text-[13px] font-medium text-foreground">
+          {(sign === "minus" ? "-" : "+") + formatBRL(amount)}
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={onClear}
+        aria-label={`Remover ${label.toLowerCase()}`}
+        className="grid h-6 w-6 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+      >
+        <X className="h-3 w-3" strokeWidth={1.75} />
+      </button>
+    </div>
+  );
+}
+
+function AdjustModal({
+  kind,
+  subtotal,
+  initialMode,
+  initialValue,
+  onClose,
+  onApply,
+}: {
+  kind: "discount" | "surcharge";
+  subtotal: number;
+  initialMode: "value" | "percent";
+  initialValue: string;
+  onClose: () => void;
+  onApply: (mode: "value" | "percent", value: string) => void;
+}) {
+  const isDiscount = kind === "discount";
+  const title = isDiscount ? `Desconto sobre: ${formatBRL(subtotal)}` : `Acréscimo sobre: ${formatBRL(subtotal)}`;
+  const [valueInput, setValueInput] = useState(initialMode === "value" ? initialValue : "");
+  const [percentInput, setPercentInput] = useState(initialMode === "percent" ? initialValue : "");
+  const [mode, setMode] = useState<"value" | "percent">(initialMode);
+
+  const parseNum = (s: string) => Number(s.replace(",", ".")) || 0;
+  const valueNum = parseNum(valueInput);
+  const percentNum = parseNum(percentInput);
+  const computed =
+    mode === "value"
+      ? Math.max(0, isDiscount ? Math.min(subtotal, valueNum) : valueNum)
+      : Math.max(0, isDiscount ? Math.min(subtotal, subtotal * (percentNum / 100)) : subtotal * (percentNum / 100));
+
+  const canApply = computed > 0;
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-lg border border-border bg-background shadow-xl"
+      >
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h3 className="text-[14px] font-medium text-foreground">{title}</h3>
+          <button
+            onClick={onClose}
+            aria-label="Fechar"
+            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-3 px-5 py-5">
+          <label
+            className={cn(
+              "flex flex-col gap-1 rounded-md border px-3 py-2 transition-colors",
+              mode === "value" ? "border-foreground" : "border-border",
+            )}
+            onClick={() => setMode("value")}
+          >
+            <span className="text-[11px] text-muted-foreground">
+              {isDiscount ? "Desconto em valor" : "Acréscimo em valor"}
+            </span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-[12px] text-muted-foreground">R$</span>
+              <input
+                autoFocus={initialMode === "value"}
+                value={valueInput}
+                onFocus={() => setMode("value")}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9.,]/g, "");
+                  setValueInput(v);
+                  if (v) setPercentInput("");
+                }}
+                inputMode="decimal"
+                placeholder="0,00"
+                className="w-full min-w-0 bg-transparent text-[16px] font-medium text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+          </label>
+          <label
+            className={cn(
+              "flex flex-col gap-1 rounded-md border px-3 py-2 transition-colors",
+              mode === "percent" ? "border-foreground" : "border-border",
+            )}
+            onClick={() => setMode("percent")}
+          >
+            <span className="text-[11px] text-muted-foreground">
+              {isDiscount ? "Desconto percentual" : "Acréscimo percentual"}
+            </span>
+            <div className="flex items-baseline gap-1">
+              <input
+                autoFocus={initialMode === "percent"}
+                value={percentInput}
+                onFocus={() => setMode("percent")}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^0-9.,]/g, "");
+                  setPercentInput(v);
+                  if (v) setValueInput("");
+                }}
+                inputMode="decimal"
+                placeholder="0,00"
+                className="w-full min-w-0 bg-transparent text-[16px] font-medium text-foreground outline-none placeholder:text-muted-foreground"
+              />
+              <span className="text-[12px] text-muted-foreground">%</span>
+            </div>
+          </label>
+        </div>
+        {computed > 0 && (
+          <div className="mx-5 mb-2 flex items-baseline justify-between rounded-md bg-muted px-3 py-2">
+            <span className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+              {isDiscount ? "Desconto aplicado" : "Acréscimo aplicado"}
+            </span>
+            <span className="text-[13px] font-medium text-foreground">
+              {(isDiscount ? "-" : "+") + formatBRL(computed)}
+            </span>
+          </div>
+        )}
+        <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3">
+          <button
+            onClick={onClose}
+            className="rounded-md px-3 py-2 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => onApply(mode, mode === "value" ? valueInput : percentInput)}
+            disabled={!canApply}
+            className={cn(
+              "rounded-md bg-primary px-4 py-2 text-[12px] font-medium text-primary-foreground transition-colors",
+              canApply ? "hover:bg-graphite" : "cursor-not-allowed opacity-50",
+            )}
+          >
+            Aplicar {isDiscount ? "desconto" : "acréscimo"}
+          </button>
+        </div>
       </div>
-      <input
-        value={value}
-        onChange={(e) => onValue(e.target.value.replace(/[^0-9.,]/g, ""))}
-        placeholder="0"
-        inputMode="decimal"
-        className="w-full min-w-0 rounded-md border border-border bg-background px-2 py-1 text-right text-[12px] outline-none focus:border-foreground/40"
-      />
-      <span className="w-20 shrink-0 text-right text-[12px] text-muted-foreground">
-        {computed === 0
-          ? "—"
-          : (computed < 0 ? "-" : "+") + formatBRL(Math.abs(computed)).replace("R$", "R$ ")}
-      </span>
     </div>
   );
 }
