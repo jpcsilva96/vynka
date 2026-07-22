@@ -1,0 +1,509 @@
+import { supabase } from "@/integrations/supabase/client";
+
+export type ProductStatus = "active" | "draft" | "archived";
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  position: number;
+}
+
+export interface ProductImage {
+  id?: string;
+  url: string;
+  storage_path?: string | null;
+  position: number;
+}
+
+export interface OptionValue {
+  id?: string;
+  value: string;
+  position: number;
+}
+
+export interface ProductOption {
+  id?: string;
+  name: string;
+  position: number;
+  values: OptionValue[];
+}
+
+export interface ProductVariant {
+  id?: string;
+  options: Record<string, string>;
+  sku_key: string;
+  price: number | null;
+  image_url: string | null;
+  available: boolean;
+  stock_quantity: number;
+  position: number;
+}
+
+export interface ProductRecord {
+  id: string;
+  name: string;
+  description: string | null;
+  category_id: string | null;
+  price: number;
+  promo_price: number | null;
+  cost_price: number;
+  featured: boolean;
+  status: ProductStatus;
+  created_at: string;
+  updated_at: string;
+  category?: Category | null;
+  primary_image?: string | null;
+  variant_count?: number;
+}
+
+export interface ProductFormState {
+  id?: string;
+  name: string;
+  description: string;
+  category_id: string | null;
+  price: string;
+  promo_price: string;
+  cost_price: string;
+  featured: boolean;
+  manage_stock: boolean;
+  status: ProductStatus;
+  images: ProductImage[];
+  options: ProductOption[];
+  variants: ProductVariant[];
+}
+
+interface ProductListImageRow {
+  url: string;
+  position: number;
+}
+
+interface ProductListRow extends Omit<
+  ProductRecord,
+  "category" | "primary_image" | "variant_count"
+> {
+  category?: {
+    id: string;
+    name: string;
+    slug: string;
+    display_order: number;
+  } | null;
+  product_images?: ProductListImageRow[] | null;
+  product_variants?: { id: string }[] | null;
+}
+
+interface ProductEditImageRow {
+  id: string;
+  url: string;
+  storage_path: string | null;
+  position: number;
+}
+
+interface ProductEditOptionValueRow {
+  id: string;
+  value: string;
+  position: number;
+}
+
+interface ProductEditOptionRow {
+  id: string;
+  name: string;
+  position: number;
+  product_option_values?: ProductEditOptionValueRow[] | null;
+}
+
+interface ProductEditVariantRow {
+  id: string;
+  options: Record<string, string> | null;
+  sku_key: string;
+  price: number | string | null;
+  image_url: string | null;
+  available: boolean;
+  stock_quantity?: number | null;
+  position: number;
+}
+
+interface ProductEditRow {
+  id: string;
+  name: string | null;
+  description: string | null;
+  category_id: string | null;
+  price: number | string | null;
+  promo_price: number | string | null;
+  cost_price: number | string | null;
+  featured: boolean;
+  manage_stock?: boolean | null;
+  status: ProductStatus;
+  product_images?: ProductEditImageRow[] | null;
+  product_options?: ProductEditOptionRow[] | null;
+  product_variants?: ProductEditVariantRow[] | null;
+}
+
+export const emptyProductForm = (): ProductFormState => ({
+  name: "",
+  description: "",
+  category_id: null,
+  price: "",
+  promo_price: "",
+  cost_price: "",
+  featured: false,
+  manage_stock: false,
+  status: "draft",
+  images: [],
+  options: [],
+  variants: [],
+});
+
+export const skuKey = (options: Record<string, string>) =>
+  Object.keys(options)
+    .sort()
+    .map((k) => `${k}:${options[k]}`)
+    .join("|");
+
+export function generateVariants(
+  options: ProductOption[],
+  existing: ProductVariant[] = [],
+): ProductVariant[] {
+  const clean = options
+    .map((o) => ({
+      name: o.name.trim(),
+      values: o.values.map((v) => v.value.trim()).filter(Boolean),
+    }))
+    .filter((o) => o.name && o.values.length > 0);
+  if (clean.length === 0) return [];
+
+  const combos: Record<string, string>[] = clean.reduce<Record<string, string>[]>((acc, opt) => {
+    if (acc.length === 0) return opt.values.map((v) => ({ [opt.name]: v }));
+    const next: Record<string, string>[] = [];
+    for (const a of acc) for (const v of opt.values) next.push({ ...a, [opt.name]: v });
+    return next;
+  }, []);
+
+  const existingByKey = new Map(existing.map((v) => [v.sku_key, v]));
+  return combos.map((opts, i) => {
+    const key = skuKey(opts);
+    const prev = existingByKey.get(key);
+    return (
+      prev ?? {
+        options: opts,
+        sku_key: key,
+        price: null,
+        image_url: null,
+        available: true,
+        stock_quantity: 0,
+        position: i,
+      }
+    );
+  });
+}
+
+export const formatBRL = (v: number | null | undefined) =>
+  v == null
+    ? "—"
+    : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+const parseMoney = (value: string) => Number(value.replace(",", ".")) || 0;
+
+const moneyToInput = (value: number | string | null | undefined) => {
+  if (value == null) return "";
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return "";
+  return parsed.toFixed(2);
+};
+
+export async function uploadProductImage(file: File): Promise<ProductImage> {
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage.from("product-images").upload(path, file, {
+    contentType: file.type,
+    cacheControl: "31536000",
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data, error: sErr } = await supabase.storage
+    .from("product-images")
+    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  if (sErr || !data) throw sErr ?? new Error("signed url failed");
+  return { url: data.signedUrl, storage_path: path, position: 0 };
+}
+
+export async function listCategories(storeId: string): Promise<Category[]> {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug, display_order")
+    .eq("store_id", storeId)
+    .order("display_order");
+  if (error) throw error;
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    position: c.display_order,
+  }));
+}
+
+export async function listProducts(storeId: string): Promise<ProductRecord[]> {
+  const { data, error } = await supabase
+    .from("products")
+    .select(
+      `id, name, description, category_id, price, promo_price, cost_price, featured, status, created_at, updated_at,
+       category:categories(id,name,slug,display_order),
+       product_images(url,position),
+       product_variants(id)`,
+    )
+    .eq("store_id", storeId)
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as ProductListRow[]).map((p) => {
+    const images = (p.product_images ?? []).slice().sort((a, b) => a.position - b.position);
+    return {
+      ...p,
+      category: p.category
+        ? {
+            id: p.category.id,
+            name: p.category.name,
+            slug: p.category.slug,
+            position: p.category.display_order,
+          }
+        : null,
+      primary_image: images[0]?.url ?? null,
+      variant_count: p.product_variants?.length ?? 0,
+    } as ProductRecord;
+  });
+}
+
+export async function getProductForEdit(
+  storeId: string,
+  productId: string,
+): Promise<ProductFormState | null> {
+  const { data, error } = await supabase
+    .from("products")
+    .select(
+      `id, name, description, category_id, price, promo_price, cost_price, featured, manage_stock, status,
+       product_images(id,url,storage_path,position),
+       product_options(id,name,position,product_option_values(id,value,position)),
+       product_variants(id,options,sku_key,price,image_url,available,stock_quantity,position)`,
+    )
+    .eq("store_id", storeId)
+    .eq("id", productId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  const product = data as ProductEditRow;
+  const images = (product.product_images ?? [])
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map((img, index) => ({
+      id: img.id,
+      url: img.url,
+      storage_path: img.storage_path,
+      position: index,
+    }));
+
+  const options = (product.product_options ?? [])
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map((opt, index) => ({
+      id: opt.id,
+      name: opt.name,
+      position: index,
+      values: (opt.product_option_values ?? [])
+        .slice()
+        .sort((a, b) => a.position - b.position)
+        .map((value, valueIndex) => ({
+          id: value.id,
+          value: value.value,
+          position: valueIndex,
+        })),
+    }));
+
+  const variants = (product.product_variants ?? [])
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map((variant, index) => ({
+      id: variant.id,
+      options: variant.options ?? {},
+      sku_key: variant.sku_key,
+      price: variant.price == null ? null : Number(variant.price),
+      image_url: variant.image_url,
+      available: variant.available,
+      stock_quantity: variant.stock_quantity ?? 0,
+      position: index,
+    }));
+
+  return {
+    id: product.id,
+    name: product.name ?? "",
+    description: product.description ?? "",
+    category_id: product.category_id,
+    price: moneyToInput(product.price),
+    promo_price: moneyToInput(product.promo_price),
+    cost_price: moneyToInput(product.cost_price),
+    featured: product.featured,
+    manage_stock: product.manage_stock ?? false,
+    status: product.status,
+    images,
+    options,
+    variants,
+  };
+}
+
+export async function createProduct(storeId: string, form: ProductFormState): Promise<string> {
+  const priceNum = parseMoney(form.price);
+  const promo = form.promo_price ? parseMoney(form.promo_price) : null;
+  const cost = parseMoney(form.cost_price);
+
+  const { data: prod, error } = await supabase
+    .from("products")
+    .insert({
+      store_id: storeId,
+      name: form.name || "Produto sem nome",
+      description: form.description,
+      category_id: form.category_id,
+      price: priceNum,
+      promo_price: promo,
+      cost_price: cost,
+      featured: form.featured,
+      manage_stock: form.manage_stock,
+      status: form.status,
+    })
+    .select("id")
+    .single();
+  if (error || !prod) throw error;
+  const productId = prod.id as string;
+
+  if (form.images.length) {
+    await supabase.from("product_images").insert(
+      form.images.map((img, i) => ({
+        product_id: productId,
+        url: img.url,
+        storage_path: img.storage_path ?? null,
+        position: i,
+      })),
+    );
+  }
+
+  for (const opt of form.options) {
+    if (!opt.name.trim()) continue;
+    const { data: optRow } = await supabase
+      .from("product_options")
+      .insert({ product_id: productId, name: opt.name.trim(), position: opt.position })
+      .select("id")
+      .single();
+    if (!optRow) continue;
+    const values = opt.values.filter((v) => v.value.trim());
+    if (values.length) {
+      await supabase
+        .from("product_option_values")
+        .insert(
+          values.map((v, i) => ({ option_id: optRow.id, value: v.value.trim(), position: i })),
+        );
+    }
+  }
+
+  if (form.variants.length) {
+    await supabase.from("product_variants").insert(
+      form.variants.map((v, i) => ({
+        store_id: storeId,
+        product_id: productId,
+        options: v.options,
+        sku_key: v.sku_key,
+        price: v.price,
+        image_url: v.image_url,
+        available: v.available,
+        stock_quantity: form.manage_stock ? Math.max(0, v.stock_quantity ?? 0) : 0,
+        position: i,
+      })),
+    );
+  }
+
+  return productId;
+}
+
+export async function updateProduct(
+  storeId: string,
+  productId: string,
+  form: ProductFormState,
+): Promise<void> {
+  const priceNum = parseMoney(form.price);
+  const promo = form.promo_price ? parseMoney(form.promo_price) : null;
+  const cost = parseMoney(form.cost_price);
+
+  const { error } = await supabase
+    .from("products")
+    .update({
+      name: form.name || "Produto sem nome",
+      description: form.description,
+      category_id: form.category_id,
+      price: priceNum,
+      promo_price: promo,
+      cost_price: cost,
+      featured: form.featured,
+      manage_stock: form.manage_stock,
+      status: form.status,
+    })
+    .eq("store_id", storeId)
+    .eq("id", productId);
+  if (error) throw error;
+
+  const [{ error: imageDelete }, { error: variantDelete }, { error: optionDelete }] =
+    await Promise.all([
+      supabase.from("product_images").delete().eq("product_id", productId),
+      supabase.from("product_variants").delete().eq("product_id", productId),
+      supabase.from("product_options").delete().eq("product_id", productId),
+    ]);
+  if (imageDelete || variantDelete || optionDelete) {
+    throw imageDelete ?? variantDelete ?? optionDelete;
+  }
+
+  if (form.images.length) {
+    const { error: imageError } = await supabase.from("product_images").insert(
+      form.images.map((img, i) => ({
+        product_id: productId,
+        url: img.url,
+        storage_path: img.storage_path ?? null,
+        position: i,
+      })),
+    );
+    if (imageError) throw imageError;
+  }
+
+  for (const opt of form.options) {
+    if (!opt.name.trim()) continue;
+    const { data: optRow, error: optError } = await supabase
+      .from("product_options")
+      .insert({ product_id: productId, name: opt.name.trim(), position: opt.position })
+      .select("id")
+      .single();
+    if (optError) throw optError;
+    const values = opt.values.filter((v) => v.value.trim());
+    if (values.length) {
+      const { error: valuesError } = await supabase.from("product_option_values").insert(
+        values.map((v, i) => ({
+          option_id: optRow.id,
+          value: v.value.trim(),
+          position: i,
+        })),
+      );
+      if (valuesError) throw valuesError;
+    }
+  }
+
+  if (form.variants.length) {
+    const { error: variantError } = await supabase.from("product_variants").insert(
+      form.variants.map((v, i) => ({
+        store_id: storeId,
+        product_id: productId,
+        options: v.options,
+        sku_key: v.sku_key,
+        price: v.price,
+        image_url: v.image_url,
+        available: v.available,
+        stock_quantity: form.manage_stock ? Math.max(0, v.stock_quantity ?? 0) : 0,
+        position: i,
+      })),
+    );
+    if (variantError) throw variantError;
+  }
+}
