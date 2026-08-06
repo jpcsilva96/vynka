@@ -15,11 +15,11 @@ function PreviewRoute() {
     <div className="flex min-h-svh flex-1 flex-col bg-background">
       <div className="flex items-center justify-between border-b border-border bg-surface px-6 py-3">
         <Link
-          to="/admin/onboarding"
+          to="/admin/configuracoes"
           className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.5} />
-          Voltar ao onboarding
+          Voltar as configuracoes
         </Link>
         <div className="text-[12px] uppercase tracking-[0.18em] text-muted-foreground">
           Modo de pré-visualização · não publicado

@@ -82,11 +82,8 @@ export async function uploadBranding(
     upsert: false,
   });
   if (error) throw error;
-  const { data, error: sErr } = await supabase.storage
-    .from("store-branding")
-    .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);
-  if (sErr || !data) throw sErr ?? new Error("signed url");
-  return data.signedUrl;
+  const { data } = supabase.storage.from("store-branding").getPublicUrl(path);
+  return data.publicUrl;
 }
 
 export const SEGMENTS = [

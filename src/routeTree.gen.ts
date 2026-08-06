@@ -43,7 +43,12 @@ import { Route as AdminProdutosIndexRouteImport } from './routes/admin.produtos.
 import { Route as AdminProdutosIdRouteImport } from './routes/admin.produtos.$id'
 import { Route as AdminProdutosNovoRouteImport } from './routes/admin.produtos.novo'
 import { Route as LojaSlugIndexRouteImport } from './routes/loja.$slug.index'
+import { Route as LojaSlugCheckoutRouteImport } from './routes/loja.$slug.checkout'
+import { Route as LojaSlugEntrarRouteImport } from './routes/loja.$slug.entrar'
+import { Route as LojaSlugMinhaContaRouteImport } from './routes/loja.$slug.minha-conta'
+import { Route as LojaSlugCategoriaCategorySlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug'
 import { Route as LojaSlugProdutoIdRouteImport } from './routes/loja.$slug.produto.$id'
+import { Route as LojaSlugCategoriaCategorySlugChildSlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug.$childSlug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -215,11 +220,38 @@ const LojaSlugIndexRoute = LojaSlugIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LojaSlugRoute,
 } as any)
+const LojaSlugCheckoutRoute = LojaSlugCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
+const LojaSlugEntrarRoute = LojaSlugEntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
+const LojaSlugMinhaContaRoute = LojaSlugMinhaContaRouteImport.update({
+  id: '/minha-conta',
+  path: '/minha-conta',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
+const LojaSlugCategoriaCategorySlugRoute =
+  LojaSlugCategoriaCategorySlugRouteImport.update({
+    id: '/categoria/$categorySlug',
+    path: '/categoria/$categorySlug',
+    getParentRoute: () => LojaSlugRoute,
+  } as any)
 const LojaSlugProdutoIdRoute = LojaSlugProdutoIdRouteImport.update({
   id: '/produto/$id',
   path: '/produto/$id',
   getParentRoute: () => LojaSlugRoute,
 } as any)
+const LojaSlugCategoriaCategorySlugChildSlugRoute =
+  LojaSlugCategoriaCategorySlugChildSlugRouteImport.update({
+    id: '/$childSlug',
+    path: '/$childSlug',
+    getParentRoute: () => LojaSlugCategoriaCategorySlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -252,11 +284,16 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
+  '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
+  '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
+  '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
   '/admin/historico/': typeof AdminHistoricoIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/produtos/': typeof AdminProdutosIndexRoute
   '/loja/$slug/': typeof LojaSlugIndexRoute
+  '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
+  '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -283,11 +320,16 @@ export interface FileRoutesByTo {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
+  '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
+  '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
+  '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
   '/admin/historico': typeof AdminHistoricoIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/admin/produtos': typeof AdminProdutosIndexRoute
   '/loja/$slug': typeof LojaSlugIndexRoute
+  '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
+  '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -321,11 +363,16 @@ export interface FileRoutesById {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
+  '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
+  '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
+  '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
   '/admin/historico/': typeof AdminHistoricoIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/produtos/': typeof AdminProdutosIndexRoute
   '/loja/$slug/': typeof LojaSlugIndexRoute
+  '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
+  '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -360,11 +407,16 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/loja/$slug/checkout'
+    | '/loja/$slug/entrar'
+    | '/loja/$slug/minha-conta'
     | '/admin/historico/'
     | '/admin/pedidos/'
     | '/admin/produtos/'
     | '/loja/$slug/'
+    | '/loja/$slug/categoria/$categorySlug'
     | '/loja/$slug/produto/$id'
+    | '/loja/$slug/categoria/$categorySlug/$childSlug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -391,11 +443,16 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/loja/$slug/checkout'
+    | '/loja/$slug/entrar'
+    | '/loja/$slug/minha-conta'
     | '/admin/historico'
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/loja/$slug'
+    | '/loja/$slug/categoria/$categorySlug'
     | '/loja/$slug/produto/$id'
+    | '/loja/$slug/categoria/$categorySlug/$childSlug'
   id:
     | '__root__'
     | '/'
@@ -428,11 +485,16 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/loja/$slug/checkout'
+    | '/loja/$slug/entrar'
+    | '/loja/$slug/minha-conta'
     | '/admin/historico/'
     | '/admin/pedidos/'
     | '/admin/produtos/'
     | '/loja/$slug/'
+    | '/loja/$slug/categoria/$categorySlug'
     | '/loja/$slug/produto/$id'
+    | '/loja/$slug/categoria/$categorySlug/$childSlug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -683,12 +745,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugIndexRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/loja/$slug/checkout': {
+      id: '/loja/$slug/checkout'
+      path: '/checkout'
+      fullPath: '/loja/$slug/checkout'
+      preLoaderRoute: typeof LojaSlugCheckoutRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/entrar': {
+      id: '/loja/$slug/entrar'
+      path: '/entrar'
+      fullPath: '/loja/$slug/entrar'
+      preLoaderRoute: typeof LojaSlugEntrarRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/minha-conta': {
+      id: '/loja/$slug/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/loja/$slug/minha-conta'
+      preLoaderRoute: typeof LojaSlugMinhaContaRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/categoria/$categorySlug': {
+      id: '/loja/$slug/categoria/$categorySlug'
+      path: '/categoria/$categorySlug'
+      fullPath: '/loja/$slug/categoria/$categorySlug'
+      preLoaderRoute: typeof LojaSlugCategoriaCategorySlugRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
     '/loja/$slug/produto/$id': {
       id: '/loja/$slug/produto/$id'
       path: '/produto/$id'
       fullPath: '/loja/$slug/produto/$id'
       preLoaderRoute: typeof LojaSlugProdutoIdRouteImport
       parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/categoria/$categorySlug/$childSlug': {
+      id: '/loja/$slug/categoria/$categorySlug/$childSlug'
+      path: '/$childSlug'
+      fullPath: '/loja/$slug/categoria/$categorySlug/$childSlug'
+      preLoaderRoute: typeof LojaSlugCategoriaCategorySlugChildSlugRouteImport
+      parentRoute: typeof LojaSlugCategoriaCategorySlugRoute
     }
   }
 }
@@ -796,13 +893,37 @@ const MasterRouteChildren: MasterRouteChildren = {
 const MasterRouteWithChildren =
   MasterRoute._addFileChildren(MasterRouteChildren)
 
+interface LojaSlugCategoriaCategorySlugRouteChildren {
+  LojaSlugCategoriaCategorySlugChildSlugRoute: typeof LojaSlugCategoriaCategorySlugChildSlugRoute
+}
+
+const LojaSlugCategoriaCategorySlugRouteChildren: LojaSlugCategoriaCategorySlugRouteChildren =
+  {
+    LojaSlugCategoriaCategorySlugChildSlugRoute:
+      LojaSlugCategoriaCategorySlugChildSlugRoute,
+  }
+
+const LojaSlugCategoriaCategorySlugRouteWithChildren =
+  LojaSlugCategoriaCategorySlugRoute._addFileChildren(
+    LojaSlugCategoriaCategorySlugRouteChildren,
+  )
+
 interface LojaSlugRouteChildren {
+  LojaSlugCheckoutRoute: typeof LojaSlugCheckoutRoute
+  LojaSlugEntrarRoute: typeof LojaSlugEntrarRoute
+  LojaSlugMinhaContaRoute: typeof LojaSlugMinhaContaRoute
   LojaSlugIndexRoute: typeof LojaSlugIndexRoute
+  LojaSlugCategoriaCategorySlugRoute: typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   LojaSlugProdutoIdRoute: typeof LojaSlugProdutoIdRoute
 }
 
 const LojaSlugRouteChildren: LojaSlugRouteChildren = {
+  LojaSlugCheckoutRoute: LojaSlugCheckoutRoute,
+  LojaSlugEntrarRoute: LojaSlugEntrarRoute,
+  LojaSlugMinhaContaRoute: LojaSlugMinhaContaRoute,
   LojaSlugIndexRoute: LojaSlugIndexRoute,
+  LojaSlugCategoriaCategorySlugRoute:
+    LojaSlugCategoriaCategorySlugRouteWithChildren,
   LojaSlugProdutoIdRoute: LojaSlugProdutoIdRoute,
 }
 

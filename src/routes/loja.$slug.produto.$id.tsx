@@ -1,29 +1,22 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ChevronLeft, Minus, Plus, Truck, ShieldCheck, RotateCcw } from "lucide-react";
-import {
-  getPublicProduct,
-  listRelatedProducts,
-  isOnSale,
-  isNew,
-  type PublicProductDetail,
-} from "@/lib/public-shop";
-import { formatBRL, skuKey } from "@/lib/products";
-import { addToCart, buildWhatsAppLink, openCart } from "@/lib/cart";
+import { ArrowLeft, Heart, Minus, Plus } from "lucide-react";
 import { ProductCard } from "@/components/loja/product-card";
 import { WhatsAppIcon } from "@/components/loja/store-header";
+import { addToCart, buildWhatsAppLink, openCart } from "@/lib/cart";
+import { listFavoriteProductIds, toggleFavorite, useStoreCustomer } from "@/lib/customer-account";
+import { formatBRL, skuKey } from "@/lib/products";
+import { getPublicProduct, isOnSale, listRelatedProducts, type PublicProductDetail } from "@/lib/public-shop";
 import { useStorefront } from "@/lib/storefront-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/loja/$slug/produto/$id")({
   component: ProductPage,
   notFoundComponent: () => (
-    <div className="mx-auto max-w-md px-6 py-32 text-center">
-      <h1 className="font-serif text-3xl font-light">Produto não encontrado</h1>
-      <p className="mt-2 text-[13px] text-neutral-600">
-        A peça que você procura pode ter saído da coleção.
-      </p>
+    <div className="mx-auto max-w-md px-6 py-24 text-center">
+      <h1 className="text-2xl font-semibold text-black">Produto nao encontrado</h1>
+      <p className="mt-2 text-[13px] text-neutral-500">O produto pode estar indisponivel.</p>
     </div>
   ),
 });
@@ -35,6 +28,7 @@ function ProductPage() {
     queryKey: ["public-product", store.id, id],
     queryFn: () => getPublicProduct(store.id, id),
   });
+
   if (isLoading) return <div className="min-h-[60vh]" />;
   if (!product) throw notFound();
   return <ProductView product={product} />;
@@ -42,155 +36,140 @@ function ProductPage() {
 
 function ProductView({ product }: { product: PublicProductDetail }) {
   const store = useStorefront();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const slug = store.slug;
-  const [selected, setSelected] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    for (const o of product.options) if (o.values[0]) init[o.name] = o.values[0].value;
-    return init;
+  const { data: customer } = useStoreCustomer(store.id);
+  const { data: favoriteIds = [] } = useQuery({
+    queryKey: ["customer-favorites", store.id],
+    queryFn: () => listFavoriteProductIds(store.id),
+    enabled: !!customer,
   });
+  const [selected, setSelected] = useState<Record<string, string>>(() => initialSelection(product));
   const [qty, setQty] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
 
   const currentVariant = useMemo(() => {
     if (product.options.length === 0) return null;
-    const key = skuKey(selected);
-    return product.variants.find((v) => v.sku_key === key) ?? null;
+    if (!product.options.every((option) => selected[option.name])) return null;
+    return product.variants.find((variant) => variant.sku_key === skuKey(selected)) ?? null;
   }, [product, selected]);
 
   const sale = isOnSale(product);
-  const displayPrice = currentVariant?.price ?? (sale ? product.promo_price! : product.price);
-
+  const price = currentVariant?.price ?? (sale ? product.promo_price! : product.price);
+  const canBuy = product.options.length === 0 || (!!currentVariant && currentVariant.available && currentVariant.stock_quantity > 0);
   const images = product.images.length ? product.images : [{ url: "", position: 0 }];
-  const primary =
-    currentVariant?.image_url ?? images[activeImage]?.url ?? product.primary_image ?? "";
+  const image = currentVariant?.image_url || images[activeImage]?.url || product.primary_image || "";
+  const variantLabel = product.options.length ? Object.entries(selected).map(([key, value]) => `${key}: ${value}`).join(" / ") : null;
+  const favorite = favoriteIds.includes(product.id);
 
-  const variantLabel = product.options.length
-    ? Object.entries(selected)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join(" · ")
-    : null;
+  const { data: related = [] } = useQuery({
+    queryKey: ["related-products", store.id, product.id, product.category?.id],
+    queryFn: () => listRelatedProducts(store.id, product.category?.id ?? null, product.id, 4),
+  });
 
   const handleAdd = () => {
+    if (!canBuy) return;
     addToCart({
       key: `${product.id}::${skuKey(selected) || "default"}`,
       productId: product.id,
       variantId: currentVariant?.id ?? null,
       name: product.name,
       variantLabel,
-      image: primary || null,
-      price: displayPrice,
+      image: image || null,
+      price,
       quantity: qty,
     });
     openCart();
   };
 
-  const waText = `Olá! Tenho interesse em: ${product.name}${
-    variantLabel ? ` (${variantLabel})` : ""
-  } — ${formatBRL(displayPrice)} × ${qty}`;
+  const handleFavorite = async () => {
+    if (!customer) {
+      navigate({ to: "/loja/$slug/entrar", params: { slug } });
+      return;
+    }
+    await toggleFavorite(store.id, product.id);
+    await queryClient.invalidateQueries({ queryKey: ["customer-favorites", store.id] });
+    await queryClient.invalidateQueries({ queryKey: ["customer-favorite-products", store.id] });
+  };
 
-  const { data: related = [] } = useQuery({
-    queryKey: ["related", store.id, product.id, product.category?.id],
-    queryFn: () => listRelatedProducts(store.id, product.category?.id ?? null, product.id, 4),
-  });
+  const waText = `Ola! Tenho interesse em ${product.name}${variantLabel ? ` (${variantLabel})` : ""} - ${formatBRL(price)} x ${qty}`;
 
   return (
     <div>
-      {/* Breadcrumb */}
-      <div className="mx-auto max-w-[1400px] px-6 pt-8 md:px-10">
-        <Link
-          to="/loja/$slug"
-          params={{ slug }}
-          className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.22em] text-neutral-500 hover:text-black"
-        >
-          <ChevronLeft className="h-3 w-3" strokeWidth={1.5} />
-          Voltar
+      <div className="mx-auto max-w-[1280px] px-4 py-8 md:px-8">
+        <Link to="/loja/$slug" params={{ slug }} className="inline-flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.16em] text-neutral-500 hover:text-black">
+          <ArrowLeft className="h-4 w-4" /> Voltar
         </Link>
       </div>
 
-      <div className="mx-auto grid max-w-[1400px] gap-10 px-6 pb-24 pt-8 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:gap-16 md:px-10 md:pb-32">
-        {/* Galeria */}
-        <section className="flex flex-col-reverse gap-4 md:flex-row">
-          <div className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible">
-            {images.map((img, i) => (
+      <section className="mx-auto grid max-w-[1280px] gap-10 px-4 pb-16 md:grid-cols-[1.1fr_0.9fr] md:px-8">
+        <div className="grid gap-3 md:grid-cols-[84px_1fr]">
+          <div className="order-2 flex gap-2 overflow-x-auto md:order-1 md:flex-col">
+            {images.map((item, index) => (
               <button
-                key={i}
-                onClick={() => setActiveImage(i)}
-                className={cn(
-                  "h-20 w-16 shrink-0 overflow-hidden bg-neutral-100 md:h-24 md:w-20",
-                  activeImage === i ? "outline outline-1 outline-black" : "",
-                )}
+                key={`${item.url}-${index}`}
+                type="button"
+                onClick={() => setActiveImage(index)}
+                className={cn("h-20 w-16 shrink-0 overflow-hidden border bg-neutral-100", activeImage === index ? "border-black" : "border-transparent")}
               >
-                {img.url && <img src={img.url} alt="" className="h-full w-full object-contain" />}
+                {item.url && <img src={item.url} alt="" className="h-full w-full object-cover" />}
               </button>
             ))}
           </div>
-          <div className="relative flex-1 overflow-hidden bg-neutral-100">
-            <div className="relative aspect-[4/5] w-full">
-              {primary ? (
-                <img src={primary} alt={product.name} className="h-full w-full object-contain" />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-neutral-100 to-neutral-200" />
-              )}
-              {isNew(product.created_at) && (
-                <span className="absolute left-4 top-4 bg-white px-2 py-1 text-[10px] font-medium uppercase tracking-[0.18em]">
-                  Novo
-                </span>
-              )}
+          <div className="order-1 bg-neutral-100 md:order-2">
+            <div className="aspect-[4/5]">
+              {image ? <img src={image} alt={product.name} className="h-full w-full object-cover" /> : <div className="h-full w-full" />}
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Info */}
-        <section className="md:sticky md:top-28 md:self-start">
-          {product.category?.name && (
-            <div className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">
-              {product.category.name}
+        <aside className="md:sticky md:top-24 md:self-start">
+          {product.category?.name && <div className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">{product.category.name}</div>}
+          <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight text-black md:text-5xl">{product.name}</h1>
+          <button
+            type="button"
+            onClick={handleFavorite}
+            className="mt-5 inline-flex items-center gap-2 border border-black/10 px-4 py-2 text-[12px] font-medium uppercase tracking-[0.14em] text-neutral-700 hover:border-black hover:text-black"
+          >
+            <Heart className={favorite ? "h-4 w-4 fill-current" : "h-4 w-4"} />
+            {favorite ? "Favorito" : "Favoritar"}
+          </button>
+          {store.catalog_visual.show_price && (
+            <div className="mt-5 flex items-baseline gap-3">
+              <span className="text-xl font-semibold text-black">{formatBRL(price)}</span>
+              {sale && !currentVariant?.price && <span className="text-[14px] text-neutral-400 line-through">{formatBRL(product.price)}</span>}
             </div>
           )}
-          <h1 className="mt-3 font-serif text-[36px] font-light leading-[1.05] tracking-tight text-neutral-900 md:text-[44px]">
-            {product.name}
-          </h1>
-          <div className="mt-4 flex items-baseline gap-3">
-            <span className="text-[20px] text-neutral-900">{formatBRL(displayPrice)}</span>
-            {sale && !currentVariant?.price && (
-              <span className="text-[14px] text-neutral-400 line-through">
-                {formatBRL(product.price)}
-              </span>
-            )}
-          </div>
-
           {product.description && (
-            <div
-              className="prose prose-neutral mt-6 max-w-none text-[14px] leading-relaxed text-neutral-700 [&_h3]:font-serif [&_h3]:text-[16px]"
-              dangerouslySetInnerHTML={{ __html: product.description }}
-            />
+            <div className="mt-6 text-[14px] leading-relaxed text-neutral-600" dangerouslySetInnerHTML={{ __html: product.description }} />
           )}
 
           {product.options.length > 0 && (
-            <div className="mt-8 space-y-6">
-              {product.options.map((opt) => (
-                <div key={opt.id}>
-                  <div className="mb-3 flex items-baseline justify-between">
-                    <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-neutral-900">
-                      {opt.name}
-                    </span>
-                    <span className="text-[12px] text-neutral-500">{selected[opt.name]}</span>
+            <div className="mt-8 space-y-5">
+              {product.options.map((option) => (
+                <div key={option.id}>
+                  <div className="mb-2 flex justify-between text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+                    <span>{option.name}</span>
+                    <span>{selected[option.name]}</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {opt.values.map((v) => {
-                      const active = selected[opt.name] === v.value;
+                    {option.values.map((value) => {
+                      const active = selected[option.name] === value.value;
+                      const disabled = !isValueAvailable(product, option.name, value.value, selected);
                       return (
                         <button
-                          key={v.id}
-                          onClick={() => setSelected((s) => ({ ...s, [opt.name]: v.value }))}
+                          key={value.id}
+                          type="button"
+                          disabled={disabled}
+                          onClick={() => setSelected((current) => clearUnavailableSize(product, option.name, { ...current, [option.name]: value.value }))}
                           className={cn(
-                            "min-w-[44px] border px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.12em] transition-colors",
-                            active
-                              ? "border-black bg-black text-white"
-                              : "border-black/15 text-neutral-800 hover:border-black",
+                            "min-w-11 border px-3 py-2 text-[12px] font-medium uppercase tracking-[0.12em]",
+                            active && !disabled ? "border-black bg-black text-white" : "border-black/15 text-black hover:border-black",
+                            disabled && "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400 line-through hover:border-neutral-200",
                           )}
                         >
-                          {v.value}
+                          {value.value}
                         </button>
                       );
                     })}
@@ -200,76 +179,36 @@ function ProductView({ product }: { product: PublicProductDetail }) {
             </div>
           )}
 
-          {/* Qty + Actions */}
-          <div className="mt-10 space-y-3">
-            <div className="flex items-stretch gap-3">
-              <div className="inline-flex items-center border border-black/15">
-                <button
-                  onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  className="grid h-12 w-12 place-items-center text-neutral-700 hover:text-black"
-                  aria-label="Diminuir"
-                >
-                  <Minus className="h-3.5 w-3.5" strokeWidth={1.5} />
+          <div className="mt-8 space-y-3">
+            <div className="flex gap-3">
+              <div className="inline-flex border border-black/15">
+                <button type="button" onClick={() => setQty((value) => Math.max(1, value - 1))} className="grid h-12 w-12 place-items-center hover:bg-neutral-100" aria-label="Diminuir">
+                  <Minus className="h-4 w-4" />
                 </button>
-                <span className="w-10 text-center text-[13px]">{qty}</span>
-                <button
-                  onClick={() => setQty((q) => q + 1)}
-                  className="grid h-12 w-12 place-items-center text-neutral-700 hover:text-black"
-                  aria-label="Aumentar"
-                >
-                  <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
+                <span className="grid h-12 w-10 place-items-center text-[13px]">{qty}</span>
+                <button type="button" onClick={() => setQty((value) => value + 1)} className="grid h-12 w-12 place-items-center hover:bg-neutral-100" aria-label="Aumentar">
+                  <Plus className="h-4 w-4" />
                 </button>
               </div>
-              <button
-                onClick={handleAdd}
-                disabled={currentVariant?.available === false}
-                className="flex-1 border border-black bg-black text-[11px] font-medium uppercase tracking-[0.24em] text-white transition-colors hover:bg-white hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {currentVariant?.available === false ? "Indisponível" : "Adicionar à sacola"}
+              <button type="button" onClick={handleAdd} disabled={!canBuy} className="flex-1 bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40">
+                {canBuy ? "Adicionar ao carrinho" : "Indisponivel"}
               </button>
             </div>
-            <a
-              href={buildWhatsAppLink(waText)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex w-full items-center justify-center gap-2 border border-black/15 py-3.5 text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-900 transition-colors hover:border-black"
-            >
-              <WhatsAppIcon className="h-3.5 w-3.5" />
-              Comprar pelo WhatsApp
-            </a>
+            {store.catalog_visual.show_whatsapp_button && (
+              <a href={buildWhatsAppLink(waText, store.whatsapp)} target="_blank" rel="noreferrer" className="inline-flex w-full items-center justify-center gap-2 border border-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-black hover:bg-black hover:text-white">
+                <WhatsAppIcon className="h-4 w-4" /> Comprar pelo WhatsApp
+              </a>
+            )}
           </div>
+        </aside>
+      </section>
 
-          <div className="mt-10 grid grid-cols-3 gap-4 border-t border-black/[0.06] pt-6 text-center">
-            <Perk
-              icon={<Truck className="h-4 w-4" strokeWidth={1.3} />}
-              label="Envio para todo Brasil"
-            />
-            <Perk
-              icon={<RotateCcw className="h-4 w-4" strokeWidth={1.3} />}
-              label="Troca em 30 dias"
-            />
-            <Perk
-              icon={<ShieldCheck className="h-4 w-4" strokeWidth={1.3} />}
-              label="Compra segura"
-            />
-          </div>
-        </section>
-      </div>
-
-      {/* Relacionados */}
       {related.length > 0 && (
-        <section className="border-t border-black/[0.06]">
-          <div className="mx-auto max-w-[1400px] px-6 py-20 md:px-10 md:py-24">
-            <div className="text-[11px] font-medium uppercase tracking-[0.28em] text-neutral-500">
-              Você também pode gostar
-            </div>
-            <h2 className="mt-3 font-serif text-[32px] font-light leading-none tracking-tight md:text-[40px]">
-              Continue explorando
-            </h2>
-            <div className="mt-12 grid grid-cols-2 gap-x-4 gap-y-12 md:grid-cols-4 md:gap-x-6">
-              {related.map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
+        <section className="border-t border-black/10">
+          <div className="mx-auto max-w-[1280px] px-4 py-12 md:px-8">
+            <h2 className="text-2xl font-semibold text-black">Produtos relacionados</h2>
+            <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4">
+              {related.map((item) => <ProductCard key={item.id} product={item} />)}
             </div>
           </div>
         </section>
@@ -278,11 +217,37 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   );
 }
 
-function Perk({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="text-neutral-700">{icon}</div>
-      <span className="text-[10px] uppercase tracking-[0.16em] text-neutral-600">{label}</span>
-    </div>
-  );
+function normalize(value: string) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+}
+
+function initialSelection(product: PublicProductDetail) {
+  const selected: Record<string, string> = {};
+  const color = product.options.find((option) => normalize(option.name) === "cor");
+  if (color?.values[0]) selected[color.name] = color.values[0].value;
+  if (!color) {
+    for (const option of product.options) if (option.values[0]) selected[option.name] = option.values[0].value;
+  }
+  return selected;
+}
+
+function isValueAvailable(product: PublicProductDetail, optionName: string, value: string, selected: Record<string, string>) {
+  if (normalize(optionName) === "tamanho") {
+    const color = product.options.find((option) => normalize(option.name) === "cor");
+    if (color && !selected[color.name]) return false;
+  }
+  return product.variants.some((variant) => {
+    if (variant.options[optionName] !== value || !variant.available || variant.stock_quantity <= 0) return false;
+    return Object.entries(selected).every(([key, selectedValue]) => key === optionName || !selectedValue || variant.options[key] === selectedValue);
+  });
+}
+
+function clearUnavailableSize(product: PublicProductDetail, optionName: string, selected: Record<string, string>) {
+  if (normalize(optionName) !== "cor") return selected;
+  const size = product.options.find((option) => normalize(option.name) === "tamanho");
+  if (!size || !selected[size.name]) return selected;
+  if (isValueAvailable(product, size.name, selected[size.name], selected)) return selected;
+  const next = { ...selected };
+  delete next[size.name];
+  return next;
 }

@@ -197,6 +197,7 @@ function EditarProduto() {
                     <option value="">Sem categoria</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
+                        {c.parent_id ? "— " : ""}
                         {c.name}
                       </option>
                     ))}
@@ -265,6 +266,7 @@ function EditarProduto() {
                 manageStock={form.manage_stock}
                 onOptionsChange={(options) => patch({ options })}
                 onVariantsChange={(variants) => patch({ variants })}
+                onManageStockChange={(manage_stock) => patch({ manage_stock })}
               />
             </Card>
           </div>

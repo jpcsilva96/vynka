@@ -1,102 +1,89 @@
 import { Link } from "@tanstack/react-router";
-import { Instagram, Facebook, MapPin, Clock } from "lucide-react";
-import { VynkaLogo } from "@/components/vynka-logo";
-import { WhatsAppIcon } from "./store-header";
+import { Instagram, Mail, MapPin, Phone } from "lucide-react";
 import { buildWhatsAppLink } from "@/lib/cart";
 import { useStorefront } from "@/lib/storefront-context";
+import { WhatsAppIcon } from "./store-header";
 
 export function StoreFooter() {
   const store = useStorefront();
   const slug = store.slug;
-  const STORE_NAME = store.name;
-  const waHref = buildWhatsAppLink(`Olá ${STORE_NAME}!`, store.whatsapp);
+  const location = [store.city, store.state].filter(Boolean).join(" / ");
+  const streetAddress = [
+    store.address,
+    store.address_number,
+    store.complement,
+  ].filter(Boolean).join(", ");
+  const fullAddress = [streetAddress, location].filter(Boolean).join(" - ");
+  const instagramHandle = store.instagram ? `@${store.instagram.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "").replace(/\/$/, "")}` : "";
+  const instagram = store.instagram
+    ? store.instagram.startsWith("http")
+      ? store.instagram
+      : `https://instagram.com/${store.instagram.replace(/^@/, "")}`
+    : null;
+
   return (
-    <footer id="contato" className="border-t border-black/[0.06] bg-white">
-      <div className="mx-auto grid max-w-[1400px] gap-12 px-6 py-16 md:grid-cols-4 md:px-10 md:py-24">
-        <div className="md:col-span-2">
-          <VynkaLogo className="h-5" />
-          <p className="mt-6 max-w-sm text-[13px] leading-relaxed text-neutral-600">
-            Uma seleção cuidadosa de peças atemporais. Simples, essencial e feito
-            para durar.
+    <footer id="contato" className="border-t border-black/10 bg-white">
+      <div className="mx-auto grid max-w-[1280px] gap-10 px-4 py-12 md:grid-cols-[1.5fr_1fr_1fr] md:px-8 md:py-16">
+        <div>
+          <div className="text-[16px] font-semibold uppercase tracking-[0.22em] text-black">{store.name}</div>
+          <p className="mt-4 max-w-md text-[13px] leading-relaxed text-neutral-600">
+            {plainText(store.description) || "Catalogo online simples para consultar produtos e finalizar pelo WhatsApp."}
           </p>
-          <div className="mt-6 flex items-center gap-2">
-            <SocialLink href="https://instagram.com" label="Instagram">
-              <Instagram className="h-4 w-4" strokeWidth={1.4} />
-            </SocialLink>
-            <SocialLink href="https://facebook.com" label="Facebook">
-              <Facebook className="h-4 w-4" strokeWidth={1.4} />
-            </SocialLink>
-            <SocialLink href="https://tiktok.com" label="TikTok">
-              <TikTokIcon className="h-4 w-4" />
-            </SocialLink>
-            <SocialLink
-              href={waHref}
-              label="WhatsApp"
-            >
-              <WhatsAppIcon className="h-4 w-4" />
-            </SocialLink>
+        </div>
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">Navegue</div>
+          <div className="mt-4 grid gap-2 text-[13px] text-neutral-700">
+            <Link to="/loja/$slug" params={{ slug }} className="hover:text-black">Inicio</Link>
+            <Link to="/loja/$slug" params={{ slug }} hash="produtos" className="hover:text-black">Produtos</Link>
+            <Link to="/loja/$slug" params={{ slug }} hash="categorias" className="hover:text-black">Categorias</Link>
           </div>
         </div>
-
         <div>
-          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">
-            Navegue
-          </div>
-          <ul className="mt-5 space-y-3 text-[13px] text-neutral-700">
-            <li>
-              <Link to="/loja/$slug" params={{ slug }} className="transition-colors hover:text-black">
-                Início
-              </Link>
-            </li>
-            <li>
-              <Link to="/loja/$slug" params={{ slug }} hash="novidades" className="transition-colors hover:text-black">
-                Novidades
-              </Link>
-            </li>
-            <li>
-              <Link to="/loja/$slug" params={{ slug }} hash="categorias" className="transition-colors hover:text-black">
-                Categorias
-              </Link>
-            </li>
-            <li>
-              <Link to="/loja/$slug" params={{ slug }} hash="promocoes" className="transition-colors hover:text-black">
-                Promoções
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <div className="text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">
-            Atendimento
-          </div>
-          <ul className="mt-5 space-y-3 text-[13px] text-neutral-700">
-            <li className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-500" strokeWidth={1.4} />
-              <span>Av. Paulista, 1000 — São Paulo, SP</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-500" strokeWidth={1.4} />
-              <span>Seg — Sáb · 10h às 20h</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <WhatsAppIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-500" />
-              <a
-                href={waHref}
-                target="_blank"
-                rel="noreferrer"
-                className="transition-colors hover:text-black"
-              >
-                Falar no WhatsApp
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">Contato</div>
+          <div className="mt-4 grid gap-3 text-[13px] text-neutral-700">
+            {store.email && (
+              <a href={`mailto:${store.email}`} className="inline-flex items-center gap-2 hover:text-black">
+                <Mail className="h-4 w-4" /> {store.email}
               </a>
-            </li>
-          </ul>
+            )}
+            {store.phone && (
+              <a href={`tel:${digitsOnly(store.phone)}`} className="inline-flex items-center gap-2 hover:text-black">
+                <Phone className="h-4 w-4" /> {store.phone}
+              </a>
+            )}
+            {store.whatsapp && (
+              <a href={buildWhatsAppLink(`Ola ${store.name}!`, store.whatsapp)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 hover:text-black">
+                <WhatsAppIcon className="h-4 w-4" /> {store.whatsapp}
+              </a>
+            )}
+            {instagram && (
+              <a href={instagram} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 hover:text-black">
+                <Instagram className="h-4 w-4" /> {instagramHandle}
+              </a>
+            )}
+            {fullAddress && (
+              <span className="inline-flex items-center gap-2">
+                <MapPin className="h-4 w-4" /> {fullAddress}
+              </span>
+            )}
+            <div className="flex items-center gap-2 pt-1">
+              {instagram && (
+                <a href={instagram} target="_blank" rel="noreferrer" className="grid h-9 w-9 place-items-center rounded-full border border-black/10 hover:border-black">
+                  <Instagram className="h-4 w-4" />
+                </a>
+              )}
+              {store.whatsapp && (
+                <a href={buildWhatsAppLink(`Ola ${store.name}!`, store.whatsapp)} target="_blank" rel="noreferrer" className="grid h-9 w-9 place-items-center rounded-full border border-black/10 hover:border-black">
+                  <WhatsAppIcon className="h-4 w-4" />
+                </a>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-
-      <div className="border-t border-black/[0.06]">
-        <div className="mx-auto flex max-w-[1400px] flex-col items-start justify-between gap-2 px-6 py-6 text-[11px] uppercase tracking-[0.16em] text-neutral-500 md:flex-row md:items-center md:px-10">
-          <span>© {new Date().getFullYear()} {STORE_NAME}. Todos os direitos reservados.</span>
+      <div className="border-t border-black/10">
+        <div className="mx-auto flex max-w-[1280px] flex-col justify-between gap-2 px-4 py-5 text-[11px] uppercase tracking-[0.16em] text-neutral-500 md:flex-row md:px-8">
+          <span>{new Date().getFullYear()} {store.name}</span>
           <span>Powered by VYNKA</span>
         </div>
       </div>
@@ -104,32 +91,10 @@ export function StoreFooter() {
   );
 }
 
-function SocialLink({
-  href,
-  label,
-  children,
-}: {
-  href: string;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      aria-label={label}
-      className="grid h-9 w-9 place-items-center rounded-full border border-black/10 text-neutral-700 transition-colors hover:border-black hover:text-black"
-    >
-      {children}
-    </a>
-  );
+function plainText(value: string | null) {
+  return (value || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function TikTokIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M16.5 3c.4 2.3 1.7 3.7 4 4v2.4c-1.4 0-2.7-.5-4-1.3v5.6c0 3.9-3 6.3-6.2 6.3-3.2 0-6.2-2.6-6.2-6.2 0-3.6 3.2-6.2 6.5-5.9v2.6c-.5-.1-1-.2-1.6-.1-1.7.3-2.9 1.7-2.7 3.5.2 1.6 1.5 2.8 3.1 2.8 1.8 0 3.2-1.3 3.2-3V3h3.9z" />
-    </svg>
-  );
+function digitsOnly(value: string) {
+  return value.replace(/\D/g, "");
 }

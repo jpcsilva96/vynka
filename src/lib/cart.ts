@@ -94,11 +94,11 @@ export function useCartDrawer() {
 }
 
 // WhatsApp configuration — placeholder; can be moved to config later
-export const STORE_WHATSAPP = "5511999999999";
 export const STORE_NAME = "VYNKA";
 
 export function buildWhatsAppLink(text: string, phone?: string | null) {
-  return `https://wa.me/${(phone && phone.replace(/\D/g, "")) || STORE_WHATSAPP}?text=${encodeURIComponent(text)}`;
+  const digits = phone?.replace(/\D/g, "") ?? "";
+  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
 export function cartWhatsAppText(list: CartItem[], subtotal: number) {

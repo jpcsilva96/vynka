@@ -59,6 +59,7 @@ export type Database = {
           display_order: number;
           id: string;
           name: string;
+          parent_id: string | null;
           position: number;
           slug: string;
           store_id: string;
@@ -70,6 +71,7 @@ export type Database = {
           display_order?: number;
           id?: string;
           name: string;
+          parent_id?: string | null;
           position?: number;
           slug: string;
           store_id: string;
@@ -81,12 +83,20 @@ export type Database = {
           display_order?: number;
           id?: string;
           name?: string;
+          parent_id?: string | null;
           position?: number;
           slug?: string;
           store_id?: string;
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "categories_store_id_fkey";
             columns: ["store_id"];
@@ -116,6 +126,7 @@ export type Database = {
           street: string | null;
           telephone: string | null;
           updated_at: string;
+          user_id: string | null;
           zip_code: string | null;
         };
         Insert: {
@@ -137,6 +148,7 @@ export type Database = {
           street?: string | null;
           telephone?: string | null;
           updated_at?: string;
+          user_id?: string | null;
           zip_code?: string | null;
         };
         Update: {
@@ -158,11 +170,61 @@ export type Database = {
           street?: string | null;
           telephone?: string | null;
           updated_at?: string;
+          user_id?: string | null;
           zip_code?: string | null;
         };
         Relationships: [
           {
             foreignKeyName: "customers_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      customer_favorites: {
+        Row: {
+          created_at: string;
+          customer_id: string;
+          id: string;
+          product_id: string;
+          store_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          customer_id: string;
+          id?: string;
+          product_id: string;
+          store_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          customer_id?: string;
+          id?: string;
+          product_id?: string;
+          store_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "customer_favorites_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customer_favorites_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customer_favorites_store_id_fkey";
             columns: ["store_id"];
             isOneToOne: false;
             referencedRelation: "stores";
@@ -733,6 +795,7 @@ export type Database = {
           accepts_site_orders: boolean;
           accepts_whatsapp_orders: boolean;
           address: string | null;
+          address_number: string | null;
           banner_cta: string | null;
           banner_subtitle: string | null;
           banner_title: string | null;
@@ -740,6 +803,7 @@ export type Database = {
           business_hours: string | null;
           city: string | null;
           combine_delivery_whatsapp: boolean;
+          complement: string | null;
           created_at: string;
           delivery_available: boolean;
           delivery_notes: string | null;
@@ -776,6 +840,7 @@ export type Database = {
           accepts_site_orders?: boolean;
           accepts_whatsapp_orders?: boolean;
           address?: string | null;
+          address_number?: string | null;
           banner_cta?: string | null;
           banner_subtitle?: string | null;
           banner_title?: string | null;
@@ -783,6 +848,7 @@ export type Database = {
           business_hours?: string | null;
           city?: string | null;
           combine_delivery_whatsapp?: boolean;
+          complement?: string | null;
           created_at?: string;
           delivery_available?: boolean;
           delivery_notes?: string | null;
@@ -819,6 +885,7 @@ export type Database = {
           accepts_site_orders?: boolean;
           accepts_whatsapp_orders?: boolean;
           address?: string | null;
+          address_number?: string | null;
           banner_cta?: string | null;
           banner_subtitle?: string | null;
           banner_title?: string | null;
@@ -826,6 +893,7 @@ export type Database = {
           business_hours?: string | null;
           city?: string | null;
           combine_delivery_whatsapp?: boolean;
+          complement?: string | null;
           created_at?: string;
           delivery_available?: boolean;
           delivery_notes?: string | null;

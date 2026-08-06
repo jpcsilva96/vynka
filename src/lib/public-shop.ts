@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Category, ProductStatus } from "@/lib/products";
 import type { StorefrontStore } from "@/lib/storefront-context";
+import { normalizeCatalogVisualSettings } from "@/lib/store-settings";
 
 export interface PublicProduct {
   id: string;
@@ -16,6 +17,12 @@ export interface PublicProduct {
   primary_image: string | null;
 }
 
+export type PublicCategory = Category & {
+  cover_url: string | null;
+  count: number;
+  children: PublicCategory[];
+};
+
 export interface PublicVariant {
   id: string;
   options: Record<string, string>;
@@ -23,6 +30,7 @@ export interface PublicVariant {
   price: number | null;
   image_url: string | null;
   available: boolean;
+  stock_quantity: number;
 }
 
 export interface PublicOption {
@@ -58,14 +66,23 @@ function mapProduct(p: any): PublicProduct {
     featured: p.featured,
     status: p.status,
     created_at: p.created_at,
-    category: p.category ?? null,
+    category: p.category
+      ? {
+          id: p.category.id,
+          name: p.category.name,
+          slug: p.category.slug,
+          position: p.category.display_order ?? p.category.position ?? 0,
+          parent_id: p.category.parent_id ?? null,
+          active: p.category.active ?? true,
+        }
+      : null,
     images,
     primary_image: images[0]?.url ?? null,
   };
 }
 
 const STOREFRONT_COLUMNS =
-  "id,slug,name,description,logo_url,banner_url,og_image_url,banner_title,banner_subtitle,banner_cta,whatsapp,email,instagram,address,city,state,business_hours,status,publication_status";
+  "id,slug,name,description,logo_url,banner_url,og_image_url,banner_title,banner_subtitle,banner_cta,phone,whatsapp,email,instagram,address,address_number,complement,city,state,business_hours,status,publication_status";
 
 export async function getStoreBySlug(slug: string): Promise<StorefrontStore | null> {
   const { data, error } = await supabase
@@ -74,7 +91,18 @@ export async function getStoreBySlug(slug: string): Promise<StorefrontStore | nu
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw error;
-  return (data as unknown as StorefrontStore) ?? null;
+  if (!data) return null;
+  const { data: visual, error: visualError } = await supabase
+    .from("store_settings")
+    .select("setting_value")
+    .eq("store_id", data.id)
+    .eq("setting_key", "catalog_visual")
+    .maybeSingle();
+  if (visualError) throw visualError;
+  return {
+    ...(data as unknown as Omit<StorefrontStore, "catalog_visual">),
+    catalog_visual: normalizeCatalogVisualSettings(visual?.setting_value),
+  };
 }
 
 export async function listActiveProducts(storeId: string): Promise<PublicProduct[]> {
@@ -82,7 +110,7 @@ export async function listActiveProducts(storeId: string): Promise<PublicProduct
     .from("products")
     .select(
       `id, name, description, price, promo_price, featured, status, created_at,
-       category:categories(id,name,slug,position),
+       category:categories(id,name,slug,display_order,parent_id,active),
        product_images(url,position)`,
     )
     .eq("store_id", storeId)
@@ -94,13 +122,15 @@ export async function listActiveProducts(storeId: string): Promise<PublicProduct
 
 export async function listPublicCategories(
   storeId: string,
-): Promise<(Category & { cover_url: string | null; count: number })[]> {
+): Promise<PublicCategory[]> {
   const [cats, prods] = await Promise.all([
     supabase
       .from("categories")
-      .select("id, name, slug, position")
+      .select("id, name, slug, display_order, parent_id, active")
       .eq("store_id", storeId)
-      .order("position"),
+      .eq("active", true)
+      .order("display_order")
+      .order("name"),
     supabase
       .from("products")
       .select(`id, category_id, product_images(url,position)`)
@@ -110,6 +140,18 @@ export async function listPublicCategories(
   if (cats.error) throw cats.error;
   if (prods.error) throw prods.error;
 
+  const rawCategories = (cats.data ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    position: c.display_order,
+    parent_id: c.parent_id ?? null,
+    active: c.active ?? true,
+    cover_url: null as string | null,
+    count: 0,
+    children: [] as PublicCategory[],
+  }));
+  const byId = new Map(rawCategories.map((category) => [category.id, category]));
   const byCat = new Map<string, { count: number; cover: string | null }>();
   for (const p of prods.data ?? []) {
     const entry = byCat.get(p.category_id ?? "") ?? { count: 0, cover: null };
@@ -120,10 +162,31 @@ export async function listPublicCategories(
     }
     byCat.set(p.category_id ?? "", entry);
   }
-  return (cats.data ?? []).map((c) => {
-    const e = byCat.get(c.id);
-    return { ...c, cover_url: e?.cover ?? null, count: e?.count ?? 0 };
-  });
+  for (const category of rawCategories) {
+    const direct = byCat.get(category.id);
+    category.cover_url = direct?.cover ?? null;
+    category.count = direct?.count ?? 0;
+  }
+  for (const category of rawCategories) {
+    let parent = category.parent_id ? byId.get(category.parent_id) : null;
+    while (parent) {
+      parent.count += category.count;
+      if (!parent.cover_url) parent.cover_url = category.cover_url;
+      parent = parent.parent_id ? byId.get(parent.parent_id) : null;
+    }
+  }
+  const roots: PublicCategory[] = [];
+  for (const category of rawCategories) {
+    const parent = category.parent_id ? byId.get(category.parent_id) : null;
+    if (parent) parent.children.push(category);
+    else roots.push(category);
+  }
+  const sort = (items: PublicCategory[]) => {
+    items.sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
+    items.forEach((item) => sort(item.children));
+  };
+  sort(roots);
+  return roots;
 }
 
 export async function getPublicProduct(
@@ -134,10 +197,10 @@ export async function getPublicProduct(
     .from("products")
     .select(
       `id, name, description, price, promo_price, featured, status, created_at,
-       category:categories(id,name,slug,position),
+       category:categories(id,name,slug,display_order,parent_id,active),
        product_images(url,position),
        product_options(id,name,position,product_option_values(id,value,position)),
-       product_variants(id,options,sku_key,price,image_url,available)`,
+       product_variants(id,options,sku_key,price,image_url,available,stock_quantity)`,
     )
     .eq("store_id", storeId)
     .eq("id", id)
@@ -164,6 +227,7 @@ export async function getPublicProduct(
     price: v.price,
     image_url: v.image_url,
     available: v.available,
+    stock_quantity: v.stock_quantity ?? 0,
   }));
   return { ...base, options, variants };
 }
@@ -178,7 +242,7 @@ export async function listRelatedProducts(
     .from("products")
     .select(
       `id, name, description, price, promo_price, featured, status, created_at,
-       category:categories(id,name,slug,position),
+       category:categories(id,name,slug,display_order,parent_id,active),
        product_images(url,position)`,
     )
     .eq("store_id", storeId)
@@ -189,4 +253,49 @@ export async function listRelatedProducts(
   const { data, error } = await q;
   if (error) throw error;
   return (data ?? []).map(mapProduct);
+}
+
+export async function listActiveProductsByCategorySlug(
+  storeId: string,
+  categorySlug: string,
+  childSlug?: string,
+): Promise<{ category: PublicCategory | null; products: PublicProduct[] }> {
+  const categories = await listPublicCategories(storeId);
+  const flat = flattenCategories(categories);
+  const parent = flat.find((category) => category.slug === categorySlug && !category.parent_id);
+  const target = childSlug
+    ? flat.find((category) => category.slug === childSlug && category.parent_id === parent?.id)
+    : parent ?? flat.find((category) => category.slug === categorySlug);
+  if (!target) return { category: null, products: [] };
+
+  const ids = [target.id, ...descendantCategoryIds(target.id, flat)];
+  const { data, error } = await supabase
+    .from("products")
+    .select(
+      `id, name, description, price, promo_price, featured, status, created_at,
+       category:categories(id,name,slug,display_order,parent_id,active),
+       product_images(url,position)`,
+    )
+    .eq("store_id", storeId)
+    .eq("status", "active")
+    .in("category_id", ids)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return { category: target, products: (data ?? []).map(mapProduct) };
+}
+
+function flattenCategories(categories: PublicCategory[]): PublicCategory[] {
+  return categories.flatMap((category) => [category, ...flattenCategories(category.children)]);
+}
+
+function descendantCategoryIds(categoryId: string, categories: PublicCategory[]) {
+  const result: string[] = [];
+  const walk = (id: string) => {
+    for (const child of categories.filter((category) => category.parent_id === id)) {
+      result.push(child.id);
+      walk(child.id);
+    }
+  };
+  walk(categoryId);
+  return result;
 }

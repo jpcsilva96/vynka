@@ -59,6 +59,7 @@ const STEPS = [
 
 function OnboardingRoute() {
   const { currentStore, refresh, loading } = useStoreContext();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [step, setStep] = useState<number>(1);
 
@@ -72,6 +73,13 @@ function OnboardingRoute() {
   useEffect(() => {
     if (store) setStep(Math.min(5, Math.max(1, store.onboarding_current_step || 1)));
   }, [store?.id]);
+
+  useEffect(() => {
+    if (loading || !currentStore) return;
+    if (currentStore.onboarding_status === "completed") {
+      navigate({ to: "/admin/configuracoes", replace: true });
+    }
+  }, [loading, currentStore, navigate]);
 
   if (loading || isFetching || !store) {
     return (
@@ -785,6 +793,7 @@ function Step4({ store, onDone, onBack }: { store: StoreFullRow; onBack: () => v
             variants={form.variants}
             onOptionsChange={(options) => patch({ options })}
             onVariantsChange={(variants) => patch({ variants })}
+            onManageStockChange={(manage_stock) => patch({ manage_stock })}
           />
         </div>
       </Card>

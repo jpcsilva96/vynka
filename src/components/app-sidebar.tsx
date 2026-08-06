@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+﻿import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ShoppingCart,
   ClipboardList,
@@ -11,7 +11,7 @@ import {
   UserCog,
   Settings,
   LayoutDashboard,
-  Compass,
+  Tags,
 } from "lucide-react";
 
 import {
@@ -32,6 +32,7 @@ const primary = [
   { title: "Vender", url: "/admin/vender", icon: ShoppingCart },
   { title: "Pedidos", url: "/admin/pedidos", icon: ClipboardList },
   { title: "Produtos", url: "/admin/produtos", icon: Package },
+  { title: "Categorias", url: "/admin/categorias", icon: Tags },
   { title: "Catálogo Online", url: "/admin/minha-loja", icon: Globe },
   { title: "Clientes", url: "/admin/clientes", icon: Users },
   { title: "Histórico", url: "/admin/historico", icon: History },
@@ -43,7 +44,6 @@ const primary = [
 
 const workspace = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-  { title: "Configuração inicial", url: "/admin/onboarding", icon: Compass },
 ];
 
 export function AppSidebar() {

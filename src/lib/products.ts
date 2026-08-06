@@ -7,6 +7,18 @@ export interface Category {
   name: string;
   slug: string;
   position: number;
+  parent_id: string | null;
+  active: boolean;
+  product_count?: number;
+}
+
+export interface CategoryFormState {
+  id?: string;
+  name: string;
+  slug: string;
+  parent_id: string | null;
+  active: boolean;
+  position: number;
 }
 
 export interface ProductImage {
@@ -87,6 +99,8 @@ interface ProductListRow extends Omit<
     name: string;
     slug: string;
     display_order: number;
+    parent_id?: string | null;
+    active?: boolean;
   } | null;
   product_images?: ProductListImageRow[] | null;
   product_variants?: { id: string }[] | null;
@@ -204,6 +218,17 @@ export const formatBRL = (v: number | null | undefined) =>
 
 const parseMoney = (value: string) => Number(value.replace(",", ".")) || 0;
 
+export function slugifyCategory(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
 const moneyToInput = (value: number | string | null | undefined) => {
   if (value == null) return "";
   const parsed = Number(value);
@@ -228,18 +253,113 @@ export async function uploadProductImage(file: File): Promise<ProductImage> {
 }
 
 export async function listCategories(storeId: string): Promise<Category[]> {
-  const { data, error } = await supabase
+  const [{ data, error }, counts] = await Promise.all([
+    supabase
     .from("categories")
-    .select("id, name, slug, display_order")
+      .select("id, name, slug, display_order, parent_id, active")
     .eq("store_id", storeId)
-    .order("display_order");
+      .order("display_order")
+      .order("name"),
+    supabase.from("products").select("id, category_id").eq("store_id", storeId),
+  ]);
   if (error) throw error;
+  if (counts.error) throw counts.error;
+  const countByCategory = new Map<string, number>();
+  for (const product of counts.data ?? []) {
+    if (!product.category_id) continue;
+    countByCategory.set(product.category_id, (countByCategory.get(product.category_id) ?? 0) + 1);
+  }
   return (data ?? []).map((c) => ({
     id: c.id,
     name: c.name,
     slug: c.slug,
     position: c.display_order,
+    parent_id: c.parent_id ?? null,
+    active: c.active ?? true,
+    product_count: countByCategory.get(c.id) ?? 0,
   }));
+}
+
+export async function createCategory(storeId: string, form: CategoryFormState): Promise<string> {
+  const name = form.name.trim();
+  const slug = slugifyCategory(form.slug || name);
+  if (!name || !slug) throw new Error("Nome e slug sao obrigatorios.");
+
+  const { data, error } = await supabase
+    .from("categories")
+    .insert({
+      store_id: storeId,
+      name,
+      slug,
+      parent_id: form.parent_id || null,
+      active: form.active,
+      display_order: form.position,
+      position: form.position,
+    } as any)
+    .select("id")
+    .single();
+  if (error || !data) throw error;
+  return data.id as string;
+}
+
+export async function updateCategory(
+  storeId: string,
+  categoryId: string,
+  form: CategoryFormState,
+): Promise<void> {
+  const name = form.name.trim();
+  const slug = slugifyCategory(form.slug || name);
+  if (!name || !slug) throw new Error("Nome e slug sao obrigatorios.");
+  if (form.parent_id === categoryId) throw new Error("Uma categoria nao pode ser filha dela mesma.");
+
+  const categories = await listCategories(storeId);
+  let cursor = form.parent_id ? categories.find((category) => category.id === form.parent_id) : null;
+  while (cursor) {
+    if (cursor.parent_id === categoryId) {
+      throw new Error("Essa alteracao criaria um ciclo de subcategorias.");
+    }
+    cursor = cursor.parent_id ? categories.find((category) => category.id === cursor?.parent_id) ?? null : null;
+  }
+
+  const { error } = await supabase
+    .from("categories")
+    .update({
+      name,
+      slug,
+      parent_id: form.parent_id || null,
+      active: form.active,
+      display_order: form.position,
+      position: form.position,
+    } as any)
+    .eq("store_id", storeId)
+    .eq("id", categoryId);
+  if (error) throw error;
+}
+
+export async function deleteCategory(storeId: string, categoryId: string): Promise<void> {
+  const [{ count: productsCount, error: productsError }, { count: childrenCount, error: childrenError }] =
+    await Promise.all([
+      supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", storeId)
+        .eq("category_id", categoryId),
+      supabase
+        .from("categories")
+        .select("id", { count: "exact", head: true })
+        .eq("store_id", storeId)
+        .eq("parent_id", categoryId),
+    ]);
+  if (productsError || childrenError) throw productsError ?? childrenError;
+  if ((productsCount ?? 0) > 0) {
+    throw new Error("Esta categoria possui produtos vinculados. Remova ou altere a categoria dos produtos antes de excluir.");
+  }
+  if ((childrenCount ?? 0) > 0) {
+    throw new Error("Esta categoria possui subcategorias. Exclua ou mova as subcategorias antes.");
+  }
+
+  const { error } = await supabase.from("categories").delete().eq("store_id", storeId).eq("id", categoryId);
+  if (error) throw error;
 }
 
 export async function listProducts(storeId: string): Promise<ProductRecord[]> {
@@ -264,6 +384,8 @@ export async function listProducts(storeId: string): Promise<ProductRecord[]> {
             name: p.category.name,
             slug: p.category.slug,
             position: p.category.display_order,
+            parent_id: p.category.parent_id ?? null,
+            active: p.category.active ?? true,
           }
         : null,
       primary_image: images[0]?.url ?? null,

@@ -1,11 +1,12 @@
 import { useEffect } from "react";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import {
   generateVariants,
   formatBRL,
   type ProductOption,
   type ProductVariant,
 } from "@/lib/products";
+import { cn } from "@/lib/utils";
 
 interface Props {
   options: ProductOption[];
@@ -13,7 +14,15 @@ interface Props {
   manageStock?: boolean;
   onOptionsChange: (options: ProductOption[]) => void;
   onVariantsChange: (variants: ProductVariant[]) => void;
+  onManageStockChange?: (manageStock: boolean) => void;
 }
+
+const FIXED_OPTIONS = [
+  { name: "Cor", label: "Cor", position: 0 },
+  { name: "Tamanho", label: "Tamanho", position: 1 },
+] as const;
+
+const DISPLAY_ORDER = ["Tamanho", "Cor"];
 
 export function VariationsBuilder({
   options,
@@ -21,147 +30,167 @@ export function VariationsBuilder({
   manageStock = false,
   onOptionsChange,
   onVariantsChange,
+  onManageStockChange,
 }: Props) {
+  const fixedOptions = FIXED_OPTIONS.map((fixed) => getOption(options, fixed.name)).filter(
+    Boolean,
+  ) as ProductOption[];
+  const hasVariations = fixedOptions.some((option) =>
+    option.values.some((value) => value.value.trim()),
+  );
+
   useEffect(() => {
-    onVariantsChange(generateVariants(options, variants));
+    const next = normalizeOptions(options);
+    onVariantsChange(generateVariants(next, variants));
+    if (next.length > 0 && !manageStock) onManageStockChange?.(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(options)]);
 
-  const addOption = () =>
-    onOptionsChange([
-      ...options,
-      { name: "", position: options.length, values: [{ value: "", position: 0 }] },
-    ]);
-
-  const updateOption = (i: number, patch: Partial<ProductOption>) =>
-    onOptionsChange(options.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
-
-  const removeOption = (i: number) => onOptionsChange(options.filter((_, idx) => idx !== i));
-
-  const addValue = (i: number) => {
-    const opt = options[i];
-    updateOption(i, {
-      values: [...opt.values, { value: "", position: opt.values.length }],
-    });
+  const setFixedEnabled = (name: string, enabled: boolean) => {
+    const next = normalizeOptions(options).filter((option) => option.name !== name);
+    if (enabled) {
+      next.push({ name, position: fixedPosition(name), values: [{ value: "", position: 0 }] });
+    }
+    onOptionsChange(normalizeOptions(next));
+    if (enabled) onManageStockChange?.(true);
   };
 
-  const updateValue = (i: number, vi: number, value: string) => {
-    const opt = options[i];
-    updateOption(i, {
-      values: opt.values.map((v, idx) => (idx === vi ? { ...v, value } : v)),
-    });
+  const updateOptionValues = (name: string, values: ProductOption["values"]) => {
+    const next = normalizeOptions(options).map((option) =>
+      option.name === name
+        ? { ...option, values: values.map((value, index) => ({ ...value, position: index })) }
+        : option,
+    );
+    onOptionsChange(next);
   };
 
-  const removeValue = (i: number, vi: number) => {
-    const opt = options[i];
-    updateOption(i, { values: opt.values.filter((_, idx) => idx !== vi) });
+  const addValue = (name: string) => {
+    const option = getOption(options, name);
+    if (!option) return;
+    updateOptionValues(name, [...option.values, { value: "", position: option.values.length }]);
+  };
+
+  const updateValue = (name: string, index: number, value: string) => {
+    const option = getOption(options, name);
+    if (!option) return;
+    updateOptionValues(
+      name,
+      option.values.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, value } : item,
+      ),
+    );
+  };
+
+  const removeValue = (name: string, index: number) => {
+    const option = getOption(options, name);
+    if (!option) return;
+    const nextValues = option.values.filter((_, itemIndex) => itemIndex !== index);
+    updateOptionValues(name, nextValues.length ? nextValues : [{ value: "", position: 0 }]);
   };
 
   const updateVariant = (idx: number, patch: Partial<ProductVariant>) =>
-    onVariantsChange(variants.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
+    onVariantsChange(variants.map((variant, index) => (index === idx ? { ...variant, ...patch } : variant)));
 
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        {options.map((opt, i) => (
-          <div key={i} className="rounded-md border border-border bg-background/40 p-4">
-            <div className="flex items-center gap-3">
-              <input
-                value={opt.name}
-                onChange={(e) => updateOption(i, { name: e.target.value })}
-                placeholder="Nome da opcao (ex: Cor, Tamanho)"
-                className="flex-1 rounded-md border border-border bg-surface px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
-              />
-              <button
-                type="button"
-                onClick={() => removeOption(i)}
-                className="grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+        <div className="grid gap-3 sm:grid-cols-2">
+          {FIXED_OPTIONS.map((fixed) => {
+            const option = getOption(options, fixed.name);
+            const enabled = !!option;
+            return (
+              <div
+                key={fixed.name}
+                className={cn(
+                  "rounded-md border bg-background/40 p-4",
+                  enabled ? "border-foreground/30" : "border-border",
+                )}
               >
-                <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
-              </button>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {opt.values.map((val, vi) => (
-                <div
-                  key={vi}
-                  className="group flex items-center gap-1 rounded-full border border-border bg-surface pl-3 pr-1 focus-within:border-foreground/40"
-                >
+                <label className="flex cursor-pointer items-center gap-3">
                   <input
-                    value={val.value}
-                    onChange={(e) => updateValue(i, vi, e.target.value)}
-                    placeholder="Valor"
-                    className="w-24 bg-transparent py-1.5 text-[13px] outline-none"
+                    type="checkbox"
+                    checked={enabled}
+                    onChange={(event) => setFixedEnabled(fixed.name, event.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-foreground"
                   />
-                  <button
-                    type="button"
-                    onClick={() => removeValue(i, vi)}
-                    className="grid h-5 w-5 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                  >
-                    <X className="h-3 w-3" strokeWidth={2} />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => addValue(i)}
-                className="text-[13px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
-              >
-                Adicionar valor
-              </button>
-            </div>
-          </div>
-        ))}
+                  <span className="text-[14px] font-medium text-foreground">{fixed.label}</span>
+                </label>
 
-        <button
-          type="button"
-          onClick={addOption}
-          className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-2 text-[13px] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
-        >
-          <Plus className="h-3.5 w-3.5" strokeWidth={1.75} />
-          Adicionar opcao
-        </button>
+                {enabled && option && (
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    {option.values.map((value, index) => (
+                      <div
+                        key={index}
+                        className="group flex items-center gap-1 rounded-full border border-border bg-surface pl-3 pr-1 focus-within:border-foreground/40"
+                      >
+                        <input
+                          value={value.value}
+                          onChange={(event) => updateValue(fixed.name, index, event.target.value)}
+                          placeholder={fixed.name === "Tamanho" ? "P, M, G" : "Amarelo"}
+                          className="w-24 bg-transparent py-1.5 text-[13px] outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeValue(fixed.name, index)}
+                          className="grid h-5 w-5 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                          aria-label="Remover valor"
+                        >
+                          <X className="h-3 w-3" strokeWidth={2} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => addValue(fixed.name)}
+                      className="inline-flex items-center gap-1 text-[13px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                    >
+                      <Plus className="h-3 w-3" strokeWidth={1.75} />
+                      Adicionar
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
+
+      {hasVariations && variants.length === 0 && (
+        <div className="rounded-md border border-dashed border-border px-4 py-3 text-[13px] text-muted-foreground">
+          Informe ao menos um valor para gerar o controle de estoque.
+        </div>
+      )}
 
       {variants.length > 0 && (
         <div className="overflow-hidden rounded-md border border-border bg-surface">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div>
-              <div className="text-[14px] font-medium">{variants.length} variacoes</div>
+              <div className="text-[14px] font-medium">{variants.length} combinacoes</div>
               <div className="text-[12px] text-muted-foreground">
-                Cada combinacao pode ter preco, disponibilidade e estoque proprios.
+                Controle o estoque de cada tamanho, cor ou combinacao.
               </div>
             </div>
           </div>
           <div className="divide-y divide-border">
             <div className="grid grid-cols-[minmax(0,1fr)_120px_100px] items-center gap-3 bg-background/40 px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground sm:grid-cols-[minmax(0,1fr)_120px_120px_100px]">
-              <span>Variacao</span>
+              <span>Combinacao</span>
               <span>Preco</span>
               <span className="hidden sm:block">Estoque</span>
               <span>Disponivel</span>
             </div>
-            {variants.map((v, idx) => (
+            {variants.map((variant, index) => (
               <div
-                key={v.sku_key}
+                key={variant.sku_key}
                 className="grid grid-cols-[minmax(0,1fr)_120px_100px] items-center gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_120px_120px_100px]"
               >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap gap-1.5">
-                    {Object.entries(v.options).map(([k, val]) => (
-                      <span
-                        key={k}
-                        className="rounded-full border border-border px-2 py-0.5 text-[11px] text-foreground"
-                      >
-                        {k}: {val}
-                      </span>
-                    ))}
-                  </div>
+                <div className="min-w-0 text-[13px] font-medium text-foreground">
+                  {variantLabel(variant)}
                 </div>
                 <input
-                  value={v.price ?? ""}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^\d.,]/g, "").replace(",", ".");
-                    updateVariant(idx, { price: raw === "" ? null : Number(raw) });
+                  value={variant.price ?? ""}
+                  onChange={(event) => {
+                    const raw = event.target.value.replace(/[^\d.,]/g, "").replace(",", ".");
+                    updateVariant(index, { price: raw === "" ? null : Number(raw) });
                   }}
                   placeholder={formatBRL(0)}
                   className="rounded-md border border-border bg-surface px-2.5 py-1.5 text-[13px] outline-none focus:border-foreground/40"
@@ -169,20 +198,19 @@ export function VariationsBuilder({
                 <input
                   type="number"
                   min={0}
-                  value={v.stock_quantity ?? 0}
-                  disabled={!manageStock}
-                  onChange={(e) =>
-                    updateVariant(idx, {
-                      stock_quantity: Math.max(0, Number(e.target.value) || 0),
+                  value={variant.stock_quantity ?? 0}
+                  onChange={(event) =>
+                    updateVariant(index, {
+                      stock_quantity: Math.max(0, Number(event.target.value) || 0),
                     })
                   }
-                  className="hidden rounded-md border border-border bg-surface px-2.5 py-1.5 text-[13px] outline-none focus:border-foreground/40 disabled:bg-muted/50 disabled:text-muted-foreground sm:block"
+                  className="hidden rounded-md border border-border bg-surface px-2.5 py-1.5 text-[13px] outline-none focus:border-foreground/40 sm:block"
                 />
                 <label className="inline-flex cursor-pointer items-center gap-2 text-[13px]">
                   <input
                     type="checkbox"
-                    checked={v.available}
-                    onChange={(e) => updateVariant(idx, { available: e.target.checked })}
+                    checked={variant.available}
+                    onChange={(event) => updateVariant(index, { available: event.target.checked })}
                     className="h-4 w-4 rounded border-border accent-foreground"
                   />
                   <span className="text-muted-foreground">Sim</span>
@@ -194,4 +222,38 @@ export function VariationsBuilder({
       )}
     </div>
   );
+}
+
+function getOption(options: ProductOption[], name: string) {
+  return options.find((option) => normalizeName(option.name) === normalizeName(name));
+}
+
+function fixedPosition(name: string) {
+  return FIXED_OPTIONS.find((option) => option.name === name)?.position ?? 99;
+}
+
+function normalizeOptions(options: ProductOption[]): ProductOption[] {
+  return FIXED_OPTIONS.map((fixed) => {
+    const option = getOption(options, fixed.name);
+    if (!option) return null;
+    return {
+      ...option,
+      name: fixed.name,
+      position: fixed.position,
+      values: option.values.map((value, index) => ({ ...value, position: index })),
+    };
+  }).filter(Boolean) as ProductOption[];
+}
+
+function normalizeName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function variantLabel(variant: ProductVariant) {
+  const values = DISPLAY_ORDER.map((key) => variant.options[key]).filter(Boolean);
+  return values.length ? values.join(" / ") : "Variacao";
 }
