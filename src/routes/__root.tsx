@@ -121,7 +121,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Dancing+Script:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Lato:wght@300;400;700&family=Libre+Baskerville:wght@400;700&family=Merriweather:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&family=Open+Sans:wght@300;400;500;600;700&family=Oswald:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Raleway:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap",
       },
     ],
   }),
@@ -160,6 +160,7 @@ function RouteSwitch() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isLayoutEditor = pathname === "/admin/editor-layout";
 
   if (!isAdmin) {
     return <Outlet />;
@@ -169,7 +170,7 @@ function RouteSwitch() {
     <LojistaGuard>
       <SidebarProvider>
         <div className="flex min-h-svh w-full bg-background">
-          <AppSidebar />
+          {!isLayoutEditor && <AppSidebar />}
           <Outlet />
         </div>
       </SidebarProvider>

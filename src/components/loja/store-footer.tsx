@@ -27,7 +27,7 @@ export function StoreFooter() {
         <div>
           <div className="text-[16px] font-semibold uppercase tracking-[0.22em] text-black">{store.name}</div>
           <p className="mt-4 max-w-md text-[13px] leading-relaxed text-neutral-600">
-            {plainText(store.description) || "Catalogo online simples para consultar produtos e finalizar pelo WhatsApp."}
+            {plainText(store.description) || "Consulte os produtos disponíveis e finalize sua compra de forma simples."}
           </p>
         </div>
         <div>

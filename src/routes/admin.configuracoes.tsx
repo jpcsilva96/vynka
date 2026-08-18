@@ -2,17 +2,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
+  ArrowDown,
+  ArrowUp,
   Eye,
+  ExternalLink,
   HelpCircle,
   ImageIcon,
   Instagram,
   LayoutTemplate,
   Loader2,
   MapPin,
+  Plus,
   PackageCheck,
-  Palette,
   ShoppingCart,
   Store,
+  Trash2,
   Truck,
   UploadCloud,
   X,
@@ -20,41 +24,42 @@ import {
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { PageShell } from "@/components/page-shell";
 import {
-  defaultCatalogVisualSettings,
   getGeneralSettings,
-  getCatalogVisualSettings,
   getDeliverySettings,
   getReceiptSettings,
   updateGeneralSettings,
-  updateCatalogVisualSettings,
   updateDeliverySettings,
   updateReceiptSettings,
   uploadStoreBranding,
   defaultDeliverySettings,
   defaultReceiptSettings,
-  type CatalogStyle,
-  type CatalogSection,
-  type CatalogVisualSettings,
+  normalizeSlug,
   type DeliverySettings,
   type GeneralSettingsForm,
   type ReceiptSettings,
+  type CatalogStyle,
+  type CatalogSection,
+  type CatalogVisualSettings,
+  type StoreBanner,
+  type StoreBannerLinkType,
   type StoreBrandingKind,
 } from "@/lib/store-settings";
+import type { Category, ProductRecord } from "@/lib/products";
 import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/configuracoes")({
   head: () => ({
     meta: [
-      { title: "Configurações - VYNKA" },
-      { name: "description", content: "Preferências da sua conta e da sua loja." },
+      { title: "Loja e Catálogo - VYNKA" },
+      { name: "description", content: "Edite as informações da loja e do catálogo." },
     ],
   }),
   component: Configuracoes,
 });
 
 const tabs = [
-  "Geral",
+  "Loja",
   "Visual do Catálogo",
   "Pedidos e Vendas",
   "Recibo",
@@ -65,6 +70,7 @@ const tabs = [
 
 const emptyForm: GeneralSettingsForm = {
   name: "",
+  slug: "",
   responsible_name: "",
   tax_document: "",
   phone: "",
@@ -80,6 +86,7 @@ const emptyForm: GeneralSettingsForm = {
   segment: "",
   description: "",
   logo_url: "",
+  favicon_url: "",
   banner_url: "",
   og_image_url: "",
   banner_title: "",
@@ -89,60 +96,16 @@ const emptyForm: GeneralSettingsForm = {
   accepts_site_orders: true,
 };
 
-const catalogStyleOptions: {
-  value: CatalogStyle;
-  title: string;
-  description: string;
-}[] = [
-  {
-    value: "minimal",
-    title: "Linda Moda Fitness",
-    description: "Layout exemplo com visual boutique, hero forte, vinho, dourado e cards de produto.",
-  },
+const catalogStyleOptions: { value: CatalogStyle; title: string }[] = [
+  { value: "minimal", title: "Linda Moda Fitness" },
 ];
-
-const styleDefaults: Record<
-  CatalogStyle,
-  Pick<
-    CatalogVisualSettings,
-    "product_card_style" | "product_layout" | "show_whatsapp_button" | "show_price"
-  >
-> = {
-  minimal: {
-    product_card_style: "large",
-    product_layout: "grid",
-    show_whatsapp_button: true,
-    show_price: true,
-  },
-  elegant: {
-    product_card_style: "large",
-    product_layout: "grid",
-    show_whatsapp_button: true,
-    show_price: true,
-  },
-  commercial: {
-    product_card_style: "compact",
-    product_layout: "grid",
-    show_whatsapp_button: true,
-    show_price: true,
-  },
-  editorial: {
-    product_card_style: "large",
-    product_layout: "grid",
-    show_whatsapp_button: false,
-    show_price: true,
-  },
-};
 
 function Configuracoes() {
   const { currentStore, refresh } = useStoreContext();
   const storeId = currentStore?.id ?? "";
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("Geral");
+  const [activeTab, setActiveTab] = useState("Loja");
   const [form, setForm] = useState<GeneralSettingsForm>(emptyForm);
-  const [visualForm, setVisualForm] = useState<CatalogVisualSettings>(
-    defaultCatalogVisualSettings,
-  );
   const [receiptForm, setReceiptForm] = useState<ReceiptSettings>(defaultReceiptSettings);
   const [deliveryForm, setDeliveryForm] = useState<DeliverySettings>(defaultDeliverySettings);
   const [uploadingImage, setUploadingImage] = useState<StoreBrandingKind | null>(null);
@@ -159,11 +122,6 @@ function Configuracoes() {
     queryFn: () => getReceiptSettings(storeId),
     enabled: !!storeId,
   });
-  const { data: visualSettings, isLoading: visualLoading } = useQuery({
-    queryKey: ["catalog-visual-settings", storeId],
-    queryFn: () => getCatalogVisualSettings(storeId),
-    enabled: !!storeId,
-  });
   const { data: deliverySettings, isLoading: deliveryLoading } = useQuery({
     queryKey: ["delivery-settings", storeId],
     queryFn: () => getDeliverySettings(storeId),
@@ -176,9 +134,6 @@ function Configuracoes() {
   useEffect(() => {
     if (receiptSettings) setReceiptForm(receiptSettings);
   }, [receiptSettings]);
-  useEffect(() => {
-    if (visualSettings) setVisualForm(visualSettings);
-  }, [visualSettings]);
   useEffect(() => {
     if (deliverySettings) setDeliveryForm(deliverySettings);
   }, [deliverySettings]);
@@ -202,6 +157,8 @@ function Configuracoes() {
       const field =
         variables.kind === "logo"
           ? "logo_url"
+          : variables.kind === "favicon"
+            ? "favicon_url"
           : variables.kind === "banner"
             ? "banner_url"
             : "og_image_url";
@@ -235,18 +192,9 @@ function Configuracoes() {
     },
   });
 
-  const visualMutation = useMutation({
-    mutationFn: () => updateCatalogVisualSettings(storeId, visualForm),
-    onSuccess: async () => {
-      setSaved(true);
-      await queryClient.invalidateQueries({ queryKey: ["catalog-visual-settings", storeId] });
-      window.setTimeout(() => setSaved(false), 2200);
-    },
-  });
-
   const patch = (key: keyof GeneralSettingsForm, value: string) => {
     setSaved(false);
-    setForm((current) => ({ ...current, [key]: value }));
+    setForm((current) => ({ ...current, [key]: key === "slug" ? normalizeSlug(value) : value }));
   };
   const patchPhone = (key: Extract<keyof GeneralSettingsForm, "phone" | "whatsapp">, value: string) => {
     patch(key, digitsOnly(value).slice(0, 11));
@@ -285,21 +233,6 @@ function Configuracoes() {
     setSaved(false);
     setForm((current) => ({ ...current, [key]: value }));
   };
-  const patchVisual = <K extends keyof CatalogVisualSettings>(
-    key: K,
-    value: CatalogVisualSettings[K],
-  ) => {
-    setSaved(false);
-    setVisualForm((current) => ({ ...current, [key]: value }));
-  };
-  const applyCatalogStyle = (style: CatalogStyle) => {
-    setSaved(false);
-    setVisualForm((current) => ({
-      ...current,
-      ...styleDefaults[style],
-      catalog_style: style,
-    }));
-  };
   const patchReceipt = <K extends keyof ReceiptSettings>(key: K, value: ReceiptSettings[K]) => {
     setSaved(false);
     setReceiptForm((current) => ({ ...current, [key]: value }));
@@ -310,7 +243,7 @@ function Configuracoes() {
   };
 
   return (
-    <PageShell title="Configurações">
+    <PageShell title="Loja e Catálogo">
       <div className="space-y-7">
         <div className="flex flex-wrap gap-3">
           {tabs.map((tab) => (
@@ -330,7 +263,7 @@ function Configuracoes() {
           ))}
         </div>
 
-        {activeTab === "Geral" ? (
+        {activeTab === "Loja" ? (
           isLoading ? (
             <div className="grid min-h-[420px] place-items-center rounded-lg border border-border bg-surface">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
@@ -350,14 +283,71 @@ function Configuracoes() {
                   )}
                 </div>
                 <h2 className="mt-3 text-[15px] font-semibold text-foreground">
-                  Informações gerais
+                  Loja e Catálogo
                 </h2>
                 <p className="mt-1 text-[12px] text-muted-foreground">
-                  Forneça detalhes sobre seu negócio
+                  Edite os dados exibidos no catálogo público e nos canais de atendimento.
                 </p>
               </div>
 
               <div className="grid gap-5 xl:grid-cols-2">
+                <SettingsCard title="Dados da loja">
+                  <LabeledField label="Nome da loja">
+                    <TextInput
+                      value={form.name}
+                      onChange={(value) => {
+                        const currentAutoSlug = normalizeSlug(form.name);
+                        patch("name", value);
+                        if (!form.slug || form.slug === currentAutoSlug) {
+                          patch("slug", value);
+                        }
+                      }}
+                      placeholder="Linda Fitness"
+                    />
+                  </LabeledField>
+                  <LabeledField label="Link publico do catalogo">
+                    <div className="rounded-md border border-border bg-surface focus-within:border-foreground/40">
+                      <div className="flex items-center px-3 py-2.5">
+                        <input
+                          value={form.slug}
+                          onChange={(event) => patch("slug", event.target.value)}
+                          placeholder="linda-fitness"
+                          className="min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted-foreground"
+                        />
+                        <span className="shrink-0 text-[13px] text-muted-foreground">.vynka.com.br</span>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                      <span>{form.slug || "nome-da-loja"}.vynka.com.br</span>
+                      {form.slug && (
+                        <a
+                          href={`/loja/${form.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 font-medium text-foreground hover:underline"
+                        >
+                          Abrir catálogo
+                          <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
+                        </a>
+                      )}
+                    </div>
+                  </LabeledField>
+                  <LabeledField label="Nome do responsavel">
+                    <TextInput
+                      value={form.responsible_name}
+                      onChange={(value) => patch("responsible_name", value)}
+                      placeholder="Joao Pedro Carmo Silva"
+                    />
+                  </LabeledField>
+                  <LabeledField label="CPF ou CNPJ">
+                    <TextInput
+                      value={form.tax_document}
+                      onChange={(value) => patch("tax_document", value)}
+                      placeholder="000.000.000-00"
+                    />
+                  </LabeledField>
+                </SettingsCard>
+
                 <SettingsCard title="Informações de contato">
                   <p className="-mt-1 mb-2 text-[12px] leading-relaxed text-muted-foreground">
                     Estes dados aparecem no rodapé da loja e nos botões de atendimento.
@@ -459,18 +449,18 @@ function Configuracoes() {
                         onRemove={() => patch("logo_url", "")}
                       />
                       <ImageUploadField
-                        label="Banner principal"
-                        description="Imagem de destaque usada na página inicial da loja."
-                        value={form.banner_url}
-                        kind="banner"
-                        uploading={uploadMutation.isPending && uploadingImage === "banner"}
-                        ratio="banner"
+                        label="Favicon"
+                        description="Pequeno ícone exibido na aba do navegador. Recomendado: 130 x 130 px."
+                        value={form.favicon_url}
+                        kind="favicon"
+                        uploading={uploadMutation.isPending && uploadingImage === "favicon"}
+                        ratio="icon"
                         onUpload={(kind, file) => {
                           setSaved(false);
                           setUploadingImage(kind);
                           uploadMutation.mutate({ kind, file });
                         }}
-                        onRemove={() => patch("banner_url", "")}
+                        onRemove={() => patch("favicon_url", "")}
                       />
                       <ImageUploadField
                         label="Imagem de compartilhamento"
@@ -487,22 +477,6 @@ function Configuracoes() {
                         onRemove={() => patch("og_image_url", "")}
                       />
                     </div>
-                    <TextInput
-                      value={form.banner_title}
-                      onChange={(value) => patch("banner_title", value)}
-                      placeholder="Texto principal do banner"
-                    />
-                    <TextInput
-                      value={form.banner_cta}
-                      onChange={(value) => patch("banner_cta", value)}
-                      placeholder="Texto do botao do banner"
-                    />
-                    <textarea
-                      value={form.banner_subtitle}
-                      onChange={(event) => patch("banner_subtitle", event.target.value)}
-                      placeholder="Texto secundario do banner"
-                      className="min-h-24 w-full resize-none rounded-md border border-border bg-surface px-3 py-3 text-[14px] outline-none focus:border-foreground/40"
-                    />
                   </SettingsCard>
 
                   <SettingsCard title="Sobre a loja">
@@ -553,164 +527,24 @@ function Configuracoes() {
             </div>
           )
         ) : activeTab === "Visual do Catálogo" ? (
-          visualLoading || isLoading ? (
-            <div className="grid min-h-[420px] place-items-center rounded-lg border border-border bg-surface">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
-            </div>
-          ) : (
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-              <div className="space-y-5">
-                <div className="text-center">
-                  <div className="mx-auto grid h-20 w-20 place-items-center rounded-md text-primary">
-                    <Palette className="h-14 w-14" strokeWidth={1.3} />
-                  </div>
-                  <h2 className="mt-2 text-[15px] font-semibold text-foreground">
-                    Visual do Catálogo
-                  </h2>
-                  <p className="mt-1 text-[12px] text-muted-foreground">
-                    Ajuste o tema, as cores e como seus produtos aparecem na loja publica.
-                  </p>
-                </div>
-
-                <SettingsCard title="Estilo do Catálogo">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {catalogStyleOptions.map((style) => (
-                      <button
-                        key={style.value}
-                        type="button"
-                        onClick={() => applyCatalogStyle(style.value)}
-                        className={cn(
-                          "min-h-36 rounded-lg border bg-surface p-4 text-left transition-all hover:border-primary/60",
-                          visualForm.catalog_style === style.value
-                            ? "border-primary ring-1 ring-primary/25"
-                            : "border-border",
-                        )}
-                      >
-                        <StyleMiniPreview style={style.value} />
-                        <div className="mt-3 flex items-start gap-3">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted text-primary">
-                            <LayoutTemplate className="h-4 w-4" strokeWidth={1.5} />
-                          </div>
-                          <div>
-                            <div className="text-[14px] font-semibold text-foreground">{style.title}</div>
-                            <div className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
-                              {style.description}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </SettingsCard>
-                <SettingsCard title="Cores">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <ColorInput label="Cor principal" value={visualForm.primary_color} onChange={(v) => patchVisual("primary_color", v)} />
-                    <ColorInput label="Cor secundaria" value={visualForm.secondary_color} onChange={(v) => patchVisual("secondary_color", v)} />
-                    <ColorInput label="Cor de fundo" value={visualForm.background_color} onChange={(v) => patchVisual("background_color", v)} />
-                    <ColorInput label="Cor dos botoes" value={visualForm.button_color} onChange={(v) => patchVisual("button_color", v)} />
-                  </div>
-                </SettingsCard>
-
-                <SettingsCard title="Cards de produto">
-                  <SegmentedControl
-                    label="Estilo do card"
-                    value={visualForm.product_card_style}
-                    options={[
-                      ["large", "Imagem grande"],
-                      ["compact", "Compacto"],
-                    ]}
-                    onChange={(value) =>
-                      patchVisual("product_card_style", value as CatalogVisualSettings["product_card_style"])
-                    }
-                  />
-                  <SegmentedControl
-                    label="Exibição"
-                    value={visualForm.product_layout}
-                    options={[
-                      ["grid", "Grade"],
-                      ["list", "Lista"],
-                    ]}
-                    onChange={(value) =>
-                      patchVisual("product_layout", value as CatalogVisualSettings["product_layout"])
-                    }
-                  />
-                  <ToggleRow
-                    title="Mostrar preço"
-                    description="Exibe valores nos cards e listas de produtos."
-                    checked={visualForm.show_price}
-                    onChange={() => patchVisual("show_price", !visualForm.show_price)}
-                  />
-                  <ToggleRow
-                    title="Mostrar botão de WhatsApp"
-                    description="Exibe o atalho de interesse nos cards do catalogo."
-                    checked={visualForm.show_whatsapp_button}
-                    onChange={() =>
-                      patchVisual("show_whatsapp_button", !visualForm.show_whatsapp_button)
-                    }
-                  />
-                </SettingsCard>
-
-                <SettingsCard title="Página inicial">
-                  <ToggleRow
-                    title="Mostrar banner"
-                    description="Exibe a area principal no topo do catalogo."
-                    checked={visualForm.show_banner}
-                    onChange={() => patchVisual("show_banner", !visualForm.show_banner)}
-                  />
-                  <ToggleRow
-                    title="Mostrar descrição da loja"
-                    description="Mostra um bloco com o texto institucional."
-                    checked={visualForm.show_description}
-                    onChange={() => patchVisual("show_description", !visualForm.show_description)}
-                  />
-                  <ToggleRow
-                    title="Mostrar produtos em destaque"
-                    description="Usa os produtos marcados como destaque."
-                    checked={visualForm.show_featured}
-                    onChange={() => patchVisual("show_featured", !visualForm.show_featured)}
-                  />
-                  <ToggleRow
-                    title="Mostrar categorias"
-                    description="Exibe as categorias antes da listagem de produtos."
-                    checked={visualForm.show_categories}
-                    onChange={() => patchVisual("show_categories", !visualForm.show_categories)}
-                  />
-                  <SectionOrderEditor
-                    order={visualForm.section_order}
-                    onChange={(order) => patchVisual("section_order", order)}
-                  />
-                </SettingsCard>
-
-                {visualMutation.error && (
-                  <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
-                    {visualMutation.error instanceof Error
-                      ? visualMutation.error.message
-                      : "Nao foi possivel salvar o visual do catalogo."}
-                  </div>
-                )}
-
-                <div className="sticky bottom-4 flex justify-end">
-                  <button
-                    type="button"
-                    disabled={visualMutation.isPending}
-                    onClick={() => visualMutation.mutate()}
-                    className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-[13px] font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-graphite disabled:opacity-60"
-                  >
-                    {visualMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
-                    ) : saved ? (
-                      <Check className="h-4 w-4" strokeWidth={1.6} />
-                    ) : null}
-                    {saved ? "Salvo" : "Salvar visual"}
-                  </button>
-                </div>
+          <div className="grid min-h-[440px] place-items-center rounded-lg border border-border bg-surface px-6 py-12 text-center">
+            <div className="max-w-md">
+              <div className="mx-auto grid h-16 w-16 place-items-center rounded-md bg-muted text-primary">
+                <LayoutTemplate className="h-8 w-8" strokeWidth={1.4} />
               </div>
-
-              <div className="xl:sticky xl:top-6 xl:self-start">
-                <CatalogVisualPreview store={form} settings={visualForm} />
-              </div>
+              <h2 className="mt-5 text-[18px] font-semibold text-foreground">Editor de layout</h2>
+              <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
+                As configurações de cores, fontes, banners, cabeçalho e exibição dos produtos ficam concentradas no editor de layout.
+              </p>
+              <a
+                href="/admin/editor-layout"
+                className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-graphite"
+              >
+                <LayoutTemplate className="h-4 w-4" strokeWidth={1.6} />
+                Editar layout
+              </a>
             </div>
-          )
+          </div>
         ) : activeTab === "Pedidos e Vendas" ? (
           isLoading ? (
             <div className="grid min-h-[420px] place-items-center rounded-lg border border-border bg-surface">
@@ -811,7 +645,7 @@ function Configuracoes() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setActiveTab("Geral")}
+                    onClick={() => setActiveTab("Loja")}
                     className="mt-4 w-full rounded-md bg-primary px-4 py-3 text-[13px] font-semibold text-primary-foreground hover:bg-graphite"
                   >
                     Completar dados da loja
@@ -1078,7 +912,7 @@ function ImageUploadField({
   value: string;
   kind: StoreBrandingKind;
   uploading: boolean;
-  ratio: "square" | "banner";
+  ratio: "square" | "icon" | "banner";
   onUpload: (kind: StoreBrandingKind, file: File) => void;
   onRemove: () => void;
 }) {
@@ -1100,11 +934,11 @@ function ImageUploadField({
         <div
           className={cn(
             "grid overflow-hidden rounded-md border border-dashed border-border bg-surface",
-            ratio === "square" ? "aspect-square" : "aspect-[16/7]",
+            ratio === "banner" ? "aspect-[16/7]" : "aspect-square",
           )}
         >
           {value ? (
-            <img src={value} alt="" className="h-full w-full object-cover" />
+            <img src={value} alt="" className={cn("h-full w-full", ratio === "icon" ? "object-contain p-8" : "object-cover")} />
           ) : (
             <div className="grid place-items-center text-muted-foreground">
               <ImageIcon className="h-7 w-7" strokeWidth={1.4} />
@@ -1240,6 +1074,262 @@ function ToggleRow({
         />
       </button>
     </div>
+  );
+}
+
+function BannerManager({
+  banners,
+  products,
+  categories,
+  uploadingBannerId,
+  isUploading,
+  onAdd,
+  onRemove,
+  onMove,
+  onPatch,
+  onUpload,
+}: {
+  banners: StoreBanner[];
+  products: ProductRecord[];
+  categories: Category[];
+  uploadingBannerId: string | null;
+  isUploading: boolean;
+  onAdd: () => void;
+  onRemove: (bannerId: string) => void;
+  onMove: (index: number, dir: -1 | 1) => void;
+  onPatch: <K extends keyof StoreBanner>(bannerId: string, key: K, value: StoreBanner[K]) => void;
+  onUpload: (bannerId: string, file: File) => void;
+}) {
+  return (
+    <SettingsCard title="Banners do Catálogo">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
+          Cadastre imagens de destaque e direcione cada banner para um produto,
+          categoria ou link externo.
+        </p>
+        <button
+          type="button"
+          onClick={onAdd}
+          className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-graphite"
+        >
+          <Plus className="h-4 w-4" strokeWidth={1.7} />
+          Adicionar banner
+        </button>
+      </div>
+
+      {banners.length === 0 ? (
+        <button
+          type="button"
+          onClick={onAdd}
+          className="grid min-h-36 place-items-center rounded-md border border-dashed border-border bg-muted/30 px-4 text-center text-[13px] font-medium text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+        >
+          Criar primeiro banner
+        </button>
+      ) : (
+        <div className="space-y-4">
+          {banners.map((banner, index) => (
+            <div key={banner.id} className="rounded-lg border border-border bg-muted/25 p-4">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-[13px] font-semibold text-foreground">
+                    Banner {index + 1}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {banner.active ? "Ativo no catálogo" : "Oculto no catálogo"}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onMove(index, -1)}
+                    disabled={index === 0}
+                    className="grid h-8 w-8 place-items-center rounded-md border border-border bg-surface text-foreground disabled:opacity-40"
+                    title="Subir banner"
+                  >
+                    <ArrowUp className="h-4 w-4" strokeWidth={1.6} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onMove(index, 1)}
+                    disabled={index === banners.length - 1}
+                    className="grid h-8 w-8 place-items-center rounded-md border border-border bg-surface text-foreground disabled:opacity-40"
+                    title="Descer banner"
+                  >
+                    <ArrowDown className="h-4 w-4" strokeWidth={1.6} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onPatch(banner.id, "active", !banner.active)}
+                    className={cn(
+                      "rounded-md px-3 py-2 text-[11px] font-semibold",
+                      banner.active
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-border bg-surface text-muted-foreground",
+                    )}
+                  >
+                    {banner.active ? "Ativo" : "Inativo"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onRemove(banner.id)}
+                    className="grid h-8 w-8 place-items-center rounded-md border border-border bg-surface text-foreground hover:border-red-200 hover:text-red-600"
+                    title="Remover banner"
+                  >
+                    <Trash2 className="h-4 w-4" strokeWidth={1.6} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+                <ImageUploadField
+                  label="Imagem"
+                  description="Use uma imagem horizontal para melhor resultado."
+                  value={banner.image_url}
+                  kind="banner"
+                  uploading={isUploading && uploadingBannerId === banner.id}
+                  ratio="banner"
+                  onUpload={(_, file) => onUpload(banner.id, file)}
+                  onRemove={() => onPatch(banner.id, "image_url", "")}
+                />
+
+                <div className="space-y-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <LabeledField label="Título">
+                      <TextInput
+                        value={banner.title}
+                        onChange={(value) => onPatch(banner.id, "title", value)}
+                        placeholder="Promoção de verão"
+                      />
+                    </LabeledField>
+                    <LabeledField label="Texto do botão">
+                      <TextInput
+                        value={banner.button_label}
+                        onChange={(value) => onPatch(banner.id, "button_label", value)}
+                        placeholder="Ver oferta"
+                      />
+                    </LabeledField>
+                  </div>
+
+                  <LabeledField label="Subtítulo">
+                    <textarea
+                      value={banner.subtitle}
+                      onChange={(event) => onPatch(banner.id, "subtitle", event.target.value)}
+                      placeholder="Escolha uma frase curta para apoiar a campanha."
+                      className="min-h-20 w-full resize-none rounded-md border border-border bg-surface px-3 py-3 text-[14px] outline-none focus:border-foreground/40"
+                    />
+                  </LabeledField>
+
+                  <div className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)]">
+                    <LabeledField label="Direcionamento">
+                      <select
+                        value={banner.link_type}
+                        onChange={(event) => {
+                          onPatch(banner.id, "link_type", event.target.value as StoreBannerLinkType);
+                          onPatch(banner.id, "link_target", "");
+                        }}
+                        className="h-11 w-full rounded-md border border-border bg-surface px-3 text-[14px] outline-none focus:border-foreground/40"
+                      >
+                        <option value="store_home">Página inicial da loja</option>
+                        <option value="home">Lista de produtos</option>
+                        <option value="product">Produto específico</option>
+                        <option value="category">Categoria</option>
+                        <option value="external">Link externo</option>
+                      </select>
+                    </LabeledField>
+                    <BannerTargetField
+                      banner={banner}
+                      products={products}
+                      categories={categories}
+                      onPatch={onPatch}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </SettingsCard>
+  );
+}
+
+function BannerTargetField({
+  banner,
+  products,
+  categories,
+  onPatch,
+}: {
+  banner: StoreBanner;
+  products: ProductRecord[];
+  categories: Category[];
+  onPatch: <K extends keyof StoreBanner>(bannerId: string, key: K, value: StoreBanner[K]) => void;
+}) {
+  if (banner.link_type === "store_home") {
+    return (
+      <LabeledField label="Destino">
+        <div className="rounded-md border border-border bg-muted px-3 py-3 text-[13px] text-muted-foreground">
+          Leva para o início da loja.
+        </div>
+      </LabeledField>
+    );
+  }
+
+  if (banner.link_type === "home") {
+    return (
+      <LabeledField label="Destino">
+        <div className="rounded-md border border-border bg-muted px-3 py-3 text-[13px] text-muted-foreground">
+          Leva para a lista de produtos do catálogo.
+        </div>
+      </LabeledField>
+    );
+  }
+
+  if (banner.link_type === "product") {
+    return (
+      <LabeledField label="Produto">
+        <select
+          value={banner.link_target}
+          onChange={(event) => onPatch(banner.id, "link_target", event.target.value)}
+          className="h-11 w-full rounded-md border border-border bg-surface px-3 text-[14px] outline-none focus:border-foreground/40"
+        >
+          <option value="">Selecione um produto</option>
+          {products.map((product) => (
+            <option key={product.id} value={product.id}>
+              {product.name}
+            </option>
+          ))}
+        </select>
+      </LabeledField>
+    );
+  }
+
+  if (banner.link_type === "category") {
+    return (
+      <LabeledField label="Categoria">
+        <select
+          value={banner.link_target}
+          onChange={(event) => onPatch(banner.id, "link_target", event.target.value)}
+          className="h-11 w-full rounded-md border border-border bg-surface px-3 text-[14px] outline-none focus:border-foreground/40"
+        >
+          <option value="">Selecione uma categoria</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.slug}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+      </LabeledField>
+    );
+  }
+
+  return (
+    <LabeledField label="Link externo">
+      <TextInput
+        value={banner.link_target}
+        onChange={(value) => onPatch(banner.id, "link_target", value)}
+        placeholder="https://exemplo.com/promocao"
+      />
+    </LabeledField>
   );
 }
 
@@ -1416,9 +1506,11 @@ function SectionOrderEditor({
 function CatalogVisualPreview({
   store,
   settings,
+  banners,
 }: {
   store: GeneralSettingsForm;
   settings: CatalogVisualSettings;
+  banners: StoreBanner[];
 }) {
   const mockProducts = [
     ["Vestido Linho", "R$ 189,90"],
@@ -1437,6 +1529,7 @@ function CatalogVisualPreview({
   const previewPrimary = elegant ? "#5b1022" : settings.primary_color;
   const previewSecondary = elegant ? "#c59a36" : settings.secondary_color;
   const previewButton = elegant ? "#5b1022" : settings.button_color;
+  const previewBanner = banners.find((banner) => banner.active) ?? banners[0] ?? null;
   return (
     <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -1512,9 +1605,9 @@ function CatalogVisualPreview({
                 commercial ? "m-3 h-28 rounded-md" : editorial ? "grid h-48 grid-cols-[0.9fr_1.1fr] bg-white" : elegant ? "grid h-52 grid-cols-[0.9fr_1.1fr] bg-[#5b1022]" : "h-36",
               )}
             >
-              {store.banner_url ? (
+              {previewBanner?.image_url ? (
                 <img
-                  src={store.banner_url}
+                  src={previewBanner.image_url}
                   alt=""
                   className={cn(
                     "h-full w-full object-cover",
@@ -1535,7 +1628,7 @@ function CatalogVisualPreview({
                     commercial ? "text-[24px] font-black uppercase" : elegant ? "font-serif text-[34px] font-semibold text-[#f7f4ef]" : minimal ? "text-[24px] font-semibold" : "font-serif text-[30px] text-neutral-950",
                   )}
                 >
-                  {store.banner_title || store.name || "Nova coleção"}
+                  {previewBanner?.title || store.name || "Nova coleção"}
                 </div>
                 <button
                   type="button"
@@ -1548,7 +1641,7 @@ function CatalogVisualPreview({
                   )}
                   style={!elegant && !editorial ? { backgroundColor: settings.button_color } : undefined}
                 >
-                  {store.banner_cta || "Ver produtos"}
+                  {previewBanner?.button_label || "Ver produtos"}
                 </button>
               </div>
             </div>

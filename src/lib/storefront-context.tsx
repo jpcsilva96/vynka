@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import type { CatalogVisualSettings } from "@/lib/store-settings";
+import type { CatalogVisualSettings, StoreBanner } from "@/lib/store-settings";
 
 export interface StorefrontStore {
   id: string;
@@ -7,6 +7,7 @@ export interface StorefrontStore {
   name: string;
   description: string | null;
   logo_url: string | null;
+  favicon_url: string | null;
   banner_url: string | null;
   og_image_url: string | null;
   banner_title: string | null;
@@ -21,10 +22,12 @@ export interface StorefrontStore {
   complement: string | null;
   city: string | null;
   state: string | null;
+  zip_code: string | null;
   business_hours: string | null;
   status: string;
   publication_status: "draft" | "published" | "unpublished" | "suspended";
   catalog_visual: CatalogVisualSettings;
+  banners: StoreBanner[];
 }
 
 const Ctx = createContext<StorefrontStore | null>(null);

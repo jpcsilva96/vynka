@@ -1,9 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight } from "lucide-react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { ProductCard } from "@/components/loja/product-card";
 import { listActiveProducts, listPublicCategories } from "@/lib/public-shop";
 import { useStorefront } from "@/lib/storefront-context";
+import type { StoreBanner } from "@/lib/store-settings";
 
 export const Route = createFileRoute("/loja/$slug/")({
   component: LojaIndex,
@@ -24,51 +32,39 @@ function LojaIndex() {
   const featured = products.filter((product) => product.featured).slice(0, 4);
   const visibleProducts = products.slice(0, 12);
   const visual = store.catalog_visual;
-  const heroImage = visual.show_banner ? store.banner_url || products[0]?.primary_image || null : null;
   const description = plainText(store.description);
+  const banners = visual.show_banner
+    ? store.banners.length > 0
+      ? store.banners
+      : [
+          {
+            id: "legacy",
+            store_id: store.id,
+            image_url: store.banner_url || products[0]?.primary_image || "",
+            title: store.banner_title || store.name,
+            subtitle:
+              store.banner_subtitle ||
+              description ||
+              "Veja os produtos disponiveis e finalize sua compra de forma simples.",
+            button_label: store.banner_cta || "Ver produtos",
+            link_type: "home" as const,
+            link_target: "",
+            sort_order: 0,
+            active: true,
+          },
+        ]
+    : [];
 
   return (
     <div>
-      {visual.show_banner && (
-        <section className="border-b border-black/10 bg-white">
-          <div className="mx-auto grid max-w-[1280px] gap-10 px-4 py-12 md:grid-cols-[0.9fr_1.1fr] md:px-8 md:py-20">
-            <div className="flex flex-col justify-center">
-              <div className="text-[11px] font-medium uppercase tracking-[0.26em] text-neutral-500">Catalogo online</div>
-              <h1 className="mt-5 text-4xl font-semibold leading-none tracking-tight text-black md:text-6xl">
-                {store.banner_title || store.name}
-              </h1>
-              <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-neutral-600">
-                {store.banner_subtitle || description || "Veja os produtos disponiveis e finalize sua compra de forma simples."}
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link to="/loja/$slug" params={{ slug }} hash="produtos" className="inline-flex items-center gap-2 bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800">
-                  Ver produtos <ArrowRight className="h-4 w-4" />
-                </Link>
-                {store.whatsapp && (
-                  <a href={`#contato`} className="inline-flex items-center border border-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-black hover:bg-black hover:text-white">
-                    Atendimento
-                  </a>
-                )}
-              </div>
-            </div>
-            <div className="min-h-[360px] bg-neutral-100 md:min-h-[520px]">
-              {heroImage ? (
-                <img src={heroImage} alt={store.name} className="h-full w-full object-cover" />
-              ) : (
-                <div className="grid h-full min-h-[360px] place-items-center text-[12px] uppercase tracking-[0.2em] text-neutral-400">
-                  {store.name}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
+      {visual.show_banner && banners.length > 0 && (
+        <HeroBanners banners={banners} slug={slug} storeName={store.name} />
       )}
 
       {!visual.show_banner && visual.show_description && description && (
         <section className="border-b border-black/10 bg-white">
           <div className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
-            <div className="text-[11px] font-medium uppercase tracking-[0.26em] text-neutral-500">Catalogo online</div>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-black md:text-5xl">{store.name}</h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-black md:text-5xl">{store.name}</h1>
             <p className="mt-4 max-w-3xl text-[15px] leading-relaxed text-neutral-600">{description}</p>
           </div>
         </section>
@@ -124,6 +120,108 @@ function LojaIndex() {
       </section>
     </div>
   );
+}
+
+function HeroBanners({
+  banners,
+  slug,
+  storeName,
+}: {
+  banners: StoreBanner[];
+  slug: string;
+  storeName: string;
+}) {
+  if (banners.length === 1) {
+    return <HeroBanner banner={banners[0]} slug={slug} storeName={storeName} />;
+  }
+
+  return (
+    <section className="border-b border-black/10 bg-white">
+      <Carousel opts={{ loop: true }}>
+        <CarouselContent className="ml-0">
+          {banners.map((banner) => (
+            <CarouselItem key={banner.id} className="pl-0">
+              <HeroBanner banner={banner} slug={slug} storeName={storeName} />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious className="left-4 z-30 hidden border-white/30 bg-black/35 text-white backdrop-blur hover:bg-black/55 hover:text-white md:inline-flex" />
+        <CarouselNext className="right-4 z-30 hidden border-white/30 bg-black/35 text-white backdrop-blur hover:bg-black/55 hover:text-white md:inline-flex" />
+      </Carousel>
+    </section>
+  );
+}
+
+function HeroBanner({
+  banner,
+  slug,
+  storeName,
+}: {
+  banner: StoreBanner;
+  slug: string;
+  storeName: string;
+}) {
+  const target = bannerTargetHref(banner, slug);
+  return (
+    <section className="border-b border-black/10 bg-neutral-900">
+      <div className="relative mx-auto min-h-[420px] w-full max-w-[1600px] overflow-hidden md:min-h-[520px] lg:aspect-[12/5] lg:min-h-0">
+        <a
+          href={target.href}
+          target={target.external ? "_blank" : undefined}
+          rel={target.external ? "noreferrer" : undefined}
+          className="absolute inset-0 z-0 block bg-neutral-800"
+          aria-label={banner.button_label || banner.title || "Abrir destaque"}
+        >
+          {banner.image_url ? (
+            <img src={banner.image_url} alt={banner.title || storeName} className="h-full w-full object-cover" />
+          ) : (
+            <div className="grid h-full place-items-center text-[12px] uppercase tracking-[0.2em] text-neutral-400">
+              {storeName}
+            </div>
+          )}
+        </a>
+        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[72%] bg-gradient-to-r from-black/25 to-transparent md:w-[58%]" />
+
+        <div className="relative z-20 flex min-h-[420px] items-end px-5 py-9 sm:px-8 md:min-h-[520px] md:items-center md:px-14 md:py-14 lg:min-h-full lg:px-20">
+          <div className="max-w-2xl text-white">
+            <h1 className="text-4xl font-semibold leading-tight text-white drop-shadow-sm sm:text-5xl md:text-6xl">
+              {banner.title || storeName}
+            </h1>
+            <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-white/90 drop-shadow-sm md:text-[16px]">
+              {banner.subtitle || "Veja os produtos disponíveis e finalize sua compra de forma simples."}
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a
+                href={target.href}
+                target={target.external ? "_blank" : undefined}
+                rel={target.external ? "noreferrer" : undefined}
+                className="pointer-events-auto inline-flex items-center gap-2 bg-black px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-neutral-800"
+              >
+                {banner.button_label || "Ver produtos"} <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function bannerTargetHref(banner: StoreBanner, slug: string) {
+  if (banner.link_type === "store_home") {
+    return { href: `/loja/${slug}`, external: false };
+  }
+  if (banner.link_type === "product" && banner.link_target) {
+    return { href: `/loja/${slug}/produto/${banner.link_target}`, external: false };
+  }
+  if (banner.link_type === "category" && banner.link_target) {
+    return { href: `/loja/${slug}/categoria/${banner.link_target}`, external: false };
+  }
+  if (banner.link_type === "external" && banner.link_target) {
+    return { href: banner.link_target, external: true };
+  }
+  return { href: `/loja/${slug}#produtos`, external: false };
 }
 
 function plainText(value: string | null) {

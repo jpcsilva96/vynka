@@ -3,7 +3,6 @@ import {
   ShoppingCart,
   ClipboardList,
   Package,
-  Globe,
   Users,
   History,
   Wallet,
@@ -11,6 +10,7 @@ import {
   UserCog,
   Settings,
   LayoutDashboard,
+  LayoutTemplate,
   Tags,
 } from "lucide-react";
 
@@ -33,13 +33,13 @@ const primary = [
   { title: "Pedidos", url: "/admin/pedidos", icon: ClipboardList },
   { title: "Produtos", url: "/admin/produtos", icon: Package },
   { title: "Categorias", url: "/admin/categorias", icon: Tags },
-  { title: "Catálogo Online", url: "/admin/minha-loja", icon: Globe },
   { title: "Clientes", url: "/admin/clientes", icon: Users },
   { title: "Histórico", url: "/admin/historico", icon: History },
   { title: "Finanças", url: "/admin/financas", icon: Wallet },
   { title: "Estatísticas", url: "/admin/estatisticas", icon: BarChart3 },
   { title: "Usuários", url: "/admin/usuarios", icon: UserCog },
-  { title: "Configurações", url: "/admin/configuracoes", icon: Settings },
+  { title: "Loja e Catálogo", url: "/admin/configuracoes", icon: Settings },
+  { title: "Editor de Layout", url: "/admin/editor-layout", icon: LayoutTemplate },
 ];
 
 const workspace = [

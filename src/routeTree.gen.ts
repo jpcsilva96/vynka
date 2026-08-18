@@ -17,10 +17,10 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
 import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
+import { Route as AdminEditorLayoutRouteImport } from './routes/admin.editor-layout'
 import { Route as AdminEstatisticasRouteImport } from './routes/admin.estatisticas'
 import { Route as AdminFinancasRouteImport } from './routes/admin.financas'
 import { Route as AdminHistoricoRouteImport } from './routes/admin.historico'
-import { Route as AdminMinhaLojaRouteImport } from './routes/admin.minha-loja'
 import { Route as AdminOnboardingRouteImport } from './routes/admin.onboarding'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
 import { Route as AdminPreviewRouteImport } from './routes/admin.preview'
@@ -44,8 +44,10 @@ import { Route as AdminProdutosIdRouteImport } from './routes/admin.produtos.$id
 import { Route as AdminProdutosNovoRouteImport } from './routes/admin.produtos.novo'
 import { Route as LojaSlugIndexRouteImport } from './routes/loja.$slug.index'
 import { Route as LojaSlugCheckoutRouteImport } from './routes/loja.$slug.checkout'
+import { Route as LojaSlugContatoRouteImport } from './routes/loja.$slug.contato'
 import { Route as LojaSlugEntrarRouteImport } from './routes/loja.$slug.entrar'
 import { Route as LojaSlugMinhaContaRouteImport } from './routes/loja.$slug.minha-conta'
+import { Route as LojaSlugQuemSomosRouteImport } from './routes/loja.$slug.quem-somos'
 import { Route as LojaSlugCategoriaCategorySlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug'
 import { Route as LojaSlugProdutoIdRouteImport } from './routes/loja.$slug.produto.$id'
 import { Route as LojaSlugCategoriaCategorySlugChildSlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug.$childSlug'
@@ -90,6 +92,11 @@ const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminEditorLayoutRoute = AdminEditorLayoutRouteImport.update({
+  id: '/editor-layout',
+  path: '/editor-layout',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminEstatisticasRoute = AdminEstatisticasRouteImport.update({
   id: '/estatisticas',
   path: '/estatisticas',
@@ -103,11 +110,6 @@ const AdminFinancasRoute = AdminFinancasRouteImport.update({
 const AdminHistoricoRoute = AdminHistoricoRouteImport.update({
   id: '/historico',
   path: '/historico',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminMinhaLojaRoute = AdminMinhaLojaRouteImport.update({
-  id: '/minha-loja',
-  path: '/minha-loja',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminOnboardingRoute = AdminOnboardingRouteImport.update({
@@ -225,6 +227,11 @@ const LojaSlugCheckoutRoute = LojaSlugCheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => LojaSlugRoute,
 } as any)
+const LojaSlugContatoRoute = LojaSlugContatoRouteImport.update({
+  id: '/contato',
+  path: '/contato',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
 const LojaSlugEntrarRoute = LojaSlugEntrarRouteImport.update({
   id: '/entrar',
   path: '/entrar',
@@ -233,6 +240,11 @@ const LojaSlugEntrarRoute = LojaSlugEntrarRouteImport.update({
 const LojaSlugMinhaContaRoute = LojaSlugMinhaContaRouteImport.update({
   id: '/minha-conta',
   path: '/minha-conta',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
+const LojaSlugQuemSomosRoute = LojaSlugQuemSomosRouteImport.update({
+  id: '/quem-somos',
+  path: '/quem-somos',
   getParentRoute: () => LojaSlugRoute,
 } as any)
 const LojaSlugCategoriaCategorySlugRoute =
@@ -261,10 +273,10 @@ export interface FileRoutesByFullPath {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/editor-layout': typeof AdminEditorLayoutRoute
   '/admin/estatisticas': typeof AdminEstatisticasRoute
   '/admin/financas': typeof AdminFinancasRoute
   '/admin/historico': typeof AdminHistoricoRouteWithChildren
-  '/admin/minha-loja': typeof AdminMinhaLojaRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/preview': typeof AdminPreviewRoute
@@ -285,8 +297,10 @@ export interface FileRoutesByFullPath {
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
+  '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
   '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
+  '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
   '/admin/historico/': typeof AdminHistoricoIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/produtos/': typeof AdminProdutosIndexRoute
@@ -301,9 +315,9 @@ export interface FileRoutesByTo {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/editor-layout': typeof AdminEditorLayoutRoute
   '/admin/estatisticas': typeof AdminEstatisticasRoute
   '/admin/financas': typeof AdminFinancasRoute
-  '/admin/minha-loja': typeof AdminMinhaLojaRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/preview': typeof AdminPreviewRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -321,8 +335,10 @@ export interface FileRoutesByTo {
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
+  '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
   '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
+  '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
   '/admin/historico': typeof AdminHistoricoIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/admin/produtos': typeof AdminProdutosIndexRoute
@@ -340,10 +356,10 @@ export interface FileRoutesById {
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
+  '/admin/editor-layout': typeof AdminEditorLayoutRoute
   '/admin/estatisticas': typeof AdminEstatisticasRoute
   '/admin/financas': typeof AdminFinancasRoute
   '/admin/historico': typeof AdminHistoricoRouteWithChildren
-  '/admin/minha-loja': typeof AdminMinhaLojaRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/preview': typeof AdminPreviewRoute
@@ -364,8 +380,10 @@ export interface FileRoutesById {
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
+  '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
   '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
+  '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
   '/admin/historico/': typeof AdminHistoricoIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/produtos/': typeof AdminProdutosIndexRoute
@@ -384,10 +402,10 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/configuracoes'
+    | '/admin/editor-layout'
     | '/admin/estatisticas'
     | '/admin/financas'
     | '/admin/historico'
-    | '/admin/minha-loja'
     | '/admin/onboarding'
     | '/admin/pedidos'
     | '/admin/preview'
@@ -408,8 +426,10 @@ export interface FileRouteTypes {
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/loja/$slug/checkout'
+    | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
     | '/loja/$slug/minha-conta'
+    | '/loja/$slug/quem-somos'
     | '/admin/historico/'
     | '/admin/pedidos/'
     | '/admin/produtos/'
@@ -424,9 +444,9 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/configuracoes'
+    | '/admin/editor-layout'
     | '/admin/estatisticas'
     | '/admin/financas'
-    | '/admin/minha-loja'
     | '/admin/onboarding'
     | '/admin/preview'
     | '/admin/usuarios'
@@ -444,8 +464,10 @@ export interface FileRouteTypes {
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/loja/$slug/checkout'
+    | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
     | '/loja/$slug/minha-conta'
+    | '/loja/$slug/quem-somos'
     | '/admin/historico'
     | '/admin/pedidos'
     | '/admin/produtos'
@@ -462,10 +484,10 @@ export interface FileRouteTypes {
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/configuracoes'
+    | '/admin/editor-layout'
     | '/admin/estatisticas'
     | '/admin/financas'
     | '/admin/historico'
-    | '/admin/minha-loja'
     | '/admin/onboarding'
     | '/admin/pedidos'
     | '/admin/preview'
@@ -486,8 +508,10 @@ export interface FileRouteTypes {
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/loja/$slug/checkout'
+    | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
     | '/loja/$slug/minha-conta'
+    | '/loja/$slug/quem-somos'
     | '/admin/historico/'
     | '/admin/pedidos/'
     | '/admin/produtos/'
@@ -563,6 +587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminConfiguracoesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/editor-layout': {
+      id: '/admin/editor-layout'
+      path: '/editor-layout'
+      fullPath: '/admin/editor-layout'
+      preLoaderRoute: typeof AdminEditorLayoutRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/estatisticas': {
       id: '/admin/estatisticas'
       path: '/estatisticas'
@@ -582,13 +613,6 @@ declare module '@tanstack/react-router' {
       path: '/historico'
       fullPath: '/admin/historico'
       preLoaderRoute: typeof AdminHistoricoRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/minha-loja': {
-      id: '/admin/minha-loja'
-      path: '/minha-loja'
-      fullPath: '/admin/minha-loja'
-      preLoaderRoute: typeof AdminMinhaLojaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/onboarding': {
@@ -752,6 +776,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugCheckoutRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/loja/$slug/contato': {
+      id: '/loja/$slug/contato'
+      path: '/contato'
+      fullPath: '/loja/$slug/contato'
+      preLoaderRoute: typeof LojaSlugContatoRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
     '/loja/$slug/entrar': {
       id: '/loja/$slug/entrar'
       path: '/entrar'
@@ -764,6 +795,13 @@ declare module '@tanstack/react-router' {
       path: '/minha-conta'
       fullPath: '/loja/$slug/minha-conta'
       preLoaderRoute: typeof LojaSlugMinhaContaRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/quem-somos': {
+      id: '/loja/$slug/quem-somos'
+      path: '/quem-somos'
+      fullPath: '/loja/$slug/quem-somos'
+      preLoaderRoute: typeof LojaSlugQuemSomosRouteImport
       parentRoute: typeof LojaSlugRoute
     }
     '/loja/$slug/categoria/$categorySlug': {
@@ -838,10 +876,10 @@ interface AdminRouteChildren {
   AdminCategoriasRoute: typeof AdminCategoriasRoute
   AdminClientesRoute: typeof AdminClientesRoute
   AdminConfiguracoesRoute: typeof AdminConfiguracoesRoute
+  AdminEditorLayoutRoute: typeof AdminEditorLayoutRoute
   AdminEstatisticasRoute: typeof AdminEstatisticasRoute
   AdminFinancasRoute: typeof AdminFinancasRoute
   AdminHistoricoRoute: typeof AdminHistoricoRouteWithChildren
-  AdminMinhaLojaRoute: typeof AdminMinhaLojaRoute
   AdminOnboardingRoute: typeof AdminOnboardingRoute
   AdminPedidosRoute: typeof AdminPedidosRouteWithChildren
   AdminPreviewRoute: typeof AdminPreviewRoute
@@ -855,10 +893,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCategoriasRoute: AdminCategoriasRoute,
   AdminClientesRoute: AdminClientesRoute,
   AdminConfiguracoesRoute: AdminConfiguracoesRoute,
+  AdminEditorLayoutRoute: AdminEditorLayoutRoute,
   AdminEstatisticasRoute: AdminEstatisticasRoute,
   AdminFinancasRoute: AdminFinancasRoute,
   AdminHistoricoRoute: AdminHistoricoRouteWithChildren,
-  AdminMinhaLojaRoute: AdminMinhaLojaRoute,
   AdminOnboardingRoute: AdminOnboardingRoute,
   AdminPedidosRoute: AdminPedidosRouteWithChildren,
   AdminPreviewRoute: AdminPreviewRoute,
@@ -910,8 +948,10 @@ const LojaSlugCategoriaCategorySlugRouteWithChildren =
 
 interface LojaSlugRouteChildren {
   LojaSlugCheckoutRoute: typeof LojaSlugCheckoutRoute
+  LojaSlugContatoRoute: typeof LojaSlugContatoRoute
   LojaSlugEntrarRoute: typeof LojaSlugEntrarRoute
   LojaSlugMinhaContaRoute: typeof LojaSlugMinhaContaRoute
+  LojaSlugQuemSomosRoute: typeof LojaSlugQuemSomosRoute
   LojaSlugIndexRoute: typeof LojaSlugIndexRoute
   LojaSlugCategoriaCategorySlugRoute: typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   LojaSlugProdutoIdRoute: typeof LojaSlugProdutoIdRoute
@@ -919,8 +959,10 @@ interface LojaSlugRouteChildren {
 
 const LojaSlugRouteChildren: LojaSlugRouteChildren = {
   LojaSlugCheckoutRoute: LojaSlugCheckoutRoute,
+  LojaSlugContatoRoute: LojaSlugContatoRoute,
   LojaSlugEntrarRoute: LojaSlugEntrarRoute,
   LojaSlugMinhaContaRoute: LojaSlugMinhaContaRoute,
+  LojaSlugQuemSomosRoute: LojaSlugQuemSomosRoute,
   LojaSlugIndexRoute: LojaSlugIndexRoute,
   LojaSlugCategoriaCategorySlugRoute:
     LojaSlugCategoriaCategorySlugRouteWithChildren,

@@ -1,12 +1,15 @@
 import { createFileRoute, Link, notFound, Outlet } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 import { CartDrawer } from "@/components/loja/cart-drawer";
 import { StoreFooter } from "@/components/loja/store-footer";
 import { StoreHeader } from "@/components/loja/store-header";
 import { useCartHydration } from "@/lib/cart";
 import { getStoreBySlug } from "@/lib/public-shop";
 import { StorefrontProvider } from "@/lib/storefront-context";
+import { storeFontFamily } from "@/lib/store-settings";
+import type { CSSProperties } from "react";
 
 export const Route = createFileRoute("/loja/$slug")({
   component: LojaLayout,
@@ -38,6 +41,21 @@ function LojaLayout() {
     queryFn: () => getStoreBySlug(slug),
   });
 
+  useEffect(() => {
+    if (!store?.favicon_url) return;
+    const existing = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
+    const icon = existing ?? document.createElement("link");
+    const previousHref = existing?.href;
+    icon.rel = "icon";
+    icon.href = store.favicon_url;
+    if (!existing) document.head.appendChild(icon);
+
+    return () => {
+      if (existing && previousHref) existing.href = previousHref;
+      else icon.remove();
+    };
+  }, [store?.favicon_url]);
+
   if (isLoading) {
     return (
       <div className="grid min-h-svh place-items-center bg-white">
@@ -56,7 +74,23 @@ function LojaLayout() {
 
   return (
     <StorefrontProvider store={store}>
-      <div className="min-h-svh bg-white font-sans text-neutral-900 antialiased">
+      <div
+        className="storefront-theme storefront-typography min-h-svh antialiased"
+        style={{
+          "--shop-primary": store.catalog_visual.primary_color,
+          "--shop-secondary": store.catalog_visual.secondary_color,
+          "--shop-background": store.catalog_visual.background_color,
+          "--shop-button": store.catalog_visual.button_color,
+          "--shop-button-hover": store.catalog_visual.button_hover_color,
+          "--shop-button-text": store.catalog_visual.button_text_color,
+          "--shop-surface": store.catalog_visual.header_background_color,
+          "--shop-surface-text": store.catalog_visual.header_text_color,
+          "--store-heading-font": storeFontFamily(store.catalog_visual.heading_font),
+          "--store-body-font": storeFontFamily(store.catalog_visual.body_font),
+          "--store-heading-scale": store.catalog_visual.heading_scale / 100,
+          "--store-body-size": `${14 * (store.catalog_visual.body_scale / 100)}px`,
+        } as CSSProperties}
+      >
         <StoreHeader />
         <main>
           <Outlet />

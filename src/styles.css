@@ -167,6 +167,105 @@
 }
 
 /* VYNKA wordmark — geometric, wide tracking, sharp K as reversed chevron */
+/* Store typography stays unlayered so saved settings override utility sizes. */
+.storefront-typography {
+  font-family: var(--store-body-font, var(--font-sans));
+}
+
+.storefront-typography h1,
+.storefront-typography h2,
+.storefront-typography h3,
+.storefront-typography h4,
+.storefront-typography h5,
+.storefront-typography h6 {
+  font-family: var(--store-heading-font, var(--font-sans));
+}
+
+.storefront-typography h1 {
+  font-size: calc(40px * var(--store-heading-scale, 1));
+}
+
+.storefront-typography h2 {
+  font-size: calc(24px * var(--store-heading-scale, 1));
+}
+
+.storefront-typography h3 {
+  font-size: calc(18px * var(--store-heading-scale, 1));
+}
+
+.storefront-typography p,
+.storefront-typography article a {
+  font-size: var(--store-body-size, 14px);
+}
+
+@media (min-width: 768px) {
+  .storefront-typography h1 {
+    font-size: calc(60px * var(--store-heading-scale, 1));
+  }
+}
+
+/* Public storefront color settings override the fixed neutral utility palette. */
+.storefront-theme {
+  background-color: var(--shop-background, #ffffff);
+  color: var(--shop-primary, #111111);
+}
+
+.storefront-theme .bg-white {
+  background-color: var(--shop-background, #ffffff);
+}
+
+.storefront-theme .bg-neutral-50,
+.storefront-theme .bg-neutral-100 {
+  background-color: color-mix(
+    in srgb,
+    var(--shop-background, #ffffff) 94%,
+    var(--shop-primary, #111111)
+  );
+}
+
+.storefront-theme .text-black,
+.storefront-theme .text-neutral-900 {
+  color: var(--shop-primary, #111111);
+}
+
+.storefront-theme .text-neutral-400,
+.storefront-theme .text-neutral-500,
+.storefront-theme .text-neutral-600,
+.storefront-theme .text-neutral-700 {
+  color: var(--shop-secondary, #737373);
+}
+
+.storefront-theme .bg-black {
+  background-color: var(--shop-button, #111111);
+}
+
+.storefront-theme button.bg-black,
+.storefront-theme a.bg-black {
+  color: var(--shop-button-text, #ffffff);
+}
+
+.storefront-theme button.bg-black:hover,
+.storefront-theme a.bg-black:hover {
+  background-color: var(--shop-button-hover, #333333);
+  color: var(--shop-button-text, #ffffff);
+}
+
+.storefront-theme .border-black {
+  border-color: var(--shop-primary, #111111);
+}
+
+.storefront-theme .hover\:bg-black:hover {
+  background-color: var(--shop-button-hover, #333333);
+}
+
+.storefront-theme .hover\:bg-neutral-800:hover {
+  background-color: var(--shop-button-hover, #333333);
+}
+
+.storefront-theme .hover\:text-black:hover {
+  color: var(--shop-primary, #111111);
+}
+
 @utility vynka-wordmark {
   font-family: var(--font-display);
   font-weight: 300;

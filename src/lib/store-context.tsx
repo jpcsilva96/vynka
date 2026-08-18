@@ -120,7 +120,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    supabase.auth.getUser().then(({ data }) => load(data.user));
+    supabase.auth
+      .getUser()
+      .then(({ data }) => load(data.user))
+      .catch((error) => {
+        console.error("[StoreProvider] auth lookup failed", error);
+        load(null);
+      });
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
         load(session?.user ?? null);

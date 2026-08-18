@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Category, ProductStatus } from "@/lib/products";
 import type { StorefrontStore } from "@/lib/storefront-context";
-import { normalizeCatalogVisualSettings } from "@/lib/store-settings";
+import { normalizeCatalogVisualSettings, normalizeStoragePublicUrl, type StoreBanner, type StoreBannerLinkType } from "@/lib/store-settings";
 
 export interface PublicProduct {
   id: string;
@@ -82,7 +82,7 @@ function mapProduct(p: any): PublicProduct {
 }
 
 const STOREFRONT_COLUMNS =
-  "id,slug,name,description,logo_url,banner_url,og_image_url,banner_title,banner_subtitle,banner_cta,phone,whatsapp,email,instagram,address,address_number,complement,city,state,business_hours,status,publication_status";
+  "id,slug,name,description,logo_url,banner_url,og_image_url,banner_title,banner_subtitle,banner_cta,phone,whatsapp,email,instagram,address,address_number,complement,city,state,zip_code,business_hours,status,publication_status";
 
 export async function getStoreBySlug(slug: string): Promise<StorefrontStore | null> {
   const { data, error } = await supabase
@@ -92,17 +92,100 @@ export async function getStoreBySlug(slug: string): Promise<StorefrontStore | nu
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const { data: visual, error: visualError } = await supabase
+  const [{ data: visual, error: visualError }, { data: favicon, error: faviconError }] = await Promise.all([
+    supabase
+      .from("store_settings")
+      .select("setting_value")
+      .eq("store_id", data.id)
+      .eq("setting_key", "catalog_visual")
+      .maybeSingle(),
+    supabase
+      .from("store_settings")
+      .select("setting_value")
+      .eq("store_id", data.id)
+      .eq("setting_key", "favicon")
+      .maybeSingle(),
+  ]);
+  if (visualError) throw visualError;
+  if (faviconError) throw faviconError;
+  const { data: banners, error: bannersError } = await supabase
+    .from("store_banners")
+    .select("id,store_id,image_url,title,subtitle,button_label,link_type,link_target,sort_order,active")
+    .eq("store_id", data.id)
+    .eq("active", true)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (bannersError && !isMissingStoreBannersTable(bannersError)) throw bannersError;
+  const settingBanners =
+    isMissingStoreBannersTable(bannersError) ? await listPublicBannersFromSettings(data.id) : [];
+  return {
+    ...(data as unknown as Omit<StorefrontStore, "catalog_visual" | "banners">),
+    favicon_url: normalizeStoragePublicUrl(readPublicFaviconUrl(favicon?.setting_value)) || null,
+    catalog_visual: normalizeCatalogVisualSettings(visual?.setting_value),
+    banners: isMissingStoreBannersTable(bannersError) ? settingBanners : (banners ?? []).map((banner) => ({
+      id: banner.id,
+      store_id: banner.store_id,
+      image_url: banner.image_url ?? "",
+      title: banner.title ?? "",
+      subtitle: banner.subtitle ?? "",
+      button_label: banner.button_label ?? "",
+      link_type: isBannerLinkType(banner.link_type) ? banner.link_type : "home",
+      link_target: banner.link_target ?? "",
+      sort_order: banner.sort_order ?? 0,
+      active: banner.active ?? true,
+    })),
+  };
+}
+
+function readPublicFaviconUrl(value: unknown) {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && "url" in value) {
+    const url = (value as { url?: unknown }).url;
+    return typeof url === "string" ? url : "";
+  }
+  return "";
+}
+
+async function listPublicBannersFromSettings(storeId: string): Promise<StoreBanner[]> {
+  const { data, error } = await supabase
     .from("store_settings")
     .select("setting_value")
-    .eq("store_id", data.id)
-    .eq("setting_key", "catalog_visual")
+    .eq("store_id", storeId)
+    .eq("setting_key", "catalog_banners")
     .maybeSingle();
-  if (visualError) throw visualError;
+  if (error) throw error;
+  if (!Array.isArray(data?.setting_value)) return [];
+  return data.setting_value
+    .map((value, index) => normalizePublicBannerValue(storeId, value, index))
+    .filter((banner) => banner.active && banner.image_url);
+}
+
+function normalizePublicBannerValue(storeId: string, value: unknown, index: number): StoreBanner {
+  const raw = value && typeof value === "object" ? (value as Partial<StoreBanner>) : {};
   return {
-    ...(data as unknown as Omit<StorefrontStore, "catalog_visual">),
-    catalog_visual: normalizeCatalogVisualSettings(visual?.setting_value),
+    id: typeof raw.id === "string" ? raw.id : `${storeId}-${index}`,
+    store_id: storeId,
+    image_url: typeof raw.image_url === "string" ? raw.image_url : "",
+    title: typeof raw.title === "string" ? raw.title : "",
+    subtitle: typeof raw.subtitle === "string" ? raw.subtitle : "",
+    button_label: typeof raw.button_label === "string" ? raw.button_label : "",
+    link_type: isBannerLinkType(raw.link_type ?? null) ? raw.link_type : "home",
+    link_target: typeof raw.link_target === "string" ? raw.link_target : "",
+    sort_order: typeof raw.sort_order === "number" ? raw.sort_order : index,
+    active: typeof raw.active === "boolean" ? raw.active : true,
   };
+}
+
+function isBannerLinkType(value: string | null): value is StoreBannerLinkType {
+  return value === "home" || value === "store_home" || value === "product" || value === "category" || value === "external";
+}
+
+function isMissingStoreBannersTable(error: { code?: string; message?: string } | null) {
+  return (
+    error?.code === "42P01" ||
+    error?.code === "PGRST205" ||
+    error?.message?.toLowerCase().includes("store_banners") === true
+  );
 }
 
 export async function listActiveProducts(storeId: string): Promise<PublicProduct[]> {
