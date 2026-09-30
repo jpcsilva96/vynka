@@ -236,9 +236,10 @@ const moneyToInput = (value: number | string | null | undefined) => {
   return parsed.toFixed(2);
 };
 
-export async function uploadProductImage(file: File): Promise<ProductImage> {
+export async function uploadProductImage(storeId: string, file: File): Promise<ProductImage> {
   const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  // A pasta da loja permite que a policy do bucket restrinja escrita por loja.
+  const path = `${storeId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await supabase.storage.from("product-images").upload(path, file, {
     contentType: file.type,
     cacheControl: "31536000",

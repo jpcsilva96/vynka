@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { GripVertical, Loader2, UploadCloud, X } from "lucide-react";
 import { uploadProductImage, type ProductImage } from "@/lib/products";
+import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -9,18 +10,23 @@ interface Props {
 }
 
 export function ImageUploader({ images, onChange }: Props) {
+  const { currentStore } = useStoreContext();
   const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const dragIndex = useRef<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const handleFiles = async (files: FileList | File[]) => {
+    if (!currentStore) {
+      alert("Loja nao carregada. Recarregue a pagina e tente novamente.");
+      return;
+    }
     setBusy(true);
     try {
       const uploaded: ProductImage[] = [];
       for (const file of Array.from(files)) {
         if (!file.type.startsWith("image/")) continue;
-        const image = await uploadProductImage(file);
+        const image = await uploadProductImage(currentStore.id, file);
         uploaded.push(image);
       }
       onChange([...images, ...uploaded].map((img, i) => ({ ...img, position: i })));
