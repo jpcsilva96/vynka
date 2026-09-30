@@ -120,6 +120,8 @@ export const createStoreUser = createServerFn({ method: "POST" })
       if (list.users.length < perPage) break;
     }
 
+    const userAlreadyExisted = !!userId;
+
     if (!userId) {
       const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
         email,
@@ -129,13 +131,6 @@ export const createStoreUser = createServerFn({ method: "POST" })
       });
       if (error) throw error;
       userId = created.user!.id;
-    } else {
-      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-        password: data.password,
-        email_confirm: true,
-        user_metadata: { full_name: data.name.trim() },
-      });
-      if (error) throw error;
     }
 
     const role = data.administrator ? "admin" : "seller";
@@ -153,7 +148,7 @@ export const createStoreUser = createServerFn({ method: "POST" })
     );
     if (memberError) throw memberError;
 
-    return { ok: true, user_id: userId };
+    return { ok: true, user_id: userId, existing_user: userAlreadyExisted };
   });
 
 export const updateStoreUser = createServerFn({ method: "POST" })
