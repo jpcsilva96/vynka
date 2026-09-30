@@ -65,6 +65,7 @@ export type Database = {
           display_order: number
           id: string
           name: string
+          parent_id: string | null
           position: number
           slug: string
           store_id: string
@@ -76,6 +77,7 @@ export type Database = {
           display_order?: number
           id?: string
           name: string
+          parent_id?: string | null
           position?: number
           slug: string
           store_id: string
@@ -87,12 +89,20 @@ export type Database = {
           display_order?: number
           id?: string
           name?: string
+          parent_id?: string | null
           position?: number
           slug?: string
           store_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "categories_store_id_fkey"
             columns: ["store_id"]
@@ -102,33 +112,121 @@ export type Database = {
           },
         ]
       }
-      customers: {
+      customer_favorites: {
         Row: {
           created_at: string
-          email: string | null
+          customer_id: string
           id: string
-          name: string
-          phone: string | null
+          product_id: string
           store_id: string
-          updated_at: string
+          user_id: string
         }
         Insert: {
           created_at?: string
-          email?: string | null
+          customer_id: string
           id?: string
-          name: string
-          phone?: string | null
+          product_id: string
           store_id: string
-          updated_at?: string
+          user_id: string
         }
         Update: {
           created_at?: string
+          customer_id?: string
+          id?: string
+          product_id?: string
+          store_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_favorites_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_favorites_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address_number: string | null
+          birth_date: string | null
+          city: string | null
+          complement: string | null
+          created_at: string
+          document: string | null
+          email: string | null
+          id: string
+          mobile: string | null
+          name: string
+          neighborhood: string | null
+          notes: string | null
+          phone: string | null
+          state: string | null
+          store_id: string
+          street: string | null
+          telephone: string | null
+          updated_at: string
+          user_id: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address_number?: string | null
+          birth_date?: string | null
+          city?: string | null
+          complement?: string | null
+          created_at?: string
+          document?: string | null
           email?: string | null
           id?: string
-          name?: string
+          mobile?: string | null
+          name: string
+          neighborhood?: string | null
+          notes?: string | null
           phone?: string | null
-          store_id?: string
+          state?: string | null
+          store_id: string
+          street?: string | null
+          telephone?: string | null
           updated_at?: string
+          user_id?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address_number?: string | null
+          birth_date?: string | null
+          city?: string | null
+          complement?: string | null
+          created_at?: string
+          document?: string | null
+          email?: string | null
+          id?: string
+          mobile?: string | null
+          name?: string
+          neighborhood?: string | null
+          notes?: string | null
+          phone?: string | null
+          state?: string | null
+          store_id?: string
+          street?: string | null
+          telephone?: string | null
+          updated_at?: string
+          user_id?: string | null
+          zip_code?: string | null
         }
         Relationships: [
           {
@@ -149,7 +247,9 @@ export type Database = {
           product_name: string
           quantity: number
           store_id: string
+          total_cost: number
           total_price: number
+          unit_cost: number
           unit_price: number
           variant_id: string | null
           variant_name: string | null
@@ -162,7 +262,9 @@ export type Database = {
           product_name: string
           quantity?: number
           store_id: string
+          total_cost?: number
           total_price?: number
+          unit_cost?: number
           unit_price?: number
           variant_id?: string | null
           variant_name?: string | null
@@ -175,7 +277,9 @@ export type Database = {
           product_name?: string
           quantity?: number
           store_id?: string
+          total_cost?: number
           total_price?: number
+          unit_cost?: number
           unit_price?: number
           variant_id?: string | null
           variant_name?: string | null
@@ -462,6 +566,7 @@ export type Database = {
           price: number | null
           product_id: string
           sku_key: string
+          stock_quantity: number
           store_id: string
         }
         Insert: {
@@ -474,6 +579,7 @@ export type Database = {
           price?: number | null
           product_id: string
           sku_key: string
+          stock_quantity?: number
           store_id: string
         }
         Update: {
@@ -486,6 +592,7 @@ export type Database = {
           price?: number | null
           product_id?: string
           sku_key?: string
+          stock_quantity?: number
           store_id?: string
         }
         Relationships: [
@@ -508,11 +615,13 @@ export type Database = {
       products: {
         Row: {
           category_id: string | null
+          cost_price: number
           created_at: string
           description: string | null
           display_order: number
           featured: boolean
           id: string
+          manage_stock: boolean
           name: string
           position: number
           price: number
@@ -524,11 +633,13 @@ export type Database = {
         }
         Insert: {
           category_id?: string | null
+          cost_price?: number
           created_at?: string
           description?: string | null
           display_order?: number
           featured?: boolean
           id?: string
+          manage_stock?: boolean
           name?: string
           position?: number
           price?: number
@@ -540,11 +651,13 @@ export type Database = {
         }
         Update: {
           category_id?: string | null
+          cost_price?: number
           created_at?: string
           description?: string | null
           display_order?: number
           featured?: boolean
           id?: string
+          manage_stock?: boolean
           name?: string
           position?: number
           price?: number
@@ -601,11 +714,67 @@ export type Database = {
         }
         Relationships: []
       }
+      store_banners: {
+        Row: {
+          active: boolean
+          button_label: string | null
+          created_at: string
+          id: string
+          image_url: string
+          link_target: string | null
+          link_type: string
+          sort_order: number
+          store_id: string
+          subtitle: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          button_label?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          link_target?: string | null
+          link_type?: string
+          sort_order?: number
+          store_id: string
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          button_label?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          link_target?: string | null
+          link_type?: string
+          sort_order?: number
+          store_id?: string
+          subtitle?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_banners_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_members: {
         Row: {
           active: boolean
           created_at: string
+          email: string | null
           id: string
+          name: string | null
+          permissions: Json
           role: Database["public"]["Enums"]["member_role"]
           store_id: string
           updated_at: string
@@ -614,7 +783,10 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          email?: string | null
           id?: string
+          name?: string | null
+          permissions?: Json
           role?: Database["public"]["Enums"]["member_role"]
           store_id: string
           updated_at?: string
@@ -623,7 +795,10 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          email?: string | null
           id?: string
+          name?: string | null
+          permissions?: Json
           role?: Database["public"]["Enums"]["member_role"]
           store_id?: string
           updated_at?: string
@@ -679,6 +854,7 @@ export type Database = {
           accepts_site_orders: boolean
           accepts_whatsapp_orders: boolean
           address: string | null
+          address_number: string | null
           banner_cta: string | null
           banner_subtitle: string | null
           banner_title: string | null
@@ -686,6 +862,7 @@ export type Database = {
           business_hours: string | null
           city: string | null
           combine_delivery_whatsapp: boolean
+          complement: string | null
           created_at: string
           delivery_available: boolean
           delivery_notes: string | null
@@ -705,11 +882,13 @@ export type Database = {
           plan_id: string | null
           publication_status: Database["public"]["Enums"]["publication_status"]
           published_at: string | null
+          responsible_name: string | null
           segment: string | null
           slug: string
           state: string | null
           status: Database["public"]["Enums"]["store_status"]
           subscription_ends_at: string | null
+          tax_document: string | null
           tiktok: string | null
           trial_ends_at: string | null
           updated_at: string
@@ -720,6 +899,7 @@ export type Database = {
           accepts_site_orders?: boolean
           accepts_whatsapp_orders?: boolean
           address?: string | null
+          address_number?: string | null
           banner_cta?: string | null
           banner_subtitle?: string | null
           banner_title?: string | null
@@ -727,6 +907,7 @@ export type Database = {
           business_hours?: string | null
           city?: string | null
           combine_delivery_whatsapp?: boolean
+          complement?: string | null
           created_at?: string
           delivery_available?: boolean
           delivery_notes?: string | null
@@ -746,11 +927,13 @@ export type Database = {
           plan_id?: string | null
           publication_status?: Database["public"]["Enums"]["publication_status"]
           published_at?: string | null
+          responsible_name?: string | null
           segment?: string | null
           slug: string
           state?: string | null
           status?: Database["public"]["Enums"]["store_status"]
           subscription_ends_at?: string | null
+          tax_document?: string | null
           tiktok?: string | null
           trial_ends_at?: string | null
           updated_at?: string
@@ -761,6 +944,7 @@ export type Database = {
           accepts_site_orders?: boolean
           accepts_whatsapp_orders?: boolean
           address?: string | null
+          address_number?: string | null
           banner_cta?: string | null
           banner_subtitle?: string | null
           banner_title?: string | null
@@ -768,6 +952,7 @@ export type Database = {
           business_hours?: string | null
           city?: string | null
           combine_delivery_whatsapp?: boolean
+          complement?: string | null
           created_at?: string
           delivery_available?: boolean
           delivery_notes?: string | null
@@ -787,11 +972,13 @@ export type Database = {
           plan_id?: string | null
           publication_status?: Database["public"]["Enums"]["publication_status"]
           published_at?: string | null
+          responsible_name?: string | null
           segment?: string | null
           slug?: string
           state?: string | null
           status?: Database["public"]["Enums"]["store_status"]
           subscription_ends_at?: string | null
+          tax_document?: string | null
           tiktok?: string | null
           trial_ends_at?: string | null
           updated_at?: string
@@ -885,6 +1072,9 @@ export type Database = {
         | "shipped"
         | "delivered"
         | "cancelled"
+        | "paid"
+        | "in_production"
+        | "in_dispatch"
       platform_role: "platform_owner" | "super_admin" | "support"
       product_status: "active" | "draft" | "archived"
       publication_status: "draft" | "published" | "unpublished" | "suspended"
@@ -1031,6 +1221,9 @@ export const Constants = {
         "shipped",
         "delivered",
         "cancelled",
+        "paid",
+        "in_production",
+        "in_dispatch",
       ],
       platform_role: ["platform_owner", "super_admin", "support"],
       product_status: ["active", "draft", "archived"],
