@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { PageShell } from "@/components/page-shell";
+import { isProvisionalSlug } from "@/lib/provisional-store";
 import {
   getGeneralSettings,
   getDeliverySettings,
@@ -298,7 +299,7 @@ function Configuracoes() {
                       onChange={(value) => {
                         const currentAutoSlug = normalizeSlug(form.name);
                         patch("name", value);
-                        if (!form.slug || form.slug === currentAutoSlug) {
+                        if (!form.slug || form.slug === currentAutoSlug || isProvisionalSlug(form.slug)) {
                           patch("slug", value);
                         }
                       }}

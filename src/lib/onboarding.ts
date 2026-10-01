@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { StoreSummary } from "@/lib/store-context";
+import { isProvisionalName, isProvisionalSlug } from "@/lib/provisional-store";
+import { normalizeSlug } from "@/lib/store-settings";
 
 export type BrandingKind = "logo" | "banner" | "og";
 
@@ -55,6 +57,23 @@ export async function updateStore(
 ): Promise<void> {
   const { error } = await supabase.from("stores").update(patch).eq("id", storeId);
   if (error) throw error;
+}
+
+/** Gera o link público a partir do nome, com sufixo numérico se já existir em outra loja. */
+export async function uniqueSlugFromName(storeId: string, name: string): Promise<string> {
+  const base = normalizeSlug(name) || "minha-loja";
+  for (let i = 1; i <= 20; i++) {
+    const candidate = i === 1 ? base : `${base}-${i}`;
+    const { data, error } = await supabase
+      .from("stores")
+      .select("id")
+      .eq("slug", candidate)
+      .neq("id", storeId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return candidate;
+  }
+  throw new Error("Não foi possível gerar o link da loja. Escolha outro nome.");
 }
 
 export async function saveStep(
@@ -134,11 +153,11 @@ export async function computeChecklist(store: StoreFullRow): Promise<Checklist> 
     (store.accepts_whatsapp_orders && isValidWhatsApp(store.whatsapp)) ||
     store.accepts_site_orders;
   return {
-    hasName: !!store.name?.trim(),
+    hasName: !isProvisionalName(store.name),
     hasLogo: !!store.logo_url,
     hasWhatsAppOrSite: store.accepts_site_orders || isValidWhatsApp(store.whatsapp),
     hasActiveProduct: activeProducts > 0,
-    hasSlug: !!store.slug?.trim(),
+    hasSlug: !!store.slug?.trim() && !isProvisionalSlug(store.slug),
     hasOrderChannel: hasChannel,
   };
 }
