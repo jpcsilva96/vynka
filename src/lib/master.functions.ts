@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { PROVISIONAL_STORE_NAME, makeProvisionalSlug } from "@/lib/provisional-store";
+import {
+  PROVISIONAL_STORE_NAME,
+  isProvisionalName,
+  makeProvisionalSlug,
+} from "@/lib/provisional-store";
 
 /**
  * Provisiona o primeiro usuário Master a partir de MASTER_EMAIL / MASTER_PASSWORD.
@@ -117,10 +121,11 @@ const createStoreSchema = z.object({
   redirect_origin: z.string().url().optional(),
 });
 
-// Origem do app (ex. https://vynka.lovable.app) para o link do convite abrir /reset-password.
+// Origem do app (ex. https://vynka.lovable.app) + página que o link abre: /boas-vindas (cadastro
+// completo do dono) ou /reset-password (só a senha).
 // O Supabase só aceita destinos presentes em Authentication > URL Configuration.
-function inviteRedirect(origin?: string) {
-  return origin ? { redirectTo: `${new URL(origin).origin}/reset-password` } : {};
+function inviteRedirect(origin?: string, path: "/boas-vindas" | "/reset-password" = "/boas-vindas") {
+  return origin ? { redirectTo: `${new URL(origin).origin}${path}` } : {};
 }
 
 /** Cria uma nova loja + convida o responsável. Somente Master. */
@@ -268,8 +273,8 @@ export const updateStorePlan = createServerFn({ method: "POST" })
 
 /**
  * Gera um novo link de acesso para o dono da loja. Quem nunca entrou recebe um convite;
- * quem já entrou recebe um link de redefinição de senha. Os dois abrem /reset-password.
- * Somente Master.
+ * quem já entrou recebe um link de redefinição de senha. Se o dono ainda não completou o
+ * cadastro, o link abre /boas-vindas; senão, /reset-password. Somente Master.
  */
 export const resendStoreInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -297,11 +302,17 @@ export const resendStoreInvite = createServerFn({ method: "POST" })
     const email = userRes.user.email;
     if (!email) throw new Error("O responsável desta loja não tem e-mail cadastrado.");
 
+    // Cadastro completo = marcado pela tela de boas-vindas, ou loja antiga que já tem nome definitivo.
+    const { data: store } = await supabaseAdmin
+      .from("stores").select("name").eq("id", data.store_id).maybeSingle();
+    const signupDone =
+      userRes.user.user_metadata?.signup_completed === true || !isProvisionalName(store?.name);
+
     const type = userRes.user.last_sign_in_at ? "recovery" : "invite";
     const link = await supabaseAdmin.auth.admin.generateLink({
       type,
       email,
-      options: inviteRedirect(data.redirect_origin),
+      options: inviteRedirect(data.redirect_origin, signupDone ? "/reset-password" : "/boas-vindas"),
     });
     if (link.error) throw link.error;
 

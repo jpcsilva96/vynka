@@ -9,57 +9,54 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as MasterRouteImport } from './routes/master'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as MasterIndexRouteImport } from './routes/master.index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as BoasVindasRouteImport } from './routes/boas-vindas'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MasterRouteImport } from './routes/master'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as MasterUsuariosRouteImport } from './routes/master.usuarios'
-import { Route as MasterPlanosRouteImport } from './routes/master.planos'
-import { Route as MasterLojasRouteImport } from './routes/master.lojas'
-import { Route as MasterLoginRouteImport } from './routes/master.login'
-import { Route as MasterConfiguracoesRouteImport } from './routes/master.configuracoes'
-import { Route as MasterAssinaturasRouteImport } from './routes/master.assinaturas'
-import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
-import { Route as AdminVenderRouteImport } from './routes/admin.vender'
-import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
-import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
-import { Route as AdminPreviewRouteImport } from './routes/admin.preview'
-import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
-import { Route as AdminOnboardingRouteImport } from './routes/admin.onboarding'
-import { Route as AdminHistoricoRouteImport } from './routes/admin.historico'
-import { Route as AdminFinancasRouteImport } from './routes/admin.financas'
-import { Route as AdminEstatisticasRouteImport } from './routes/admin.estatisticas'
-import { Route as AdminEditorLayoutRouteImport } from './routes/admin.editor-layout'
-import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
-import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
 import { Route as AdminCategoriasRouteImport } from './routes/admin.categorias'
-import { Route as LojaSlugIndexRouteImport } from './routes/loja.$slug.index'
-import { Route as AdminProdutosIndexRouteImport } from './routes/admin.produtos.index'
-import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
+import { Route as AdminClientesRouteImport } from './routes/admin.clientes'
+import { Route as AdminConfiguracoesRouteImport } from './routes/admin.configuracoes'
+import { Route as AdminEditorLayoutRouteImport } from './routes/admin.editor-layout'
+import { Route as AdminEstatisticasRouteImport } from './routes/admin.estatisticas'
+import { Route as AdminFinancasRouteImport } from './routes/admin.financas'
+import { Route as AdminHistoricoRouteImport } from './routes/admin.historico'
+import { Route as AdminOnboardingRouteImport } from './routes/admin.onboarding'
+import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminPreviewRouteImport } from './routes/admin.preview'
+import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
+import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
+import { Route as AdminVenderRouteImport } from './routes/admin.vender'
+import { Route as LojaSlugRouteImport } from './routes/loja.$slug'
+import { Route as MasterIndexRouteImport } from './routes/master.index'
+import { Route as MasterAssinaturasRouteImport } from './routes/master.assinaturas'
+import { Route as MasterConfiguracoesRouteImport } from './routes/master.configuracoes'
+import { Route as MasterLoginRouteImport } from './routes/master.login'
+import { Route as MasterLojasRouteImport } from './routes/master.lojas'
+import { Route as MasterPlanosRouteImport } from './routes/master.planos'
+import { Route as MasterUsuariosRouteImport } from './routes/master.usuarios'
 import { Route as AdminHistoricoIndexRouteImport } from './routes/admin.historico.index'
-import { Route as LojaSlugQuemSomosRouteImport } from './routes/loja.$slug.quem-somos'
-import { Route as LojaSlugMinhaContaRouteImport } from './routes/loja.$slug.minha-conta'
-import { Route as LojaSlugEntrarRouteImport } from './routes/loja.$slug.entrar'
-import { Route as LojaSlugContatoRouteImport } from './routes/loja.$slug.contato'
-import { Route as LojaSlugCheckoutRouteImport } from './routes/loja.$slug.checkout'
-import { Route as AdminProdutosNovoRouteImport } from './routes/admin.produtos.novo'
-import { Route as AdminProdutosIdRouteImport } from './routes/admin.produtos.$id'
-import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminHistoricoIdRouteImport } from './routes/admin.historico.$id'
-import { Route as LojaSlugProdutoIdRouteImport } from './routes/loja.$slug.produto.$id'
+import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
+import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
+import { Route as AdminProdutosIndexRouteImport } from './routes/admin.produtos.index'
+import { Route as AdminProdutosIdRouteImport } from './routes/admin.produtos.$id'
+import { Route as AdminProdutosNovoRouteImport } from './routes/admin.produtos.novo'
+import { Route as LojaSlugIndexRouteImport } from './routes/loja.$slug.index'
+import { Route as LojaSlugCheckoutRouteImport } from './routes/loja.$slug.checkout'
+import { Route as LojaSlugContatoRouteImport } from './routes/loja.$slug.contato'
+import { Route as LojaSlugEntrarRouteImport } from './routes/loja.$slug.entrar'
+import { Route as LojaSlugMinhaContaRouteImport } from './routes/loja.$slug.minha-conta'
+import { Route as LojaSlugQuemSomosRouteImport } from './routes/loja.$slug.quem-somos'
 import { Route as LojaSlugCategoriaCategorySlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug'
+import { Route as LojaSlugProdutoIdRouteImport } from './routes/loja.$slug.produto.$id'
 import { Route as LojaSlugCategoriaCategorySlugChildSlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug.$childSlug'
 
-const MasterRoute = MasterRouteImport.update({
-  id: '/master',
-  path: '/master',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -67,114 +64,29 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const BoasVindasRoute = BoasVindasRouteImport.update({
+  id: '/boas-vindas',
+  path: '/boas-vindas',
   getParentRoute: () => rootRouteImport,
 } as any)
-const MasterIndexRoute = MasterIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => MasterRoute,
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MasterRoute = MasterRouteImport.update({
+  id: '/master',
+  path: '/master',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminRoute,
-} as any)
-const MasterUsuariosRoute = MasterUsuariosRouteImport.update({
-  id: '/usuarios',
-  path: '/usuarios',
-  getParentRoute: () => MasterRoute,
-} as any)
-const MasterPlanosRoute = MasterPlanosRouteImport.update({
-  id: '/planos',
-  path: '/planos',
-  getParentRoute: () => MasterRoute,
-} as any)
-const MasterLojasRoute = MasterLojasRouteImport.update({
-  id: '/lojas',
-  path: '/lojas',
-  getParentRoute: () => MasterRoute,
-} as any)
-const MasterLoginRoute = MasterLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => MasterRoute,
-} as any)
-const MasterConfiguracoesRoute = MasterConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
-  getParentRoute: () => MasterRoute,
-} as any)
-const MasterAssinaturasRoute = MasterAssinaturasRouteImport.update({
-  id: '/assinaturas',
-  path: '/assinaturas',
-  getParentRoute: () => MasterRoute,
-} as any)
-const LojaSlugRoute = LojaSlugRouteImport.update({
-  id: '/loja/$slug',
-  path: '/loja/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminVenderRoute = AdminVenderRouteImport.update({
-  id: '/vender',
-  path: '/vender',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
-  id: '/usuarios',
-  path: '/usuarios',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminProdutosRoute = AdminProdutosRouteImport.update({
-  id: '/produtos',
-  path: '/produtos',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPreviewRoute = AdminPreviewRouteImport.update({
-  id: '/preview',
-  path: '/preview',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminPedidosRoute = AdminPedidosRouteImport.update({
-  id: '/pedidos',
-  path: '/pedidos',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminOnboardingRoute = AdminOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminHistoricoRoute = AdminHistoricoRouteImport.update({
-  id: '/historico',
-  path: '/historico',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminFinancasRoute = AdminFinancasRouteImport.update({
-  id: '/financas',
-  path: '/financas',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminEstatisticasRoute = AdminEstatisticasRouteImport.update({
-  id: '/estatisticas',
-  path: '/estatisticas',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminEditorLayoutRoute = AdminEditorLayoutRouteImport.update({
-  id: '/editor-layout',
-  path: '/editor-layout',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminClientesRoute = AdminClientesRouteImport.update({
-  id: '/clientes',
-  path: '/clientes',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
@@ -182,54 +94,129 @@ const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
   path: '/categorias',
   getParentRoute: () => AdminRoute,
 } as any)
-const LojaSlugIndexRoute = LojaSlugIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => LojaSlugRoute,
+const AdminClientesRoute = AdminClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => AdminRoute,
 } as any)
-const AdminProdutosIndexRoute = AdminProdutosIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminProdutosRoute,
+const AdminConfiguracoesRoute = AdminConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AdminRoute,
 } as any)
-const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
+const AdminEditorLayoutRoute = AdminEditorLayoutRouteImport.update({
+  id: '/editor-layout',
+  path: '/editor-layout',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminEstatisticasRoute = AdminEstatisticasRouteImport.update({
+  id: '/estatisticas',
+  path: '/estatisticas',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFinancasRoute = AdminFinancasRouteImport.update({
+  id: '/financas',
+  path: '/financas',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminHistoricoRoute = AdminHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOnboardingRoute = AdminOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPedidosRoute = AdminPedidosRouteImport.update({
+  id: '/pedidos',
+  path: '/pedidos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPreviewRoute = AdminPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProdutosRoute = AdminProdutosRouteImport.update({
+  id: '/produtos',
+  path: '/produtos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsuariosRoute = AdminUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminVenderRoute = AdminVenderRouteImport.update({
+  id: '/vender',
+  path: '/vender',
+  getParentRoute: () => AdminRoute,
+} as any)
+const LojaSlugRoute = LojaSlugRouteImport.update({
+  id: '/loja/$slug',
+  path: '/loja/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MasterIndexRoute = MasterIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminPedidosRoute,
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterAssinaturasRoute = MasterAssinaturasRouteImport.update({
+  id: '/assinaturas',
+  path: '/assinaturas',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterConfiguracoesRoute = MasterConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterLoginRoute = MasterLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterLojasRoute = MasterLojasRouteImport.update({
+  id: '/lojas',
+  path: '/lojas',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterPlanosRoute = MasterPlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterUsuariosRoute = MasterUsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => MasterRoute,
 } as any)
 const AdminHistoricoIndexRoute = AdminHistoricoIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminHistoricoRoute,
 } as any)
-const LojaSlugQuemSomosRoute = LojaSlugQuemSomosRouteImport.update({
-  id: '/quem-somos',
-  path: '/quem-somos',
-  getParentRoute: () => LojaSlugRoute,
+const AdminHistoricoIdRoute = AdminHistoricoIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminHistoricoRoute,
 } as any)
-const LojaSlugMinhaContaRoute = LojaSlugMinhaContaRouteImport.update({
-  id: '/minha-conta',
-  path: '/minha-conta',
-  getParentRoute: () => LojaSlugRoute,
+const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminPedidosRoute,
 } as any)
-const LojaSlugEntrarRoute = LojaSlugEntrarRouteImport.update({
-  id: '/entrar',
-  path: '/entrar',
-  getParentRoute: () => LojaSlugRoute,
+const AdminPedidosIdRoute = AdminPedidosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AdminPedidosRoute,
 } as any)
-const LojaSlugContatoRoute = LojaSlugContatoRouteImport.update({
-  id: '/contato',
-  path: '/contato',
-  getParentRoute: () => LojaSlugRoute,
-} as any)
-const LojaSlugCheckoutRoute = LojaSlugCheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => LojaSlugRoute,
-} as any)
-const AdminProdutosNovoRoute = AdminProdutosNovoRouteImport.update({
-  id: '/novo',
-  path: '/novo',
+const AdminProdutosIndexRoute = AdminProdutosIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => AdminProdutosRoute,
 } as any)
 const AdminProdutosIdRoute = AdminProdutosIdRouteImport.update({
@@ -237,19 +224,39 @@ const AdminProdutosIdRoute = AdminProdutosIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AdminProdutosRoute,
 } as any)
-const AdminPedidosIdRoute = AdminPedidosIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AdminPedidosRoute,
+const AdminProdutosNovoRoute = AdminProdutosNovoRouteImport.update({
+  id: '/novo',
+  path: '/novo',
+  getParentRoute: () => AdminProdutosRoute,
 } as any)
-const AdminHistoricoIdRoute = AdminHistoricoIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AdminHistoricoRoute,
+const LojaSlugIndexRoute = LojaSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LojaSlugRoute,
 } as any)
-const LojaSlugProdutoIdRoute = LojaSlugProdutoIdRouteImport.update({
-  id: '/produto/$id',
-  path: '/produto/$id',
+const LojaSlugCheckoutRoute = LojaSlugCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
+const LojaSlugContatoRoute = LojaSlugContatoRouteImport.update({
+  id: '/contato',
+  path: '/contato',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
+const LojaSlugEntrarRoute = LojaSlugEntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
+const LojaSlugMinhaContaRoute = LojaSlugMinhaContaRouteImport.update({
+  id: '/minha-conta',
+  path: '/minha-conta',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
+const LojaSlugQuemSomosRoute = LojaSlugQuemSomosRouteImport.update({
+  id: '/quem-somos',
+  path: '/quem-somos',
   getParentRoute: () => LojaSlugRoute,
 } as any)
 const LojaSlugCategoriaCategorySlugRoute =
@@ -258,6 +265,11 @@ const LojaSlugCategoriaCategorySlugRoute =
     path: '/categoria/$categorySlug',
     getParentRoute: () => LojaSlugRoute,
   } as any)
+const LojaSlugProdutoIdRoute = LojaSlugProdutoIdRouteImport.update({
+  id: '/produto/$id',
+  path: '/produto/$id',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
 const LojaSlugCategoriaCategorySlugChildSlugRoute =
   LojaSlugCategoriaCategorySlugChildSlugRouteImport.update({
     id: '/$childSlug',
@@ -268,8 +280,10 @@ const LojaSlugCategoriaCategorySlugChildSlugRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/boas-vindas': typeof BoasVindasRoute
   '/login': typeof LoginRoute
   '/master': typeof MasterRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
@@ -311,7 +325,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/boas-vindas': typeof BoasVindasRoute
   '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
@@ -351,8 +367,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
+  '/boas-vindas': typeof BoasVindasRoute
   '/login': typeof LoginRoute
   '/master': typeof MasterRouteWithChildren
+  '/reset-password': typeof ResetPasswordRoute
   '/admin/categorias': typeof AdminCategoriasRoute
   '/admin/clientes': typeof AdminClientesRoute
   '/admin/configuracoes': typeof AdminConfiguracoesRoute
@@ -397,8 +415,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/boas-vindas'
     | '/login'
     | '/master'
+    | '/reset-password'
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/configuracoes'
@@ -440,7 +460,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/boas-vindas'
     | '/login'
+    | '/reset-password'
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/configuracoes'
@@ -479,8 +501,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/boas-vindas'
     | '/login'
     | '/master'
+    | '/reset-password'
     | '/admin/categorias'
     | '/admin/clientes'
     | '/admin/configuracoes'
@@ -524,25 +548,20 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  BoasVindasRoute: typeof BoasVindasRoute
   LoginRoute: typeof LoginRoute
   MasterRoute: typeof MasterRouteWithChildren
+  ResetPasswordRoute: typeof ResetPasswordRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/master': {
-      id: '/master'
-      path: '/master'
-      fullPath: '/master'
-      preLoaderRoute: typeof MasterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -552,158 +571,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/boas-vindas': {
+      id: '/boas-vindas'
+      path: '/boas-vindas'
+      fullPath: '/boas-vindas'
+      preLoaderRoute: typeof BoasVindasRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/master/': {
-      id: '/master/'
-      path: '/'
-      fullPath: '/master/'
-      preLoaderRoute: typeof MasterIndexRouteImport
-      parentRoute: typeof MasterRoute
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/master': {
+      id: '/master'
+      path: '/master'
+      fullPath: '/master'
+      preLoaderRoute: typeof MasterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/': {
       id: '/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/master/usuarios': {
-      id: '/master/usuarios'
-      path: '/usuarios'
-      fullPath: '/master/usuarios'
-      preLoaderRoute: typeof MasterUsuariosRouteImport
-      parentRoute: typeof MasterRoute
-    }
-    '/master/planos': {
-      id: '/master/planos'
-      path: '/planos'
-      fullPath: '/master/planos'
-      preLoaderRoute: typeof MasterPlanosRouteImport
-      parentRoute: typeof MasterRoute
-    }
-    '/master/lojas': {
-      id: '/master/lojas'
-      path: '/lojas'
-      fullPath: '/master/lojas'
-      preLoaderRoute: typeof MasterLojasRouteImport
-      parentRoute: typeof MasterRoute
-    }
-    '/master/login': {
-      id: '/master/login'
-      path: '/login'
-      fullPath: '/master/login'
-      preLoaderRoute: typeof MasterLoginRouteImport
-      parentRoute: typeof MasterRoute
-    }
-    '/master/configuracoes': {
-      id: '/master/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/master/configuracoes'
-      preLoaderRoute: typeof MasterConfiguracoesRouteImport
-      parentRoute: typeof MasterRoute
-    }
-    '/master/assinaturas': {
-      id: '/master/assinaturas'
-      path: '/assinaturas'
-      fullPath: '/master/assinaturas'
-      preLoaderRoute: typeof MasterAssinaturasRouteImport
-      parentRoute: typeof MasterRoute
-    }
-    '/loja/$slug': {
-      id: '/loja/$slug'
-      path: '/loja/$slug'
-      fullPath: '/loja/$slug'
-      preLoaderRoute: typeof LojaSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/vender': {
-      id: '/admin/vender'
-      path: '/vender'
-      fullPath: '/admin/vender'
-      preLoaderRoute: typeof AdminVenderRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/usuarios': {
-      id: '/admin/usuarios'
-      path: '/usuarios'
-      fullPath: '/admin/usuarios'
-      preLoaderRoute: typeof AdminUsuariosRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/produtos': {
-      id: '/admin/produtos'
-      path: '/produtos'
-      fullPath: '/admin/produtos'
-      preLoaderRoute: typeof AdminProdutosRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/preview': {
-      id: '/admin/preview'
-      path: '/preview'
-      fullPath: '/admin/preview'
-      preLoaderRoute: typeof AdminPreviewRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/pedidos': {
-      id: '/admin/pedidos'
-      path: '/pedidos'
-      fullPath: '/admin/pedidos'
-      preLoaderRoute: typeof AdminPedidosRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/onboarding': {
-      id: '/admin/onboarding'
-      path: '/onboarding'
-      fullPath: '/admin/onboarding'
-      preLoaderRoute: typeof AdminOnboardingRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/historico': {
-      id: '/admin/historico'
-      path: '/historico'
-      fullPath: '/admin/historico'
-      preLoaderRoute: typeof AdminHistoricoRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/financas': {
-      id: '/admin/financas'
-      path: '/financas'
-      fullPath: '/admin/financas'
-      preLoaderRoute: typeof AdminFinancasRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/estatisticas': {
-      id: '/admin/estatisticas'
-      path: '/estatisticas'
-      fullPath: '/admin/estatisticas'
-      preLoaderRoute: typeof AdminEstatisticasRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/editor-layout': {
-      id: '/admin/editor-layout'
-      path: '/editor-layout'
-      fullPath: '/admin/editor-layout'
-      preLoaderRoute: typeof AdminEditorLayoutRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/configuracoes': {
-      id: '/admin/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/admin/configuracoes'
-      preLoaderRoute: typeof AdminConfiguracoesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/clientes': {
-      id: '/admin/clientes'
-      path: '/clientes'
-      fullPath: '/admin/clientes'
-      preLoaderRoute: typeof AdminClientesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/categorias': {
@@ -713,26 +613,145 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCategoriasRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/loja/$slug/': {
-      id: '/loja/$slug/'
-      path: '/'
-      fullPath: '/loja/$slug/'
-      preLoaderRoute: typeof LojaSlugIndexRouteImport
-      parentRoute: typeof LojaSlugRoute
+    '/admin/clientes': {
+      id: '/admin/clientes'
+      path: '/clientes'
+      fullPath: '/admin/clientes'
+      preLoaderRoute: typeof AdminClientesRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/admin/produtos/': {
-      id: '/admin/produtos/'
-      path: '/'
-      fullPath: '/admin/produtos/'
-      preLoaderRoute: typeof AdminProdutosIndexRouteImport
-      parentRoute: typeof AdminProdutosRoute
+    '/admin/configuracoes': {
+      id: '/admin/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/admin/configuracoes'
+      preLoaderRoute: typeof AdminConfiguracoesRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/admin/pedidos/': {
-      id: '/admin/pedidos/'
+    '/admin/editor-layout': {
+      id: '/admin/editor-layout'
+      path: '/editor-layout'
+      fullPath: '/admin/editor-layout'
+      preLoaderRoute: typeof AdminEditorLayoutRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/estatisticas': {
+      id: '/admin/estatisticas'
+      path: '/estatisticas'
+      fullPath: '/admin/estatisticas'
+      preLoaderRoute: typeof AdminEstatisticasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/financas': {
+      id: '/admin/financas'
+      path: '/financas'
+      fullPath: '/admin/financas'
+      preLoaderRoute: typeof AdminFinancasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/historico': {
+      id: '/admin/historico'
+      path: '/historico'
+      fullPath: '/admin/historico'
+      preLoaderRoute: typeof AdminHistoricoRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/onboarding': {
+      id: '/admin/onboarding'
+      path: '/onboarding'
+      fullPath: '/admin/onboarding'
+      preLoaderRoute: typeof AdminOnboardingRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/pedidos': {
+      id: '/admin/pedidos'
+      path: '/pedidos'
+      fullPath: '/admin/pedidos'
+      preLoaderRoute: typeof AdminPedidosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/preview': {
+      id: '/admin/preview'
+      path: '/preview'
+      fullPath: '/admin/preview'
+      preLoaderRoute: typeof AdminPreviewRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/produtos': {
+      id: '/admin/produtos'
+      path: '/produtos'
+      fullPath: '/admin/produtos'
+      preLoaderRoute: typeof AdminProdutosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/usuarios': {
+      id: '/admin/usuarios'
+      path: '/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AdminUsuariosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/vender': {
+      id: '/admin/vender'
+      path: '/vender'
+      fullPath: '/admin/vender'
+      preLoaderRoute: typeof AdminVenderRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/loja/$slug': {
+      id: '/loja/$slug'
+      path: '/loja/$slug'
+      fullPath: '/loja/$slug'
+      preLoaderRoute: typeof LojaSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/master/': {
+      id: '/master/'
       path: '/'
-      fullPath: '/admin/pedidos/'
-      preLoaderRoute: typeof AdminPedidosIndexRouteImport
-      parentRoute: typeof AdminPedidosRoute
+      fullPath: '/master/'
+      preLoaderRoute: typeof MasterIndexRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/assinaturas': {
+      id: '/master/assinaturas'
+      path: '/assinaturas'
+      fullPath: '/master/assinaturas'
+      preLoaderRoute: typeof MasterAssinaturasRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/configuracoes': {
+      id: '/master/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/master/configuracoes'
+      preLoaderRoute: typeof MasterConfiguracoesRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/login': {
+      id: '/master/login'
+      path: '/login'
+      fullPath: '/master/login'
+      preLoaderRoute: typeof MasterLoginRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/lojas': {
+      id: '/master/lojas'
+      path: '/lojas'
+      fullPath: '/master/lojas'
+      preLoaderRoute: typeof MasterLojasRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/planos': {
+      id: '/master/planos'
+      path: '/planos'
+      fullPath: '/master/planos'
+      preLoaderRoute: typeof MasterPlanosRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/usuarios': {
+      id: '/master/usuarios'
+      path: '/usuarios'
+      fullPath: '/master/usuarios'
+      preLoaderRoute: typeof MasterUsuariosRouteImport
+      parentRoute: typeof MasterRoute
     }
     '/admin/historico/': {
       id: '/admin/historico/'
@@ -741,46 +760,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminHistoricoIndexRouteImport
       parentRoute: typeof AdminHistoricoRoute
     }
-    '/loja/$slug/quem-somos': {
-      id: '/loja/$slug/quem-somos'
-      path: '/quem-somos'
-      fullPath: '/loja/$slug/quem-somos'
-      preLoaderRoute: typeof LojaSlugQuemSomosRouteImport
-      parentRoute: typeof LojaSlugRoute
+    '/admin/historico/$id': {
+      id: '/admin/historico/$id'
+      path: '/$id'
+      fullPath: '/admin/historico/$id'
+      preLoaderRoute: typeof AdminHistoricoIdRouteImport
+      parentRoute: typeof AdminHistoricoRoute
     }
-    '/loja/$slug/minha-conta': {
-      id: '/loja/$slug/minha-conta'
-      path: '/minha-conta'
-      fullPath: '/loja/$slug/minha-conta'
-      preLoaderRoute: typeof LojaSlugMinhaContaRouteImport
-      parentRoute: typeof LojaSlugRoute
+    '/admin/pedidos/': {
+      id: '/admin/pedidos/'
+      path: '/'
+      fullPath: '/admin/pedidos/'
+      preLoaderRoute: typeof AdminPedidosIndexRouteImport
+      parentRoute: typeof AdminPedidosRoute
     }
-    '/loja/$slug/entrar': {
-      id: '/loja/$slug/entrar'
-      path: '/entrar'
-      fullPath: '/loja/$slug/entrar'
-      preLoaderRoute: typeof LojaSlugEntrarRouteImport
-      parentRoute: typeof LojaSlugRoute
+    '/admin/pedidos/$id': {
+      id: '/admin/pedidos/$id'
+      path: '/$id'
+      fullPath: '/admin/pedidos/$id'
+      preLoaderRoute: typeof AdminPedidosIdRouteImport
+      parentRoute: typeof AdminPedidosRoute
     }
-    '/loja/$slug/contato': {
-      id: '/loja/$slug/contato'
-      path: '/contato'
-      fullPath: '/loja/$slug/contato'
-      preLoaderRoute: typeof LojaSlugContatoRouteImport
-      parentRoute: typeof LojaSlugRoute
-    }
-    '/loja/$slug/checkout': {
-      id: '/loja/$slug/checkout'
-      path: '/checkout'
-      fullPath: '/loja/$slug/checkout'
-      preLoaderRoute: typeof LojaSlugCheckoutRouteImport
-      parentRoute: typeof LojaSlugRoute
-    }
-    '/admin/produtos/novo': {
-      id: '/admin/produtos/novo'
-      path: '/novo'
-      fullPath: '/admin/produtos/novo'
-      preLoaderRoute: typeof AdminProdutosNovoRouteImport
+    '/admin/produtos/': {
+      id: '/admin/produtos/'
+      path: '/'
+      fullPath: '/admin/produtos/'
+      preLoaderRoute: typeof AdminProdutosIndexRouteImport
       parentRoute: typeof AdminProdutosRoute
     }
     '/admin/produtos/$id': {
@@ -790,25 +795,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProdutosIdRouteImport
       parentRoute: typeof AdminProdutosRoute
     }
-    '/admin/pedidos/$id': {
-      id: '/admin/pedidos/$id'
-      path: '/$id'
-      fullPath: '/admin/pedidos/$id'
-      preLoaderRoute: typeof AdminPedidosIdRouteImport
-      parentRoute: typeof AdminPedidosRoute
+    '/admin/produtos/novo': {
+      id: '/admin/produtos/novo'
+      path: '/novo'
+      fullPath: '/admin/produtos/novo'
+      preLoaderRoute: typeof AdminProdutosNovoRouteImport
+      parentRoute: typeof AdminProdutosRoute
     }
-    '/admin/historico/$id': {
-      id: '/admin/historico/$id'
-      path: '/$id'
-      fullPath: '/admin/historico/$id'
-      preLoaderRoute: typeof AdminHistoricoIdRouteImport
-      parentRoute: typeof AdminHistoricoRoute
+    '/loja/$slug/': {
+      id: '/loja/$slug/'
+      path: '/'
+      fullPath: '/loja/$slug/'
+      preLoaderRoute: typeof LojaSlugIndexRouteImport
+      parentRoute: typeof LojaSlugRoute
     }
-    '/loja/$slug/produto/$id': {
-      id: '/loja/$slug/produto/$id'
-      path: '/produto/$id'
-      fullPath: '/loja/$slug/produto/$id'
-      preLoaderRoute: typeof LojaSlugProdutoIdRouteImport
+    '/loja/$slug/checkout': {
+      id: '/loja/$slug/checkout'
+      path: '/checkout'
+      fullPath: '/loja/$slug/checkout'
+      preLoaderRoute: typeof LojaSlugCheckoutRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/contato': {
+      id: '/loja/$slug/contato'
+      path: '/contato'
+      fullPath: '/loja/$slug/contato'
+      preLoaderRoute: typeof LojaSlugContatoRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/entrar': {
+      id: '/loja/$slug/entrar'
+      path: '/entrar'
+      fullPath: '/loja/$slug/entrar'
+      preLoaderRoute: typeof LojaSlugEntrarRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/minha-conta': {
+      id: '/loja/$slug/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/loja/$slug/minha-conta'
+      preLoaderRoute: typeof LojaSlugMinhaContaRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/quem-somos': {
+      id: '/loja/$slug/quem-somos'
+      path: '/quem-somos'
+      fullPath: '/loja/$slug/quem-somos'
+      preLoaderRoute: typeof LojaSlugQuemSomosRouteImport
       parentRoute: typeof LojaSlugRoute
     }
     '/loja/$slug/categoria/$categorySlug': {
@@ -816,6 +849,13 @@ declare module '@tanstack/react-router' {
       path: '/categoria/$categorySlug'
       fullPath: '/loja/$slug/categoria/$categorySlug'
       preLoaderRoute: typeof LojaSlugCategoriaCategorySlugRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/produto/$id': {
+      id: '/loja/$slug/produto/$id'
+      path: '/produto/$id'
+      fullPath: '/loja/$slug/produto/$id'
+      preLoaderRoute: typeof LojaSlugProdutoIdRouteImport
       parentRoute: typeof LojaSlugRoute
     }
     '/loja/$slug/categoria/$categorySlug/$childSlug': {
@@ -976,8 +1016,10 @@ const LojaSlugRouteWithChildren = LojaSlugRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  BoasVindasRoute: BoasVindasRoute,
   LoginRoute: LoginRoute,
   MasterRoute: MasterRouteWithChildren,
+  ResetPasswordRoute: ResetPasswordRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
 }
 export const routeTree = rootRouteImport
