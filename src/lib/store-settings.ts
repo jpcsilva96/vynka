@@ -225,7 +225,7 @@ export async function updateGeneralSettings(storeId: string, form: GeneralSettin
   const slug = normalizeSlug(form.slug || form.name);
   if (!slug) throw new Error("Informe o link publico do catalogo.");
 
-  const { data: conflict, error: conflictError } = await supabase
+  const { data: conflict, error: conflictError } = await (supabase as any)
     .from("stores")
     .select("id")
     .eq("slug", slug)
@@ -234,7 +234,7 @@ export async function updateGeneralSettings(storeId: string, form: GeneralSettin
   if (conflictError) throw conflictError;
   if (conflict) throw new Error("Esse link de catalogo ja esta em uso.");
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from("stores")
     .update({
       name: form.name.trim() || "Minha loja",
@@ -328,7 +328,7 @@ export function uploadStoreLogo(storeId: string, file: File) {
 }
 
 export async function getReceiptSettings(storeId: string): Promise<ReceiptSettings> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("store_settings")
     .select("setting_value")
     .eq("store_id", storeId)
@@ -351,7 +351,7 @@ export async function updateReceiptSettings(storeId: string, settings: ReceiptSe
 }
 
 export async function getCatalogVisualSettings(storeId: string): Promise<CatalogVisualSettings> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("store_settings")
     .select("setting_value")
     .eq("store_id", storeId)
@@ -377,7 +377,7 @@ export async function updateCatalogVisualSettings(
 }
 
 export async function listStoreBanners(storeId: string): Promise<StoreBanner[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("store_banners")
     .select("id,store_id,image_url,title,subtitle,button_label,link_type,link_target,sort_order,active")
     .eq("store_id", storeId)
@@ -398,7 +398,7 @@ export async function saveStoreBanners(storeId: string, banners: StoreBanner[]) 
     }))
     .filter((banner) => banner.image_url);
 
-  const { data: existing, error: existingError } = await supabase
+  const { data: existing, error: existingError } = await (supabase as any)
     .from("store_banners")
     .select("id")
     .eq("store_id", storeId);
@@ -409,9 +409,9 @@ export async function saveStoreBanners(storeId: string, banners: StoreBanner[]) 
   if (existingError) throw existingError;
 
   const nextIds = new Set(validBanners.map((banner) => banner.id));
-  const deleteIds = (existing ?? []).map((row) => row.id).filter((id) => !nextIds.has(id));
+  const deleteIds = (existing ?? []).map((row: { id: string }) => row.id).filter((id: string) => !nextIds.has(id));
   if (deleteIds.length > 0) {
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await (supabase as any)
       .from("store_banners")
       .delete()
       .eq("store_id", storeId)
@@ -421,7 +421,7 @@ export async function saveStoreBanners(storeId: string, banners: StoreBanner[]) 
 
   if (validBanners.length === 0) return;
 
-  const { error } = await supabase.from("store_banners").upsert(
+  const { error } = await (supabase as any).from("store_banners").upsert(
     validBanners.map((banner) => ({
       id: banner.id,
       store_id: storeId,
@@ -440,7 +440,7 @@ export async function saveStoreBanners(storeId: string, banners: StoreBanner[]) 
 }
 
 async function listStoreBannersFromSettings(storeId: string): Promise<StoreBanner[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("store_settings")
     .select("setting_value")
     .eq("store_id", storeId)
@@ -449,8 +449,8 @@ async function listStoreBannersFromSettings(storeId: string): Promise<StoreBanne
   if (error) throw error;
   if (!Array.isArray(data?.setting_value)) return [];
   return data.setting_value
-    .map((value, index) => normalizeStoreBannerValue(storeId, value, index))
-    .filter((banner) => banner.image_url);
+    .map((value: any, index: number) => normalizeStoreBannerValue(storeId, value, index))
+    .filter((banner: any) => banner.image_url);
 }
 
 async function saveStoreBannersToSettings(storeId: string, banners: StoreBanner[]) {
@@ -476,7 +476,7 @@ async function saveStoreBannersToSettings(storeId: string, banners: StoreBanner[
 }
 
 export async function getDeliverySettings(storeId: string): Promise<DeliverySettings> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("stores")
     .select(
       "delivery_available,pickup_available,combine_delivery_whatsapp,address,city,state,zip_code,business_hours,delivery_notes",
@@ -489,7 +489,7 @@ export async function getDeliverySettings(storeId: string): Promise<DeliverySett
 
 export async function updateDeliverySettings(storeId: string, settings: DeliverySettings) {
   const clean = (value: string) => value.trim() || null;
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from("stores")
     .update({
       delivery_available: settings.delivery_available,

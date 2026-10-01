@@ -85,7 +85,7 @@ const STOREFRONT_COLUMNS =
   "id,slug,name,description,logo_url,banner_url,og_image_url,banner_title,banner_subtitle,banner_cta,phone,whatsapp,email,instagram,address,address_number,complement,city,state,zip_code,business_hours,status,publication_status";
 
 export async function getStoreBySlug(slug: string): Promise<StorefrontStore | null> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("stores")
     .select(STOREFRONT_COLUMNS)
     .eq("slug", slug)
@@ -108,7 +108,7 @@ export async function getStoreBySlug(slug: string): Promise<StorefrontStore | nu
   ]);
   if (visualError) throw visualError;
   if (faviconError) throw faviconError;
-  const { data: banners, error: bannersError } = await supabase
+  const { data: banners, error: bannersError } = await (supabase as any)
     .from("store_banners")
     .select("id,store_id,image_url,title,subtitle,button_label,link_type,link_target,sort_order,active")
     .eq("store_id", data.id)
@@ -122,7 +122,7 @@ export async function getStoreBySlug(slug: string): Promise<StorefrontStore | nu
     ...(data as unknown as Omit<StorefrontStore, "catalog_visual" | "banners">),
     favicon_url: normalizeStoragePublicUrl(readPublicFaviconUrl(favicon?.setting_value)) || null,
     catalog_visual: normalizeCatalogVisualSettings(visual?.setting_value),
-    banners: isMissingStoreBannersTable(bannersError) ? settingBanners : (banners ?? []).map((banner) => ({
+    banners: isMissingStoreBannersTable(bannersError) ? settingBanners : (banners ?? []).map((banner: any) => ({
       id: banner.id,
       store_id: banner.store_id,
       image_url: banner.image_url ?? "",
@@ -147,7 +147,7 @@ function readPublicFaviconUrl(value: unknown) {
 }
 
 async function listPublicBannersFromSettings(storeId: string): Promise<StoreBanner[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("store_settings")
     .select("setting_value")
     .eq("store_id", storeId)
@@ -156,8 +156,8 @@ async function listPublicBannersFromSettings(storeId: string): Promise<StoreBann
   if (error) throw error;
   if (!Array.isArray(data?.setting_value)) return [];
   return data.setting_value
-    .map((value, index) => normalizePublicBannerValue(storeId, value, index))
-    .filter((banner) => banner.active && banner.image_url);
+    .map((value: any, index: number) => normalizePublicBannerValue(storeId, value, index))
+    .filter((banner: any) => banner.active && banner.image_url);
 }
 
 function normalizePublicBannerValue(storeId: string, value: unknown, index: number): StoreBanner {
@@ -189,7 +189,7 @@ function isMissingStoreBannersTable(error: { code?: string; message?: string } |
 }
 
 export async function listActiveProducts(storeId: string): Promise<PublicProduct[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("products")
     .select(
       `id, name, description, price, promo_price, featured, status, created_at,
@@ -276,7 +276,7 @@ export async function getPublicProduct(
   storeId: string,
   id: string,
 ): Promise<PublicProductDetail | null> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("products")
     .select(
       `id, name, description, price, promo_price, featured, status, created_at,
@@ -352,7 +352,7 @@ export async function listActiveProductsByCategorySlug(
   if (!target) return { category: null, products: [] };
 
   const ids = [target.id, ...descendantCategoryIds(target.id, flat)];
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("products")
     .select(
       `id, name, description, price, promo_price, featured, status, created_at,
