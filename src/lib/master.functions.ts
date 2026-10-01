@@ -110,14 +110,18 @@ const createStoreSchema = z.object({
     .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífen.")
     .optional(),
   owner_email: z.string().email(),
-  owner_name: z.string().min(1).max(120),
+  // Opcional: o próprio responsável completa o cadastro ao abrir o convite.
+  owner_name: z.string().max(120).optional(),
   whatsapp: z.string().optional().nullable(),
   plan_id: z.string().uuid(),
-  status: z.enum(["trial", "active", "suspended", "cancelled"]),
-  // Origem do app (ex. https://vynka.lovable.app) para o link do convite abrir /reset-password.
-  // O Supabase só aceita destinos presentes em Authentication > URL Configuration.
   redirect_origin: z.string().url().optional(),
 });
+
+// Origem do app (ex. https://vynka.lovable.app) para o link do convite abrir /reset-password.
+// O Supabase só aceita destinos presentes em Authentication > URL Configuration.
+function inviteRedirect(origin?: string) {
+  return origin ? { redirectTo: `${new URL(origin).origin}/reset-password` } : {};
+}
 
 /** Cria uma nova loja + convida o responsável. Somente Master. */
 export const createStoreWithOwner = createServerFn({ method: "POST" })
@@ -160,10 +164,8 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
         type: "invite",
         email: data.owner_email,
         options: {
-          data: { full_name: data.owner_name },
-          ...(data.redirect_origin
-            ? { redirectTo: `${new URL(data.redirect_origin).origin}/reset-password` }
-            : {}),
+          ...(data.owner_name ? { data: { full_name: data.owner_name } } : {}),
+          ...inviteRedirect(data.redirect_origin),
         },
       });
       if (link.error) throw link.error;
@@ -178,11 +180,11 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
         name: data.name ?? PROVISIONAL_STORE_NAME,
         slug,
         email: data.owner_email,
-        responsible_name: data.owner_name,
+        responsible_name: data.owner_name ?? null,
         whatsapp: data.whatsapp ?? null,
-        status: data.status,
+        // Sem período de teste: a loja nasce ativa e o catálogo fica em rascunho até o dono publicar.
+        status: "active",
         plan_id: data.plan_id,
-        trial_ends_at: data.status === "trial" ? new Date(Date.now() + 14 * 86400_000).toISOString() : null,
       })
       .select("id")
       .single();
@@ -195,8 +197,7 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
     await supabaseAdmin.from("subscriptions").insert({
       store_id: store.id,
       plan_id: data.plan_id,
-      status: data.status === "trial" ? "trial" : "active",
-      trial_ends_at: data.status === "trial" ? new Date(Date.now() + 14 * 86400_000).toISOString() : null,
+      status: "active",
     });
 
     await supabaseAdmin.from("audit_logs").insert({
@@ -206,7 +207,7 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
       action: "store.create",
       entity_type: "store",
       entity_id: store.id,
-      metadata: { owner_email: data.owner_email, plan_id: data.plan_id, status: data.status },
+      metadata: { owner_email: data.owner_email, plan_id: data.plan_id },
     });
 
     return { ok: true, store_id: store.id, invite_link: inviteLink };
@@ -225,7 +226,8 @@ export const updateStoreStatus = createServerFn({ method: "POST" })
     const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
     if (!isAdmin) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("stores").update({ status: data.status }).eq("id", data.store_id);
+    const { error } = await supabaseAdmin.from("stores").update({ status: data.status }).eq("id", data.store_id);
+    if (error) throw error;
     await supabaseAdmin.from("audit_logs").insert({
       actor_user_id: context.userId,
       actor_type: "master",
@@ -237,7 +239,85 @@ export const updateStoreStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-export const listPlans = createServerFn({ method: "GET" })
+/** Troca o plano de uma loja (e da assinatura dela). Somente Master. */
+export const updateStorePlan = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ store_id: z.string().uuid(), plan_id: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("stores").update({ plan_id: data.plan_id }).eq("id", data.store_id);
+    if (error) throw error;
+    const { error: subErr } = await supabaseAdmin
+      .from("subscriptions").update({ plan_id: data.plan_id }).eq("store_id", data.store_id);
+    if (subErr) throw subErr;
+    await supabaseAdmin.from("audit_logs").insert({
+      actor_user_id: context.userId,
+      actor_type: "master",
+      store_id: data.store_id,
+      action: "store.plan.update",
+      entity_type: "store",
+      entity_id: data.store_id,
+      metadata: { plan_id: data.plan_id },
+    });
+    return { ok: true };
+  });
+
+/**
+ * Gera um novo link de acesso para o dono da loja. Quem nunca entrou recebe um convite;
+ * quem já entrou recebe um link de redefinição de senha. Os dois abrem /reset-password.
+ * Somente Master.
+ */
+export const resendStoreInvite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ store_id: z.string().uuid(), redirect_origin: z.string().url().optional() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: owner, error: ownerErr } = await supabaseAdmin
+      .from("store_members")
+      .select("user_id")
+      .eq("store_id", data.store_id)
+      .eq("role", "owner")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (ownerErr) throw ownerErr;
+    if (!owner) throw new Error("Esta loja não tem responsável vinculado.");
+
+    const { data: userRes, error: userErr } = await supabaseAdmin.auth.admin.getUserById(owner.user_id);
+    if (userErr) throw userErr;
+    const email = userRes.user.email;
+    if (!email) throw new Error("O responsável desta loja não tem e-mail cadastrado.");
+
+    const type = userRes.user.last_sign_in_at ? "recovery" : "invite";
+    const link = await supabaseAdmin.auth.admin.generateLink({
+      type,
+      email,
+      options: inviteRedirect(data.redirect_origin),
+    });
+    if (link.error) throw link.error;
+
+    await supabaseAdmin.from("audit_logs").insert({
+      actor_user_id: context.userId,
+      actor_type: "master",
+      store_id: data.store_id,
+      action: "store.invite.resend",
+      entity_type: "store",
+      entity_id: data.store_id,
+      metadata: { owner_email: email, link_type: type },
+    });
+    return { ok: true, invite_link: link.data.properties?.action_link ?? null, link_type: type };
+  });
+
+export const listPlans =createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data } = await context.supabase.from("plans").select("*").order("max_products");
