@@ -217,7 +217,7 @@ export async function createCustomerOrder(input: {
       subtotal: input.subtotal,
       total: input.subtotal,
       notes: input.notes || null,
-      payment_details: paymentDetails,
+      payment_details: paymentDetails as any,
     })
     .select("id")
     .single();
@@ -248,7 +248,7 @@ export async function listFavoriteProductIds(storeId: string): Promise<string[]>
     .from("customer_favorites")
     .select("product_id")
     .eq("store_id", storeId)
-    .eq("user_id", customer.user_id);
+    .eq("user_id", customer.user_id as string);
   if (error) throw error;
   return (data ?? []).map((item: { product_id: string }) => item.product_id);
 }

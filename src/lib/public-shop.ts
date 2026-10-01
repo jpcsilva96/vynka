@@ -169,7 +169,7 @@ function normalizePublicBannerValue(storeId: string, value: unknown, index: numb
     title: typeof raw.title === "string" ? raw.title : "",
     subtitle: typeof raw.subtitle === "string" ? raw.subtitle : "",
     button_label: typeof raw.button_label === "string" ? raw.button_label : "",
-    link_type: isBannerLinkType(raw.link_type ?? null) ? raw.link_type : "home",
+    link_type: isBannerLinkType(raw.link_type ?? null) ? (raw.link_type as StoreBannerLinkType) : "home",
     link_target: typeof raw.link_target === "string" ? raw.link_target : "",
     sort_order: typeof raw.sort_order === "number" ? raw.sort_order : index,
     active: typeof raw.active === "boolean" ? raw.active : true,
