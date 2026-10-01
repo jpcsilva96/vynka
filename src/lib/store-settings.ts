@@ -449,8 +449,8 @@ async function listStoreBannersFromSettings(storeId: string): Promise<StoreBanne
   if (error) throw error;
   if (!Array.isArray(data?.setting_value)) return [];
   return data.setting_value
-    .map((value, index) => normalizeStoreBannerValue(storeId, value, index))
-    .filter((banner) => banner.image_url);
+    .map((value: any, index: number) => normalizeStoreBannerValue(storeId, value, index))
+    .filter((banner: any) => banner.image_url);
 }
 
 async function saveStoreBannersToSettings(storeId: string, banners: StoreBanner[]) {

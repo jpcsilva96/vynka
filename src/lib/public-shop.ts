@@ -122,7 +122,7 @@ export async function getStoreBySlug(slug: string): Promise<StorefrontStore | nu
     ...(data as unknown as Omit<StorefrontStore, "catalog_visual" | "banners">),
     favicon_url: normalizeStoragePublicUrl(readPublicFaviconUrl(favicon?.setting_value)) || null,
     catalog_visual: normalizeCatalogVisualSettings(visual?.setting_value),
-    banners: isMissingStoreBannersTable(bannersError) ? settingBanners : (banners ?? []).map((banner) => ({
+    banners: isMissingStoreBannersTable(bannersError) ? settingBanners : (banners ?? []).map((banner: any) => ({
       id: banner.id,
       store_id: banner.store_id,
       image_url: banner.image_url ?? "",
@@ -156,8 +156,8 @@ async function listPublicBannersFromSettings(storeId: string): Promise<StoreBann
   if (error) throw error;
   if (!Array.isArray(data?.setting_value)) return [];
   return data.setting_value
-    .map((value, index) => normalizePublicBannerValue(storeId, value, index))
-    .filter((banner) => banner.active && banner.image_url);
+    .map((value: any, index: number) => normalizePublicBannerValue(storeId, value, index))
+    .filter((banner: any) => banner.active && banner.image_url);
 }
 
 function normalizePublicBannerValue(storeId: string, value: unknown, index: number): StoreBanner {
