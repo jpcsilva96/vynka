@@ -714,59 +714,6 @@ export type Database = {
         }
         Relationships: []
       }
-      store_banners: {
-        Row: {
-          active: boolean
-          button_label: string | null
-          created_at: string
-          id: string
-          image_url: string
-          link_target: string | null
-          link_type: string
-          sort_order: number
-          store_id: string
-          subtitle: string | null
-          title: string | null
-          updated_at: string
-        }
-        Insert: {
-          active?: boolean
-          button_label?: string | null
-          created_at?: string
-          id?: string
-          image_url: string
-          link_target?: string | null
-          link_type?: string
-          sort_order?: number
-          store_id: string
-          subtitle?: string | null
-          title?: string | null
-          updated_at?: string
-        }
-        Update: {
-          active?: boolean
-          button_label?: string | null
-          created_at?: string
-          id?: string
-          image_url?: string
-          link_target?: string | null
-          link_type?: string
-          sort_order?: number
-          store_id?: string
-          subtitle?: string | null
-          title?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "store_banners_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       store_members: {
         Row: {
           active: boolean
