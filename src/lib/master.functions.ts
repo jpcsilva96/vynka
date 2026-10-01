@@ -111,6 +111,9 @@ const createStoreSchema = z.object({
   whatsapp: z.string().optional().nullable(),
   plan_id: z.string().uuid(),
   status: z.enum(["trial", "active", "suspended", "cancelled"]),
+  // Origem do app (ex. https://vynka.lovable.app) para o link do convite abrir /reset-password.
+  // O Supabase só aceita destinos presentes em Authentication > URL Configuration.
+  redirect_origin: z.string().url().optional(),
 });
 
 /** Cria uma nova loja + convida o responsável. Somente Master. */
@@ -142,7 +145,12 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
       const link = await supabaseAdmin.auth.admin.generateLink({
         type: "invite",
         email: data.owner_email,
-        options: { data: { full_name: data.owner_name } },
+        options: {
+          data: { full_name: data.owner_name },
+          ...(data.redirect_origin
+            ? { redirectTo: `${new URL(data.redirect_origin).origin}/reset-password` }
+            : {}),
+        },
       });
       if (link.error) throw link.error;
       userId = link.data.user!.id;

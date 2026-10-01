@@ -209,7 +209,8 @@ function NewStoreDialog({ plans, onClose }: { plans: any[]; onClose: () => void 
   const [inviteLink, setInviteLink] = useState<string | null>(null);
 
   const mut = useMutation({
-    mutationFn: (v: typeof form) => createFn({ data: v }),
+    mutationFn: (v: typeof form) =>
+      createFn({ data: { ...v, redirect_origin: window.location.origin } }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["master-stores"] });
       qc.invalidateQueries({ queryKey: ["master-stats"] });
