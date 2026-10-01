@@ -197,11 +197,8 @@ function NewStoreDialog({ plans, onClose }: { plans: any[]; onClose: () => void 
   const qc = useQueryClient();
   const createFn = useServerFn(createStoreWithOwner);
   const [form, setForm] = useState({
-    name: "",
-    slug: "",
     owner_email: "",
     owner_name: "",
-    whatsapp: "",
     plan_id: plans[0]?.id ?? "",
     status: "trial" as const,
   });
@@ -255,37 +252,12 @@ function NewStoreDialog({ plans, onClose }: { plans: any[]; onClose: () => void 
           >
             <h2 className="text-[16px] font-medium">Nova loja</h2>
             <p className="mt-1 text-[12px] text-muted-foreground">
-              Cadastre a lojista e sua conta.
+              Informe o responsável. Ele define o nome e o link da loja depois do primeiro acesso.
             </p>
 
             <div className="mt-5 grid gap-3">
-              <Field label="Nome da loja">
-                <input
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
-                />
-              </Field>
-              <Field label="Slug (URL pública)">
-                <div className="flex items-center rounded-md border border-border bg-surface pl-3 focus-within:border-foreground/40">
-                  <span className="text-[12px] text-muted-foreground">/loja/</span>
-                  <input
-                    required
-                    value={form.slug}
-                    placeholder="minha-loja"
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                      })
-                    }
-                    className="w-full bg-transparent px-1 py-2 text-[13px] outline-none"
-                  />
-                </div>
-              </Field>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Nome do responsável">
+                <Field label="Nome completo">
                   <input
                     required
                     value={form.owner_name}
@@ -293,19 +265,12 @@ function NewStoreDialog({ plans, onClose }: { plans: any[]; onClose: () => void 
                     className="w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
                   />
                 </Field>
-                <Field label="E-mail do responsável">
+                <Field label="E-mail">
                   <input
                     required
                     type="email"
                     value={form.owner_email}
                     onChange={(e) => setForm({ ...form, owner_email: e.target.value })}
-                    className="w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
-                  />
-                </Field>
-                <Field label="WhatsApp">
-                  <input
-                    value={form.whatsapp}
-                    onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
                     className="w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
                   />
                 </Field>

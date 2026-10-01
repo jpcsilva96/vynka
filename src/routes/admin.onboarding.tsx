@@ -29,12 +29,14 @@ import {
   progressPercent,
   publishStore,
   saveStep,
+  uniqueSlugFromName,
   updateStore,
   uploadBranding,
   validateImage,
   type BrandingKind,
   type StoreFullRow,
 } from "@/lib/onboarding";
+import { isProvisionalName, isProvisionalSlug } from "@/lib/provisional-store";
 import {
   createProduct,
   emptyProductForm,
@@ -238,7 +240,7 @@ function Card({ children, className }: { children: React.ReactNode; className?: 
 function Step1({ store, onDone }: { store: StoreFullRow; onDone: () => Promise<void> }) {
   const navigate = useNavigate();
   const [f, setF] = useState({
-    name: store.name ?? "",
+    name: isProvisionalName(store.name) ? "" : (store.name ?? ""),
     description: store.description ?? "",
     segment: store.segment ?? "",
     whatsapp: store.whatsapp ?? "",
@@ -250,7 +252,11 @@ function Step1({ store, onDone }: { store: StoreFullRow; onDone: () => Promise<v
   const save = async (exit: boolean) => {
     setSaving(true);
     try {
-      await saveStep(store.id, 2, f);
+      // O link nasce provisório; ao informar o nome, ele passa a ser derivado do nome.
+      const slug = isProvisionalSlug(store.slug)
+        ? await uniqueSlugFromName(store.id, f.name)
+        : undefined;
+      await saveStep(store.id, 2, slug ? { ...f, slug } : f);
       if (exit) navigate({ to: "/admin" });
       else await onDone();
     } catch (e) {

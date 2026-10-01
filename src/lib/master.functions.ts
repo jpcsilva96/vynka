@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { PROVISIONAL_STORE_NAME, makeProvisionalSlug } from "@/lib/provisional-store";
 
 /**
  * Provisiona o primeiro usuário Master a partir de MASTER_EMAIL / MASTER_PASSWORD.
@@ -100,12 +101,14 @@ export const masterStats = createServerFn({ method: "GET" })
   });
 
 const createStoreSchema = z.object({
-  name: z.string().min(1).max(120),
+  // Opcionais: sem eles a loja nasce com nome/link provisórios e o dono define depois.
+  name: z.string().min(1).max(120).optional(),
   slug: z
     .string()
     .min(2)
     .max(60)
-    .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífen."),
+    .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífen.")
+    .optional(),
   owner_email: z.string().email(),
   owner_name: z.string().min(1).max(120),
   whatsapp: z.string().optional().nullable(),
@@ -125,10 +128,21 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // valida slug único
-    const { data: slugConflict } = await supabaseAdmin
-      .from("stores").select("id").eq("slug", data.slug).maybeSingle();
-    if (slugConflict) throw new Error(`O slug "${data.slug}" já está em uso.`);
+    // slug informado: valida unicidade; sem slug: gera um provisório único
+    let slug = data.slug;
+    if (slug) {
+      const { data: slugConflict } = await supabaseAdmin
+        .from("stores").select("id").eq("slug", slug).maybeSingle();
+      if (slugConflict) throw new Error(`O slug "${slug}" já está em uso.`);
+    } else {
+      for (let i = 0; i < 5 && !slug; i++) {
+        const candidate = makeProvisionalSlug();
+        const { data: taken } = await supabaseAdmin
+          .from("stores").select("id").eq("slug", candidate).maybeSingle();
+        if (!taken) slug = candidate;
+      }
+      if (!slug) throw new Error("Não foi possível gerar o link da loja. Tente novamente.");
+    }
 
     // procura ou cria usuário
     let userId: string | null = null;
@@ -161,9 +175,10 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
     const { data: store, error: sErr } = await supabaseAdmin
       .from("stores")
       .insert({
-        name: data.name,
-        slug: data.slug,
+        name: data.name ?? PROVISIONAL_STORE_NAME,
+        slug,
         email: data.owner_email,
+        responsible_name: data.owner_name,
         whatsapp: data.whatsapp ?? null,
         status: data.status,
         plan_id: data.plan_id,
