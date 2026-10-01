@@ -1,7 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { getOwnerSignup } from "@/lib/owner-signup.functions";
 import { VynkaLogo } from "@/components/vynka-logo";
 
 export const Route = createFileRoute("/reset-password")({
@@ -21,6 +24,7 @@ const SESSION_WAIT_MS = 4000;
 
 function ResetPasswordPage() {
   const navigate = useNavigate();
+  const fetchSignup = useServerFn(getOwnerSignup);
   const [ready, setReady] = useState(false);
   const [checking, setChecking] = useState(true);
   const [password, setPassword] = useState("");
@@ -30,28 +34,43 @@ function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
 
   // O link de convite/redefinição abre uma sessão temporária; só ela permite trocar a senha.
+  // Dono de loja nova que ainda não completou o cadastro vai para /boas-vindas.
   useEffect(() => {
     let active = true;
-    const open = () => {
+    let opened = false;
+    const open = async (session: Session) => {
+      if (!active || opened) return;
+      opened = true;
+      if (session.user.user_metadata?.signup_completed !== true) {
+        try {
+          const res = await fetchSignup({});
+          if (active && res.store && !res.store.name) {
+            navigate({ to: "/boas-vindas", replace: true });
+            return;
+          }
+        } catch {
+          // sem loja ou falha na consulta: segue para a troca de senha
+        }
+      }
       if (!active) return;
       setReady(true);
       setChecking(false);
     };
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN")) open();
+      if (session && (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN")) void open(session);
     });
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) open();
+      if (data.session) void open(data.session);
     });
     const timer = setTimeout(() => {
-      if (active) setChecking(false);
+      if (active && !opened) setChecking(false);
     }, SESSION_WAIT_MS);
     return () => {
       active = false;
       clearTimeout(timer);
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchSignup, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

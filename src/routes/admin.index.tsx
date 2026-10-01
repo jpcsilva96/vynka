@@ -9,6 +9,7 @@ import {
   getStoreFull,
   progressPercent,
 } from "@/lib/onboarding";
+import { isProvisionalName } from "@/lib/provisional-store";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({
@@ -28,15 +29,17 @@ const metrics = [
 ];
 
 function Dashboard() {
-  const { currentStore, loading } = useStoreContext();
+  const { currentStore, loading, user, isPlatformAdmin } = useStoreContext();
   const navigate = useNavigate();
 
+  // Dono que ainda não completou o cadastro (loja com nome provisório) volta para /boas-vindas.
+  // O catálogo é opcional: o painel funciona sem ele estar configurado ou publicado.
   useEffect(() => {
-    if (loading || !currentStore) return;
-    if (currentStore.onboarding_status !== "completed") {
-      navigate({ to: "/admin/onboarding", replace: true });
+    if (loading || !currentStore || isPlatformAdmin) return;
+    if (user?.user_metadata?.signup_completed !== true && isProvisionalName(currentStore.name)) {
+      navigate({ to: "/boas-vindas", replace: true });
     }
-  }, [loading, currentStore, navigate]);
+  }, [loading, currentStore, user, isPlatformAdmin, navigate]);
 
   const { data: store } = useQuery({
     queryKey: ["store-full-dash", currentStore?.id],
@@ -58,7 +61,7 @@ function Dashboard() {
     );
   }
 
-  const incomplete = currentStore.onboarding_status !== "completed";
+  const incomplete = currentStore.publication_status !== "published";
   const percent = checklist ? progressPercent(checklist) : 0;
 
   return (
@@ -68,14 +71,14 @@ function Dashboard() {
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
             <div className="max-w-xl">
               <span className="text-[11px] uppercase tracking-[0.18em] text-background/50">
-                Onboarding
+                Catálogo
               </span>
               <h2 className="mt-2 text-[20px] font-medium leading-tight">
-                Termine de configurar sua loja
+                Seu catálogo ainda não está no ar
               </h2>
               <p className="mt-2 text-[13px] leading-relaxed text-background/60">
-                Você concluiu {percent}%. Continue a partir da etapa em que parou para publicar
-                seu catálogo.
+                Você concluiu {percent}%. Quando quiser, configure e publique seu catálogo em Loja e
+                Catálogo.
               </p>
               <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-background/15">
                 <div
@@ -85,10 +88,10 @@ function Dashboard() {
               </div>
             </div>
             <Link
-              to="/admin/onboarding"
+              to="/admin/configuracoes"
               className="inline-flex items-center gap-1.5 self-start rounded-md bg-background px-4 py-2.5 text-[13px] font-medium text-foreground hover:opacity-90 md:self-auto"
             >
-              Continuar configuração
+              Ir para Loja e Catálogo
               <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.75} />
             </Link>
           </div>
