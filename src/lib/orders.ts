@@ -200,7 +200,7 @@ export async function updateOrderPayment(
     .from("orders")
     .update({
       payment_method: paymentMethod,
-      payment_details: paymentDetails,
+      payment_details: paymentDetails as any,
       paid_amount: paidAmount,
       change_due: changeDue,
     })

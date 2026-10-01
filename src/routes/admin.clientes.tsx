@@ -95,7 +95,7 @@ function Clientes() {
       const { data, error } = await supabase
         .from("customers")
         .select(CUSTOMER_COLUMNS)
-        .eq("store_id", currentStore.id)
+        .eq("store_id", currentStore!.id)
         .order("created_at", { ascending: false });
 
       if (!cancelled) {

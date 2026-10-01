@@ -343,7 +343,7 @@ export async function updateReceiptSettings(storeId: string, settings: ReceiptSe
     {
       store_id: storeId,
       setting_key: "receipt",
-      setting_value: settings,
+      setting_value: settings as any,
     },
     { onConflict: "store_id,setting_key" },
   );
@@ -369,7 +369,7 @@ export async function updateCatalogVisualSettings(
     {
       store_id: storeId,
       setting_key: "catalog_visual",
-      setting_value: normalizeCatalogVisualSettings(settings),
+      setting_value: normalizeCatalogVisualSettings(settings) as any,
     },
     { onConflict: "store_id,setting_key" },
   );
