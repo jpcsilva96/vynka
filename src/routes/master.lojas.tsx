@@ -7,6 +7,8 @@ import {
   listStoresForMaster,
   createStoreWithOwner,
   updateStoreStatus,
+  updateStorePlan,
+  resendStoreInvite,
   listPlans,
 } from "@/lib/master.functions";
 import { MASTER_ACTIVE_STORE_KEY } from "@/lib/master-store-access";
@@ -22,17 +24,46 @@ const STATUS_LABEL: Record<string, string> = {
   trial: "Em teste",
   active: "Ativa",
   suspended: "Suspensa",
-  cancelled: "Cancelada",
+  // "Arquivar" reaproveita o status cancelled: a loja sai do ar, o dono não entra e os dados ficam.
+  cancelled: "Arquivada",
 };
+
+type StoreRow = { id: string; name: string };
+type PlanRow = { id: string; name: string };
+
+const errorMessage = (e: unknown, fallback: string) =>
+  e instanceof Error && e.message ? e.message : fallback;
+
+// Pergunta antes de tirar uma loja do ar.
+const STATUS_CONFIRM: Record<string, string> = {
+  suspended:
+    "Suspender esta loja? O catálogo sai do ar e o responsável não consegue entrar no painel.",
+  cancelled:
+    "Arquivar esta loja? Ela sai do ar, o responsável não consegue entrar e a loja some da lista padrão. Os dados ficam guardados e dá para reativar depois.",
+};
+
+// "" = todas, exceto arquivadas (padrão); "all" = todas, inclusive arquivadas.
+const STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: "", label: "Todas, exceto arquivadas" },
+  { value: "active", label: "Ativas" },
+  { value: "trial", label: "Em teste" },
+  { value: "suspended", label: "Suspensas" },
+  { value: "cancelled", label: "Arquivadas" },
+  { value: "all", label: "Todas, inclusive arquivadas" },
+];
 
 function LojasPage() {
   const qc = useQueryClient();
   const fetchStores = useServerFn(listStoresForMaster);
   const fetchPlans = useServerFn(listPlans);
   const changeStatus = useServerFn(updateStoreStatus);
+  const changePlan = useServerFn(updateStorePlan);
+  const resendInvite = useServerFn(resendStoreInvite);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [showNew, setShowNew] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [accessLink, setAccessLink] = useState<{ link: string; type: string } | null>(null);
 
   const { data: stores = [], isLoading } = useQuery({
     queryKey: ["master-stores"],
@@ -45,12 +76,49 @@ function LojasPage() {
 
   const statusMutation = useMutation({
     mutationFn: (v: { store_id: string; status: any }) => changeStatus({ data: v }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["master-stores"] }),
+    onSuccess: () => {
+      setActionError(null);
+      qc.invalidateQueries({ queryKey: ["master-stores"] });
+      qc.invalidateQueries({ queryKey: ["master-stats"] });
+    },
+    onError: (e) => setActionError(errorMessage(e, "Falha ao alterar o status.")),
   });
+
+  const planMutation = useMutation({
+    mutationFn: (v: { store_id: string; plan_id: string }) => changePlan({ data: v }),
+    onSuccess: () => {
+      setActionError(null);
+      qc.invalidateQueries({ queryKey: ["master-stores"] });
+    },
+    onError: (e) => setActionError(errorMessage(e, "Falha ao trocar o plano.")),
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: (store_id: string) =>
+      resendInvite({ data: { store_id, redirect_origin: window.location.origin } }),
+    onSuccess: (res) => {
+      setActionError(null);
+      if (res.invite_link) setAccessLink({ link: res.invite_link, type: res.link_type });
+    },
+    onError: (e) => setActionError(errorMessage(e, "Falha ao gerar o link de acesso.")),
+  });
+
+  const onStatusChange = (store: StoreRow, status: string) => {
+    const question = STATUS_CONFIRM[status];
+    if (question && !window.confirm(`${store.name}\n\n${question}`)) return;
+    statusMutation.mutate({ store_id: store.id, status });
+  };
+
+  const onPlanChange = (store: StoreRow, planId: string) => {
+    const plan = (plans as PlanRow[]).find((p) => p.id === planId);
+    if (!window.confirm(`Trocar o plano de "${store.name}" para "${plan?.name ?? "—"}"?`)) return;
+    planMutation.mutate({ store_id: store.id, plan_id: planId });
+  };
 
   const filtered = (stores as any[]).filter((s) => {
     const q = search.toLowerCase();
-    if (statusFilter && s.status !== statusFilter) return false;
+    if (statusFilter === "" && s.status === "cancelled") return false;
+    if (statusFilter && statusFilter !== "all" && s.status !== statusFilter) return false;
     if (!q) return true;
     return (
       s.name.toLowerCase().includes(q) ||
@@ -99,13 +167,19 @@ function LojasPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="rounded-md border border-border bg-surface px-3 py-2 text-[13px] outline-none"
         >
-          <option value="">Todos os status</option>
-          <option value="trial">Em teste</option>
-          <option value="active">Ativa</option>
-          <option value="suspended">Suspensa</option>
-          <option value="cancelled">Cancelada</option>
+          {STATUS_FILTERS.map((f) => (
+            <option key={f.value} value={f.value}>
+              {f.label}
+            </option>
+          ))}
         </select>
       </div>
+
+      {actionError && (
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
+          {actionError}
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-lg border border-border bg-surface">
         <table className="w-full text-[13px]">
@@ -144,20 +218,36 @@ function LojasPage() {
                   <div className="text-[11px] text-muted-foreground">/loja/{s.slug}</div>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{s.email ?? "—"}</td>
-                <td className="px-4 py-3">{s.plan?.name ?? "—"}</td>
+                <td className="px-4 py-3">
+                  <select
+                    value={s.plan_id ?? ""}
+                    disabled={planMutation.isPending}
+                    onChange={(e) => onPlanChange(s, e.target.value)}
+                    className="rounded-md border border-border bg-background px-2 py-1 text-[12px] outline-none"
+                  >
+                    {!s.plan_id && <option value="">—</option>}
+                    {(plans as any[]).map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
                 <td className="px-4 py-3">
                   <select
                     value={s.status}
-                    onChange={(e) =>
-                      statusMutation.mutate({ store_id: s.id, status: e.target.value })
-                    }
+                    disabled={statusMutation.isPending}
+                    onChange={(e) => onStatusChange(s, e.target.value)}
                     className="rounded-md border border-border bg-background px-2 py-1 text-[12px] outline-none"
                   >
-                    {Object.entries(STATUS_LABEL).map(([v, l]) => (
-                      <option key={v} value={v}>
-                        {l}
-                      </option>
-                    ))}
+                    {Object.entries(STATUS_LABEL)
+                      // "Em teste" só aparece para lojas antigas que ainda estão nesse status.
+                      .filter(([v]) => v !== "trial" || s.status === "trial")
+                      .map(([v, l]) => (
+                        <option key={v} value={v}>
+                          {l}
+                        </option>
+                      ))}
                   </select>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
@@ -171,6 +261,14 @@ function LojasPage() {
                       className="text-[12px] font-medium text-foreground hover:underline"
                     >
                       Admin
+                    </button>
+                    <button
+                      type="button"
+                      disabled={inviteMutation.isPending}
+                      onClick={() => inviteMutation.mutate(s.id)}
+                      className="text-[12px] text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    >
+                      Reenviar acesso
                     </button>
                     <a
                       href={`/loja/${s.slug}`}
@@ -189,7 +287,58 @@ function LojasPage() {
       </div>
 
       {showNew && <NewStoreDialog plans={plans as any[]} onClose={() => setShowNew(false)} />}
+
+      {accessLink && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 px-4">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-background p-6">
+            <InviteLinkPanel
+              title="Novo link de acesso"
+              description={
+                accessLink.type === "invite"
+                  ? "O responsável ainda não entrou. Envie o link abaixo para ele completar o cadastro e definir a senha. Links anteriores deixam de valer."
+                  : "O responsável já entrou antes. Envie o link abaixo para ele definir uma nova senha. Links anteriores deixam de valer."
+              }
+              link={accessLink.link}
+              onClose={() => setAccessLink(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function InviteLinkPanel({
+  title,
+  description,
+  link,
+  onClose,
+}: {
+  title: string;
+  description: string;
+  link: string;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <h2 className="text-[16px] font-medium">{title}</h2>
+      <p className="mt-1 text-[12px] text-muted-foreground">{description}</p>
+      <div className="mt-4 flex items-center gap-2 rounded-md border border-border bg-surface p-2">
+        <code className="flex-1 truncate text-[11px]">{link}</code>
+        <button
+          onClick={() => navigator.clipboard.writeText(link)}
+          className="grid h-7 w-7 place-items-center rounded hover:bg-muted"
+        >
+          <Copy className="h-3 w-3" strokeWidth={1.5} />
+        </button>
+      </div>
+      <button
+        onClick={onClose}
+        className="mt-6 w-full rounded-md bg-foreground py-2 text-[13px] font-medium text-background"
+      >
+        Concluir
+      </button>
+    </>
   );
 }
 
@@ -198,9 +347,7 @@ function NewStoreDialog({ plans, onClose }: { plans: any[]; onClose: () => void 
   const createFn = useServerFn(createStoreWithOwner);
   const [form, setForm] = useState({
     owner_email: "",
-    owner_name: "",
     plan_id: plans[0]?.id ?? "",
-    status: "trial" as const,
   });
   const [error, setError] = useState<string | null>(null);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -221,27 +368,12 @@ function NewStoreDialog({ plans, onClose }: { plans: any[]; onClose: () => void 
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 px-4">
       <div className="w-full max-w-lg rounded-2xl border border-border bg-background p-6">
         {inviteLink ? (
-          <>
-            <h2 className="text-[16px] font-medium">Loja criada</h2>
-            <p className="mt-1 text-[12px] text-muted-foreground">
-              Envie o link abaixo para o responsável definir a senha e acessar o painel.
-            </p>
-            <div className="mt-4 flex items-center gap-2 rounded-md border border-border bg-surface p-2">
-              <code className="flex-1 truncate text-[11px]">{inviteLink}</code>
-              <button
-                onClick={() => navigator.clipboard.writeText(inviteLink)}
-                className="grid h-7 w-7 place-items-center rounded hover:bg-muted"
-              >
-                <Copy className="h-3 w-3" strokeWidth={1.5} />
-              </button>
-            </div>
-            <button
-              onClick={onClose}
-              className="mt-6 w-full rounded-md bg-foreground py-2 text-[13px] font-medium text-background"
-            >
-              Concluir
-            </button>
-          </>
+          <InviteLinkPanel
+            title="Loja criada"
+            description="Envie o link abaixo para o responsável completar o cadastro, definir a senha e acessar o painel."
+            link={inviteLink}
+            onClose={onClose}
+          />
         ) : (
           <form
             onSubmit={(e) => {
@@ -252,20 +384,13 @@ function NewStoreDialog({ plans, onClose }: { plans: any[]; onClose: () => void 
           >
             <h2 className="text-[16px] font-medium">Nova loja</h2>
             <p className="mt-1 text-[12px] text-muted-foreground">
-              Informe o responsável. Ele define o nome e o link da loja depois do primeiro acesso.
+              Informe o e-mail do responsável e o plano. Ele completa o cadastro pelo link do
+              convite e cria o catálogo dentro da plataforma.
             </p>
 
             <div className="mt-5 grid gap-3">
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Nome completo">
-                  <input
-                    required
-                    value={form.owner_name}
-                    onChange={(e) => setForm({ ...form, owner_name: e.target.value })}
-                    className="w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
-                  />
-                </Field>
-                <Field label="E-mail">
+                <Field label="E-mail do responsável">
                   <input
                     required
                     type="email"
@@ -289,17 +414,6 @@ function NewStoreDialog({ plans, onClose }: { plans: any[]; onClose: () => void 
                   </select>
                 </Field>
               </div>
-              <Field label="Status inicial">
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value as any })}
-                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-[13px] outline-none"
-                >
-                  <option value="trial">Em teste (14 dias)</option>
-                  <option value="active">Ativa</option>
-                  <option value="suspended">Suspensa</option>
-                </select>
-              </Field>
             </div>
 
             {error && (
