@@ -21,6 +21,12 @@ export interface StoreSummary {
   published_at: string | null;
 }
 
+export interface UserProfile {
+  full_name: string | null;
+  phone: string | null;
+  avatar_url: string | null;
+}
+
 export interface Membership {
   id: string;
   store_id: string;
@@ -36,6 +42,7 @@ interface Ctx {
   currentStore: StoreSummary | null;
   currentRole: MemberRole | null;
   isPlatformAdmin: boolean;
+  profile: UserProfile | null;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -50,17 +57,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [memberships, setMemberships] = useState<Membership[]>([]);
   const [isPlatformAdmin, setPlatformAdmin] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const load = useCallback(async (u: User | null) => {
     setUser(u);
     if (!u) {
       setMemberships([]);
       setPlatformAdmin(false);
+      setProfile(null);
       setLoading(false);
       return;
     }
     try {
-      const [{ data: mem }, { data: plat }] = await Promise.all([
+      const [{ data: mem }, { data: plat }, { data: prof }] = await Promise.all([
         supabase
           .from("store_members")
           .select(`id, store_id, role, active, store:stores(${STORE_COLUMNS})`)
@@ -71,6 +80,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           .select("role, active")
           .eq("user_id", u.id)
           .eq("active", true)
+          .maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("full_name, phone, avatar_url")
+          .eq("user_id", u.id)
           .maybeSingle(),
       ]);
       const userMemberships = ((mem ?? []) as unknown as Membership[]).filter((m) => m.store);
@@ -109,6 +123,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
       setMemberships(nextMemberships);
       setPlatformAdmin(platformAdmin);
+      setProfile((prof as UserProfile | null) ?? null);
     } catch (e) {
       console.error("[StoreProvider] load failed", e);
       setMemberships([]);
@@ -146,6 +161,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setMemberships([]);
     setPlatformAdmin(false);
+    setProfile(null);
   }, []);
 
   const refresh = async () => {
@@ -162,6 +178,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         currentStore,
         currentRole,
         isPlatformAdmin,
+        profile,
         signOut,
         refresh,
       }}

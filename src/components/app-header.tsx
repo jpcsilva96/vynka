@@ -1,5 +1,6 @@
 import { Bell, Search } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { UserAvatar, UserMenu } from "@/components/user-menu";
 
 interface AppHeaderProps {
   title: string;
@@ -34,9 +35,11 @@ export function AppHeader({ title, description }: AppHeaderProps) {
           <Bell className="h-4 w-4" strokeWidth={1.5} />
         </button>
 
-        <div className="grid h-8 w-8 place-items-center rounded-full bg-foreground text-[11px] font-medium text-background">
-          AL
-        </div>
+        <UserMenu>
+          <button type="button" aria-label="Menu do usuário" className="rounded-full">
+            <UserAvatar className="bg-foreground text-background" />
+          </button>
+        </UserMenu>
       </div>
     </header>
   );
