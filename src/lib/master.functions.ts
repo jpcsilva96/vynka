@@ -170,6 +170,25 @@ function inviteRedirect(origin?: string, path: "/boas-vindas" | "/reset-password
   return origin ? { redirectTo: `${new URL(origin).origin}${path}` } : {};
 }
 
+// Link enviado ao dono: aponta direto para a página com o token na URL. Abrir a página não gasta
+// o token (a prévia do WhatsApp abre o link sozinha); ele só é usado no clique do botão da tela.
+// Sem origem, cai no link padrão do Supabase (que gasta o token ao ser aberto).
+function accessLink(
+  properties:
+    | { action_link?: string; hashed_token?: string; verification_type?: string }
+    | undefined,
+  origin?: string,
+  path: "/boas-vindas" | "/reset-password" = "/boas-vindas",
+) {
+  if (!origin || !properties?.hashed_token || !properties.verification_type) {
+    return properties?.action_link ?? null;
+  }
+  const url = new URL(path, new URL(origin).origin);
+  url.searchParams.set("token_hash", properties.hashed_token);
+  url.searchParams.set("type", properties.verification_type);
+  return url.toString();
+}
+
 /** Cria uma nova loja + convida o responsável. Somente Master. */
 export const createStoreWithOwner = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -217,7 +236,7 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
       });
       if (link.error) throw link.error;
       userId = link.data.user!.id;
-      inviteLink = link.data.properties?.action_link ?? null;
+      inviteLink = accessLink(link.data.properties, data.redirect_origin);
     }
 
     // cria loja
@@ -471,10 +490,11 @@ export const resendStoreInvite = createServerFn({ method: "POST" })
       userRes.user.user_metadata?.signup_completed === true || !isProvisionalName(store?.name);
 
     const type = userRes.user.last_sign_in_at ? "recovery" : "invite";
+    const path = signupDone ? "/reset-password" : "/boas-vindas";
     const link = await supabaseAdmin.auth.admin.generateLink({
       type,
       email,
-      options: inviteRedirect(data.redirect_origin, signupDone ? "/reset-password" : "/boas-vindas"),
+      options: inviteRedirect(data.redirect_origin, path),
     });
     if (link.error) throw link.error;
 
@@ -487,7 +507,11 @@ export const resendStoreInvite = createServerFn({ method: "POST" })
       entity_id: data.store_id,
       metadata: { owner_email: email, link_type: type },
     });
-    return { ok: true, invite_link: link.data.properties?.action_link ?? null, link_type: type };
+    return {
+      ok: true,
+      invite_link: accessLink(link.data.properties, data.redirect_origin, path),
+      link_type: type,
+    };
   });
 
 export const listPlans =createServerFn({ method: "GET" })
