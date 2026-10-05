@@ -1,10 +1,11 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Heart, Minus, Plus } from "lucide-react";
 import { ProductCard } from "@/components/loja/product-card";
 import { WhatsAppIcon } from "@/components/loja/store-header";
 import { addToCart, buildWhatsAppLink, openCart } from "@/lib/cart";
+import { trackStoreView } from "@/lib/views";
 import { listFavoriteProductIds, toggleFavorite, useStoreCustomer } from "@/lib/customer-account";
 import { formatBRL, skuKey } from "@/lib/products";
 import { getPublicProduct, isOnSale, listRelatedProducts, type PublicProductDetail } from "@/lib/public-shop";
@@ -45,6 +46,9 @@ function ProductView({ product }: { product: PublicProductDetail }) {
     queryFn: () => listFavoriteProductIds(store.id),
     enabled: !!customer,
   });
+  useEffect(() => {
+    trackStoreView(store.id, product.id);
+  }, [store.id, product.id]);
   const [selected, setSelected] = useState<Record<string, string>>(() => initialSelection(product));
   const [qty, setQty] = useState(1);
   const [activeImage, setActiveImage] = useState(0);

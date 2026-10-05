@@ -7,6 +7,7 @@ import {
   ShoppingBag,
   Users,
   Wallet,
+  Eye,
   Loader2,
   CheckCircle2,
   Circle,
@@ -82,6 +83,12 @@ function Dashboard() {
       icon: Wallet,
     },
     {
+      label: "Visitas no mês",
+      value: pending ?? String(dash!.monthViews),
+      hint: "1 por aparelho por dia; você não conta",
+      icon: Eye,
+    },
+    {
       label: "Pedidos em aberto",
       value: pending ?? String(dash!.openOrders),
       hint: "Ainda não concluídos nem cancelados",
@@ -135,9 +142,15 @@ function Dashboard() {
         </section>
       )}
 
-      <section className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
-        {metrics.map((m) => (
-          <div key={m.label} className="bg-surface p-6">
+      <section className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-6 xl:grid-cols-5">
+        {/* 5 cards sem buraco: sm 1+2+2, lg 2+3, xl 5 em linha. */}
+        {metrics.map((m, i) => (
+          <div
+            key={m.label}
+            className={`bg-surface p-6 xl:col-span-1 ${
+              i === 0 ? "sm:col-span-2 lg:col-span-3" : i === 1 ? "lg:col-span-3" : "lg:col-span-2"
+            }`}
+          >
             <div className="flex items-center justify-between text-muted-foreground">
               <span className="text-[12px] uppercase tracking-[0.14em]">{m.label}</span>
               <m.icon className="h-4 w-4" strokeWidth={1.5} />

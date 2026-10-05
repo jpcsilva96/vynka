@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound, Outlet } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
+import { trackStoreView } from "@/lib/views";
 import { CartDrawer } from "@/components/loja/cart-drawer";
 import { StoreFooter } from "@/components/loja/store-footer";
 import { StoreHeader } from "@/components/loja/store-header";
@@ -55,6 +56,15 @@ function LojaLayout() {
       else icon.remove();
     };
   }, [store?.favicon_url]);
+
+  const storeOpen =
+    !!store &&
+    store.status !== "suspended" &&
+    store.status !== "cancelled" &&
+    store.publication_status === "published";
+  useEffect(() => {
+    if (storeOpen && store) trackStoreView(store.id);
+  }, [storeOpen, store?.id]);
 
   if (isLoading) {
     return (
