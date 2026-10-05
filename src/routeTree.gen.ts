@@ -25,6 +25,7 @@ import { Route as AdminFinancasRouteImport } from './routes/admin.financas'
 import { Route as AdminHistoricoRouteImport } from './routes/admin.historico'
 import { Route as AdminOnboardingRouteImport } from './routes/admin.onboarding'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminPerfilRouteImport } from './routes/admin.perfil'
 import { Route as AdminPreviewRouteImport } from './routes/admin.preview'
 import { Route as AdminProdutosRouteImport } from './routes/admin.produtos'
 import { Route as AdminUsuariosRouteImport } from './routes/admin.usuarios'
@@ -132,6 +133,11 @@ const AdminOnboardingRoute = AdminOnboardingRouteImport.update({
 const AdminPedidosRoute = AdminPedidosRouteImport.update({
   id: '/pedidos',
   path: '/pedidos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPerfilRoute = AdminPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPreviewRoute = AdminPreviewRouteImport.update({
@@ -293,6 +299,7 @@ export interface FileRoutesByFullPath {
   '/admin/historico': typeof AdminHistoricoRouteWithChildren
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
+  '/admin/perfil': typeof AdminPerfilRoute
   '/admin/preview': typeof AdminPreviewRoute
   '/admin/produtos': typeof AdminProdutosRouteWithChildren
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -335,6 +342,7 @@ export interface FileRoutesByTo {
   '/admin/estatisticas': typeof AdminEstatisticasRoute
   '/admin/financas': typeof AdminFinancasRoute
   '/admin/onboarding': typeof AdminOnboardingRoute
+  '/admin/perfil': typeof AdminPerfilRoute
   '/admin/preview': typeof AdminPreviewRoute
   '/admin/usuarios': typeof AdminUsuariosRoute
   '/admin/vender': typeof AdminVenderRoute
@@ -380,6 +388,7 @@ export interface FileRoutesById {
   '/admin/historico': typeof AdminHistoricoRouteWithChildren
   '/admin/onboarding': typeof AdminOnboardingRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
+  '/admin/perfil': typeof AdminPerfilRoute
   '/admin/preview': typeof AdminPreviewRoute
   '/admin/produtos': typeof AdminProdutosRouteWithChildren
   '/admin/usuarios': typeof AdminUsuariosRoute
@@ -428,6 +437,7 @@ export interface FileRouteTypes {
     | '/admin/historico'
     | '/admin/onboarding'
     | '/admin/pedidos'
+    | '/admin/perfil'
     | '/admin/preview'
     | '/admin/produtos'
     | '/admin/usuarios'
@@ -470,6 +480,7 @@ export interface FileRouteTypes {
     | '/admin/estatisticas'
     | '/admin/financas'
     | '/admin/onboarding'
+    | '/admin/perfil'
     | '/admin/preview'
     | '/admin/usuarios'
     | '/admin/vender'
@@ -514,6 +525,7 @@ export interface FileRouteTypes {
     | '/admin/historico'
     | '/admin/onboarding'
     | '/admin/pedidos'
+    | '/admin/perfil'
     | '/admin/preview'
     | '/admin/produtos'
     | '/admin/usuarios'
@@ -667,6 +679,13 @@ declare module '@tanstack/react-router' {
       path: '/pedidos'
       fullPath: '/admin/pedidos'
       preLoaderRoute: typeof AdminPedidosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/perfil': {
+      id: '/admin/perfil'
+      path: '/perfil'
+      fullPath: '/admin/perfil'
+      preLoaderRoute: typeof AdminPerfilRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/preview': {
@@ -922,6 +941,7 @@ interface AdminRouteChildren {
   AdminHistoricoRoute: typeof AdminHistoricoRouteWithChildren
   AdminOnboardingRoute: typeof AdminOnboardingRoute
   AdminPedidosRoute: typeof AdminPedidosRouteWithChildren
+  AdminPerfilRoute: typeof AdminPerfilRoute
   AdminPreviewRoute: typeof AdminPreviewRoute
   AdminProdutosRoute: typeof AdminProdutosRouteWithChildren
   AdminUsuariosRoute: typeof AdminUsuariosRoute
@@ -939,6 +959,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminHistoricoRoute: AdminHistoricoRouteWithChildren,
   AdminOnboardingRoute: AdminOnboardingRoute,
   AdminPedidosRoute: AdminPedidosRouteWithChildren,
+  AdminPerfilRoute: AdminPerfilRoute,
   AdminPreviewRoute: AdminPreviewRoute,
   AdminProdutosRoute: AdminProdutosRouteWithChildren,
   AdminUsuariosRoute: AdminUsuariosRoute,

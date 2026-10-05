@@ -27,6 +27,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { VynkaLogo } from "@/components/vynka-logo";
+import { UserAvatar, UserMenu, useCurrentUserIdentity } from "@/components/user-menu";
 
 const primary = [
   { title: "Vender", url: "/admin/vender", icon: ShoppingCart },
@@ -48,6 +49,7 @@ const workspace = [
 
 export function AppSidebar() {
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
+  const { name, storeName } = useCurrentUserIdentity();
   const isActive = (path: string) =>
     path === "/admin" ? currentPath === "/admin" : currentPath.startsWith(path);
 
@@ -112,15 +114,19 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white/10 text-[11px] font-medium text-white">
-            AL
-          </div>
-          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <div className="truncate text-[13px] text-white">Ana Lima</div>
-            <div className="truncate text-[11px] text-white/40">Minha loja</div>
-          </div>
-        </div>
+        <UserMenu align="start" side="top">
+          <button
+            type="button"
+            aria-label="Menu do usuário"
+            className="-mx-2 flex items-center gap-3 rounded-md px-2 py-1.5 text-left hover:bg-white/5"
+          >
+            <UserAvatar className="bg-white/10 text-white" />
+            <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+              <div className="truncate text-[13px] text-white">{name}</div>
+              <div className="truncate text-[11px] text-white/40">{storeName}</div>
+            </div>
+          </button>
+        </UserMenu>
       </SidebarFooter>
     </Sidebar>
   );
