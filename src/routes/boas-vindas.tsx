@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { VynkaLogo } from "@/components/vynka-logo";
@@ -8,6 +8,11 @@ import { useStoreContext } from "@/lib/store-context";
 import { completeOwnerSignup, getOwnerSignup } from "@/lib/owner-signup.functions";
 import { isValidCpf, isValidPhone, maskCpf, maskPhone } from "@/lib/br-documents";
 import { normalizeSlug } from "@/lib/store-settings";
+import {
+  readAccessLinkToken,
+  redeemAccessLinkToken,
+  type AccessLinkToken,
+} from "@/lib/access-link";
 
 export const Route = createFileRoute("/boas-vindas")({
   head: () => ({
@@ -71,17 +76,20 @@ function WelcomePage() {
     confirm: "",
   });
 
-  // O link do convite abre uma sessão temporária; só ela permite gravar o cadastro e a senha.
-  useEffect(() => {
-    let active = true;
-    let loaded = false;
-    const open = async (userEmail: string | undefined) => {
-      if (!active || loaded) return;
-      loaded = true;
+  // Link novo (?token_hash=...): a tela espera o clique em "Começar cadastro" para usar o token.
+  const [linkToken, setLinkToken] = useState<AccessLinkToken | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const loadedRef = useRef(false);
+
+  // Sessão aberta (pelo token ou já existente): carrega os dados do cadastro.
+  const loadSignup = useCallback(
+    async (userEmail: string | undefined) => {
+      if (loadedRef.current) return;
+      loadedRef.current = true;
       setEmail(userEmail ?? "");
       try {
         const res = await fetchSignup({});
-        if (!active) return;
         if (!res.store) {
           setNoStore(true);
         } else {
@@ -95,10 +103,41 @@ function WelcomePage() {
           if (res.store.slug) setSlugTouched(true);
         }
       } catch {
-        if (active) setNoStore(true);
+        setNoStore(true);
       } finally {
-        if (active) setChecking(false);
+        setChecking(false);
       }
+    },
+    [fetchSignup],
+  );
+
+  const startSignup = async () => {
+    if (!linkToken) return;
+    setStarting(true);
+    setLinkError(null);
+    const res = await redeemAccessLinkToken(linkToken);
+    setStarting(false);
+    if (!res.session) {
+      setLinkError(res.error);
+      return;
+    }
+    setLinkToken(null);
+    setChecking(true);
+    await loadSignup(res.session.user.email);
+  };
+
+  // O link do convite abre uma sessão temporária; só ela permite gravar o cadastro e a senha.
+  useEffect(() => {
+    const token = readAccessLinkToken();
+    if (token) {
+      // Não usa uma sessão que já esteja aberta neste navegador (ex. a do master).
+      setLinkToken(token);
+      setChecking(false);
+      return;
+    }
+    let active = true;
+    const open = (userEmail: string | undefined) => {
+      if (active) void loadSignup(userEmail);
     };
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (session && (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN")) {
@@ -109,14 +148,14 @@ function WelcomePage() {
       if (data.session) void open(data.session.user.email);
     });
     const timer = setTimeout(() => {
-      if (active && !loaded) setChecking(false);
+      if (active && !loadedRef.current) setChecking(false);
     }, SESSION_WAIT_MS);
     return () => {
       active = false;
       clearTimeout(timer);
       sub.subscription.unsubscribe();
     };
-  }, [fetchSignup]);
+  }, [loadSignup]);
 
   const patch = (key: keyof Form, value: string) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -179,7 +218,7 @@ function WelcomePage() {
   };
 
   const origin = typeof window !== "undefined" ? window.location.host : "vynka.lovable.app";
-  const ready = !checking && email !== null && !noStore;
+  const ready = !checking && !linkToken && email !== null && !noStore;
 
   return (
     <div className="min-h-svh bg-background text-foreground">
@@ -203,7 +242,35 @@ function WelcomePage() {
             </p>
           )}
 
-          {!checking && (email === null || noStore) && (
+          {!checking && linkToken && (
+            <div className="mt-6 space-y-4">
+              {linkError ? (
+                <>
+                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
+                    {linkError}
+                  </div>
+                  <Link
+                    to="/login"
+                    className="text-[13px] text-foreground underline underline-offset-2"
+                  >
+                    Ir para o login
+                  </Link>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startSignup}
+                  disabled={starting}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-foreground px-4 py-2.5 text-[13px] font-medium text-background transition-colors hover:bg-graphite disabled:opacity-50"
+                >
+                  {starting && <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />}
+                  Começar cadastro
+                </button>
+              )}
+            </div>
+          )}
+
+          {!checking && !linkToken && (email === null || noStore) && (
             <div className="mt-6 space-y-4">
               <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
                 {email === null

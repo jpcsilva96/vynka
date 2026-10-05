@@ -1,11 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getOwnerSignup } from "@/lib/owner-signup.functions";
 import { VynkaLogo } from "@/components/vynka-logo";
+import {
+  readAccessLinkToken,
+  redeemAccessLinkToken,
+  type AccessLinkToken,
+} from "@/lib/access-link";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
@@ -33,18 +38,21 @@ function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // O link de convite/redefinição abre uma sessão temporária; só ela permite trocar a senha.
-  // Dono de loja nova que ainda não completou o cadastro vai para /boas-vindas.
-  useEffect(() => {
-    let active = true;
-    let opened = false;
-    const open = async (session: Session) => {
-      if (!active || opened) return;
-      opened = true;
+  // Link novo (?token_hash=...): a tela espera o clique em "Continuar" para usar o token.
+  const [linkToken, setLinkToken] = useState<AccessLinkToken | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const openedRef = useRef(false);
+
+  // Sessão aberta: dono de loja nova que ainda não completou o cadastro vai para /boas-vindas.
+  const open = useCallback(
+    async (session: Session) => {
+      if (openedRef.current) return;
+      openedRef.current = true;
       if (session.user.user_metadata?.signup_completed !== true) {
         try {
           const res = await fetchSignup({});
-          if (active && res.store && !res.store.name) {
+          if (res.store && !res.store.name) {
             navigate({ to: "/boas-vindas", replace: true });
             return;
           }
@@ -52,25 +60,54 @@ function ResetPasswordPage() {
           // sem loja ou falha na consulta: segue para a troca de senha
         }
       }
-      if (!active) return;
       setReady(true);
       setChecking(false);
-    };
+    },
+    [fetchSignup, navigate],
+  );
+
+  const continueWithLink = async () => {
+    if (!linkToken) return;
+    setStarting(true);
+    setLinkError(null);
+    const res = await redeemAccessLinkToken(linkToken);
+    setStarting(false);
+    if (!res.session) {
+      setLinkError(res.error);
+      return;
+    }
+    setLinkToken(null);
+    setChecking(true);
+    await open(res.session);
+  };
+
+  // O link de convite/redefinição abre uma sessão temporária; só ela permite trocar a senha.
+  useEffect(() => {
+    const token = readAccessLinkToken();
+    if (token) {
+      // Não usa uma sessão que já esteja aberta neste navegador (ex. a do master).
+      setLinkToken(token);
+      setChecking(false);
+      return;
+    }
+    let active = true;
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session && (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN")) void open(session);
+      if (active && session && (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN")) {
+        void open(session);
+      }
     });
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) void open(data.session);
+      if (active && data.session) void open(data.session);
     });
     const timer = setTimeout(() => {
-      if (active && !opened) setChecking(false);
+      if (active && !openedRef.current) setChecking(false);
     }, SESSION_WAIT_MS);
     return () => {
       active = false;
       clearTimeout(timer);
       sub.subscription.unsubscribe();
     };
-  }, [fetchSignup, navigate]);
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,7 +149,40 @@ function ResetPasswordPage() {
             </p>
           )}
 
-          {!checking && !ready && (
+          {!checking && linkToken && (
+            <div className="mt-4 space-y-4">
+              {linkError ? (
+                <>
+                  <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
+                    {linkError}
+                  </div>
+                  <Link
+                    to="/login"
+                    className="text-[13px] text-foreground underline underline-offset-2"
+                  >
+                    Ir para o login
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p className="text-[13px] text-muted-foreground">
+                    Clique para continuar e escolher a senha de acesso ao painel da sua loja.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={continueWithLink}
+                    disabled={starting}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-foreground px-4 py-2.5 text-[13px] font-medium text-background transition-colors hover:bg-graphite disabled:opacity-50"
+                  >
+                    {starting && <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.5} />}
+                    Continuar
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {!checking && !linkToken && !ready && (
             <div className="mt-4 space-y-4">
               <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
                 Este link é inválido ou expirou. Peça um novo convite à VYNKA ou use "Esqueci minha senha" na tela de login.
