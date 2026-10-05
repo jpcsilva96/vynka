@@ -526,3 +526,60 @@ export const listSubscriptions = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     return data ?? [];
   });
+
+/** Logins de administração das lojas (dono/admin), para a tela Usuários do Master. */
+export const listStoreUsersForMaster = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: members, error } = await supabaseAdmin
+      .from("store_members")
+      .select("user_id, role, active, created_at, store:stores(id, name, slug, status)")
+      .in("role", ["owner", "admin"])
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+
+    const userIds = [...new Set((members ?? []).map((m) => m.user_id as string))];
+    const { data: profiles } = userIds.length
+      ? await supabaseAdmin.from("profiles").select("user_id, full_name, phone").in("user_id", userIds)
+      : { data: [] as { user_id: string; full_name: string | null; phone: string | null }[] };
+
+    // Um listUsers paginado em vez de um getUserById por usuário.
+    const authById = new Map<string, { email: string | null; last_sign_in_at: string | null; signup_completed: boolean }>();
+    const perPage = 200;
+    for (let page = 1; page <= 10; page++) {
+      const { data: list, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+      if (listErr) throw listErr;
+      for (const u of list.users) {
+        authById.set(u.id, {
+          email: u.email ?? null,
+          last_sign_in_at: u.last_sign_in_at ?? null,
+          signup_completed: u.user_metadata?.signup_completed === true,
+        });
+      }
+      if (list.users.length < perPage) break;
+    }
+
+    return (members ?? []).map((m) => {
+      const store = (Array.isArray(m.store) ? m.store[0] : m.store) as
+        | { id: string; name: string; slug: string; status: string }
+        | null;
+      const auth = authById.get(m.user_id as string);
+      const profile = (profiles ?? []).find((p) => p.user_id === m.user_id);
+      const signupDone = !!auth?.signup_completed || (!!store && !isProvisionalName(store.name));
+      return {
+        user_id: m.user_id as string,
+        role: m.role as string,
+        member_active: m.active as boolean,
+        name: profile?.full_name || null,
+        phone: profile?.phone || null,
+        email: auth?.email ?? null,
+        last_sign_in_at: auth?.last_sign_in_at ?? null,
+        signup_done: signupDone,
+        store,
+      };
+    });
+  });
