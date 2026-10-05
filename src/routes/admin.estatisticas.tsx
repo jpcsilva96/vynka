@@ -18,7 +18,7 @@ import { PaymentMethodIcon } from "@/components/payment-method-icon";
 import { EmptyState } from "@/components/page-shell";
 import { useStoreContext } from "@/lib/store-context";
 import { formatBRL } from "@/lib/products";
-import { isCancelledSale, listOrders, type OrderRecord } from "@/lib/orders";
+import { isCancelledSale, listOrders, saleDate, type OrderRecord } from "@/lib/orders";
 import { paymentMethodLabel, type PaymentMethod } from "@/lib/sales";
 
 export const Route = createFileRoute("/admin/estatisticas")({
@@ -491,13 +491,13 @@ function filterOrdersByPeriod(
 ) {
   if (!period && !startDate && !endDate) return orders;
   return orders.filter((order) => {
-    if (period) return isInPeriod(order.created_at, period);
+    if (period) return isInPeriod(saleDate(order), period);
 
-    const saleDate = startOfDay(new Date(order.created_at));
+    const day = startOfDay(new Date(saleDate(order)));
     const start = startDate ? parseDateInput(startDate) : null;
     const end = endDate ? parseDateInput(endDate) : null;
-    if (start && saleDate < start) return false;
-    if (end && saleDate > end) return false;
+    if (start && day < start) return false;
+    if (end && day > end) return false;
     return true;
   });
 }
@@ -626,7 +626,7 @@ function buildDailyRevenue(sales: OrderRecord[]) {
   const byKey = new Map(days.map((day) => [day.key, day]));
 
   for (const sale of sales) {
-    const key = new Date(sale.created_at).toISOString().slice(0, 10);
+    const key = new Date(saleDate(sale)).toISOString().slice(0, 10);
     const day = byKey.get(key);
     if (day) day.total += sale.total;
   }

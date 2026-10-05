@@ -23,6 +23,7 @@ import {
   listOrders,
   orderStatusClass,
   orderStatusLabel,
+  saleDate,
   type OrderRecord,
 } from "@/lib/orders";
 import { paymentMethodLabel, type PaymentMethod } from "@/lib/sales";
@@ -101,7 +102,7 @@ function Historico() {
         seller === "all" ||
         (seller === "catalog" ? !order.created_by : order.created_by === seller);
       const matchesPeriod =
-        periods.length === 0 || periods.some((period) => isInPeriod(order.created_at, period));
+        periods.length === 0 || periods.some((period) => isInPeriod(saleDate(order), period));
       const haystack = [
         `#${order.number ?? ""}`,
         order.customer?.name ?? "",
@@ -285,7 +286,7 @@ function Historico() {
                       className="grid min-h-[58px] grid-cols-[90px_150px_minmax(160px,1fr)_minmax(150px,1fr)_90px_140px_88px] items-center gap-4 px-3 text-[13px] transition-colors hover:bg-muted/45"
                     >
                       <div className="font-medium text-foreground">#{order.number ?? "-"}</div>
-                      <div className="text-foreground/80">{formatDate(order.created_at)}</div>
+                      <div className="text-foreground/80">{formatDate(saleDate(order))}</div>
                       <div className="truncate text-foreground/80">
                         {order.customer?.name ?? "-"}
                       </div>
@@ -515,12 +516,12 @@ function Stat({ label, value }: { label: string; value: number }) {
 
 function buildStats(orders: OrderRecord[]) {
   const now = new Date();
-  const today = orders.filter((order) => isSameDay(order.created_at, now));
+  const today = orders.filter((order) => isSameDay(saleDate(order), now));
   const yesterdayDate = new Date(now);
   yesterdayDate.setDate(now.getDate() - 1);
-  const yesterday = orders.filter((order) => isSameDay(order.created_at, yesterdayDate));
-  const week = orders.filter((order) => isInPeriod(order.created_at, "this_week"));
-  const month = orders.filter((order) => isInPeriod(order.created_at, "this_month"));
+  const yesterday = orders.filter((order) => isSameDay(saleDate(order), yesterdayDate));
+  const week = orders.filter((order) => isInPeriod(saleDate(order), "this_week"));
+  const month = orders.filter((order) => isInPeriod(saleDate(order), "this_month"));
   return {
     today: stat(today),
     yesterday: stat(yesterday),
