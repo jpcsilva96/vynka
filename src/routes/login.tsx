@@ -93,7 +93,7 @@ function LoginPage() {
           )}
           {reason === "suspended" && (
             <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
-              Sua loja está suspensa ou arquivada. Entre em contato com a VYNKA.
+              Sua loja está suspensa. Entre em contato com a VYNKA.
             </div>
           )}
 

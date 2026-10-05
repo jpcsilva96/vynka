@@ -66,6 +66,46 @@ export const bootstrapMaster = createServerFn({ method: "POST" }).handler(async 
   return { ok: true, email, userId, created: !existing };
 });
 
+/**
+ * Status exibido ao Master (o banco guarda só trial/active/suspended/cancelled):
+ * - "invited": loja no ar cujo dono ainda não concluiu o cadastro em /boas-vindas;
+ * - "active": loja no ar com cadastro concluído (trial antigo conta como ativa);
+ * - "suspended": suspensa (cancelled = antigo "Arquivada", tratado como suspensa).
+ */
+export type StoreDisplayStatus = "invited" | "active" | "suspended";
+
+async function storeDisplayStatuses(stores: { id: string; name: string; status: string }[]) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const result = new Map<string, StoreDisplayStatus>();
+  const open = stores.filter((s) => s.status === "active" || s.status === "trial");
+  for (const s of stores) if (!open.includes(s)) result.set(s.id, "suspended");
+  if (open.length === 0) return result;
+
+  const { data: owners, error } = await supabaseAdmin
+    .from("store_members")
+    .select("store_id, user_id")
+    .eq("role", "owner")
+    .in("store_id", open.map((s) => s.id));
+  if (error) throw error;
+
+  // Um listUsers paginado em vez de um getUserById por loja.
+  const signupDone = new Set<string>();
+  const perPage = 200;
+  for (let page = 1; page <= 10; page++) {
+    const { data: list, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (listErr) throw listErr;
+    for (const u of list.users) if (u.user_metadata?.signup_completed === true) signupDone.add(u.id);
+    if (list.users.length < perPage) break;
+  }
+
+  for (const s of open) {
+    const ownerIds = (owners ?? []).filter((o) => o.store_id === s.id).map((o) => o.user_id as string);
+    const done = !isProvisionalName(s.name) || ownerIds.some((id) => signupDone.has(id));
+    result.set(s.id, done ? "active" : "invited");
+  }
+  return result;
+}
+
 /** Lista de lojas — somente Master. */
 export const listStoresForMaster = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -77,7 +117,11 @@ export const listStoresForMaster = createServerFn({ method: "GET" })
       .select("id, name, slug, email, whatsapp, status, plan_id, created_at, trial_ends_at, subscription_ends_at, plan:plans(name)")
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return data ?? [];
+    const statuses = await storeDisplayStatuses(data ?? []);
+    return (data ?? []).map((s) => ({
+      ...s,
+      display_status: statuses.get(s.id) ?? ("suspended" as StoreDisplayStatus),
+    }));
   });
 
 /** Métricas do dashboard Master. */
@@ -87,15 +131,13 @@ export const masterStats = createServerFn({ method: "GET" })
     const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
     if (!isAdmin) throw new Error("Forbidden");
     const [stores, products, orders] = await Promise.all([
-      context.supabase.from("stores").select("status", { count: "exact" }),
+      context.supabase.from("stores").select("id, name, status", { count: "exact" }),
       context.supabase.from("products").select("id", { count: "exact", head: true }),
       context.supabase.from("orders").select("id", { count: "exact", head: true }),
     ]);
-    const byStatus = { trial: 0, active: 0, suspended: 0, cancelled: 0 };
-    for (const s of stores.data ?? []) {
-      const k = s.status as keyof typeof byStatus;
-      if (k in byStatus) byStatus[k]++;
-    }
+    const byStatus: Record<StoreDisplayStatus, number> = { invited: 0, active: 0, suspended: 0 };
+    const statuses = await storeDisplayStatuses(stores.data ?? []);
+    for (const status of statuses.values()) byStatus[status]++;
     return {
       total_stores: (stores.data ?? []).length,
       by_status: byStatus,
@@ -224,7 +266,7 @@ export const updateStoreStatus = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({
       store_id: z.string().uuid(),
-      status: z.enum(["trial", "active", "suspended", "cancelled"]),
+      status: z.enum(["active", "suspended"]),
     }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -247,7 +289,7 @@ export const updateStoreStatus = createServerFn({ method: "POST" })
 const STORE_BUCKETS = ["product-images", "store-branding"] as const;
 
 /**
- * Exclui de vez uma loja arquivada. Somente Master; exige o link (slug) da loja como confirmação.
+ * Exclui de vez uma loja suspensa. Somente Master; exige o link (slug) da loja como confirmação.
  * O banco apaga em cascata produtos, categorias, pedidos, clientes, banners e membros; os arquivos
  * da loja (pasta {store_id}/ nos buckets) saem antes. O login do dono também é excluído se ele
  * não for membro de outra loja nem usuário da plataforma, o que libera o e-mail para novo convite.
@@ -271,7 +313,9 @@ export const deleteStore = createServerFn({ method: "POST" })
       .maybeSingle();
     if (storeErr) throw storeErr;
     if (!store) throw new Error("Loja não encontrada.");
-    if (store.status !== "cancelled") throw new Error("Só é possível excluir uma loja arquivada.");
+    // cancelled = antigo "Arquivada", que hoje aparece como suspensa.
+    if (store.status !== "suspended" && store.status !== "cancelled")
+      throw new Error("Só é possível excluir uma loja suspensa.");
     if (data.confirm_slug.trim().toLowerCase() !== store.slug.toLowerCase())
       throw new Error("O link digitado não confere com o da loja.");
 

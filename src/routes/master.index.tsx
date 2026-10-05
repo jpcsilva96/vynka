@@ -15,9 +15,9 @@ function MasterDashboard() {
 
   const cards = [
     { label: "Lojas totais", value: data?.total_stores ?? 0, icon: Store },
+    { label: "Convite enviado", value: data?.by_status.invited ?? 0, icon: Store },
     { label: "Ativas", value: data?.by_status.active ?? 0, icon: TrendingUp },
     { label: "Suspensas", value: data?.by_status.suspended ?? 0, icon: Store },
-    { label: "Arquivadas", value: data?.by_status.cancelled ?? 0, icon: Store },
     { label: "Produtos", value: data?.total_products ?? 0, icon: Package },
     { label: "Pedidos", value: data?.total_orders ?? 0, icon: ShoppingBag },
   ];
