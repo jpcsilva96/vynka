@@ -41,6 +41,12 @@ export function isCancelledSale(order: Pick<OrderRecord, "status" | "payment_det
   return order.status === "cancelled" && order.payment_details?.cancelled_from === "sale_history";
 }
 
+// Data que conta para a venda: pedido Concluído conta pela data de conclusão (gravada pelo banco);
+// os demais (realizados, cancelados) pela data de criação.
+export function saleDate(order: Pick<OrderRecord, "status" | "created_at" | "completed_at">) {
+  return order.status === "delivered" && order.completed_at ? order.completed_at : order.created_at;
+}
+
 export interface OrderCustomer {
   id: string;
   name: string;
@@ -66,6 +72,7 @@ export interface OrderRecord {
   number: number | null;
   created_at: string;
   updated_at: string;
+  completed_at: string | null;
   customer_id: string | null;
   created_by: string | null;
   status: OrderStatus;
@@ -100,7 +107,7 @@ function normalizeOrder(row: RawOrder): OrderRecord {
 }
 
 const ORDER_SELECT = `
-  id, number, created_at, updated_at, customer_id, created_by, status, source,
+  id, number, created_at, updated_at, completed_at, customer_id, created_by, status, source,
   subtotal, discount, surcharge, total, notes, payment_method, payment_details,
   paid_amount, change_due,
   customer:customers(id,name,phone,email),

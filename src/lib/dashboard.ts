@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { OrderStatus } from "@/lib/orders";
 
 // Números do dashboard do lojista. "Venda" segue a mesma regra das Estatísticas: pedido
-// Concluído (delivered) e não cancelado; lucro = preço dos itens - custo gravado no item.
+// Concluído (delivered) e não cancelado, no mês da conclusão (completed_at); lucro = preço dos itens - custo gravado no item.
 export interface DashboardData {
   monthRevenue: number;
   monthProfit: number;
@@ -39,7 +39,7 @@ export async function getDashboardData(storeId: string): Promise<DashboardData> 
       .select("total, order_items(total_price, total_cost, unit_cost, quantity)")
       .eq("store_id", storeId)
       .eq("status", "delivered")
-      .gte("created_at", monthStart),
+      .gte("completed_at", monthStart),
     supabase
       .from("orders")
       .select("id, number, created_at, status, total, customer:customers(name)")
