@@ -244,6 +244,124 @@ export const updateStoreStatus = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const STORE_BUCKETS = ["product-images", "store-branding"] as const;
+
+/**
+ * Exclui de vez uma loja arquivada. Somente Master; exige o link (slug) da loja como confirmação.
+ * O banco apaga em cascata produtos, categorias, pedidos, clientes, banners e membros; os arquivos
+ * da loja (pasta {store_id}/ nos buckets) saem antes. O login do dono também é excluído se ele
+ * não for membro de outra loja nem usuário da plataforma, o que libera o e-mail para novo convite.
+ */
+export const deleteStore = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ store_id: z.string().uuid(), confirm_slug: z.string().min(1) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", {
+      _user_id: context.userId,
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: store, error: storeErr } = await supabaseAdmin
+      .from("stores")
+      .select("id, name, slug, status")
+      .eq("id", data.store_id)
+      .maybeSingle();
+    if (storeErr) throw storeErr;
+    if (!store) throw new Error("Loja não encontrada.");
+    if (store.status !== "cancelled") throw new Error("Só é possível excluir uma loja arquivada.");
+    if (data.confirm_slug.trim().toLowerCase() !== store.slug.toLowerCase())
+      throw new Error("O link digitado não confere com o da loja.");
+
+    const { data: members, error: memErr } = await supabaseAdmin
+      .from("store_members")
+      .select("user_id")
+      .eq("store_id", store.id);
+    if (memErr) throw memErr;
+    const memberIds = [...new Set((members ?? []).map((m) => m.user_id as string))];
+
+    // Arquivos: falha aqui não impede a exclusão, só deixa arquivo órfão (registrado no log).
+    let filesRemoved = 0;
+    const fileErrors: string[] = [];
+    for (const bucket of STORE_BUCKETS) {
+      // Remove em lotes de 1000 e lista de novo até a pasta esvaziar.
+      for (let round = 0; round < 20; round++) {
+        const { data: files, error } = await supabaseAdmin.storage
+          .from(bucket)
+          .list(store.id, { limit: 1000 });
+        if (error) {
+          fileErrors.push(bucket);
+          break;
+        }
+        const paths = (files ?? []).map((f) => `${store.id}/${f.name}`);
+        if (paths.length === 0) break;
+        const { error: rmErr } = await supabaseAdmin.storage.from(bucket).remove(paths);
+        if (rmErr) {
+          fileErrors.push(bucket);
+          break;
+        }
+        filesRemoved += paths.length;
+      }
+    }
+
+    // categories.parent_id é ON DELETE RESTRICT: solta a hierarquia antes da cascata.
+    const { error: catErr } = await supabaseAdmin
+      .from("categories")
+      .update({ parent_id: null })
+      .eq("store_id", store.id);
+    if (catErr) throw catErr;
+
+    const { error: delErr } = await supabaseAdmin.from("stores").delete().eq("id", store.id);
+    if (delErr) throw delErr;
+
+    // Dono sem outra loja e fora da plataforma: apaga o login (profile sai em cascata).
+    const usersRemoved: string[] = [];
+    const usersKept: string[] = [];
+    for (const userId of memberIds) {
+      if (userId === context.userId) {
+        usersKept.push(userId);
+        continue;
+      }
+      const [{ count: otherStores }, { count: platform }] = await Promise.all([
+        supabaseAdmin
+          .from("store_members")
+          .select("user_id", { count: "exact", head: true })
+          .eq("user_id", userId),
+        supabaseAdmin
+          .from("platform_users")
+          .select("user_id", { count: "exact", head: true })
+          .eq("user_id", userId),
+      ]);
+      if ((otherStores ?? 0) > 0 || (platform ?? 0) > 0) {
+        usersKept.push(userId);
+        continue;
+      }
+      const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      if (error) usersKept.push(userId);
+      else usersRemoved.push(userId);
+    }
+
+    await supabaseAdmin.from("audit_logs").insert({
+      actor_user_id: context.userId,
+      actor_type: "master",
+      store_id: null,
+      action: "store.delete",
+      entity_type: "store",
+      entity_id: store.id,
+      metadata: {
+        name: store.name,
+        slug: store.slug,
+        files_removed: filesRemoved,
+        file_errors: fileErrors,
+        users_removed: usersRemoved,
+        users_kept: usersKept,
+      },
+    });
+    return { ok: true, users_removed: usersRemoved.length, file_errors: fileErrors };
+  });
+
 /** Troca o plano de uma loja (e da assinatura dela). Somente Master. */
 export const updateStorePlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

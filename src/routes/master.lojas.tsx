@@ -9,6 +9,7 @@ import {
   updateStoreStatus,
   updateStorePlan,
   resendStoreInvite,
+  deleteStore,
   listPlans,
 } from "@/lib/master.functions";
 import { MASTER_ACTIVE_STORE_KEY } from "@/lib/master-store-access";
@@ -64,6 +65,7 @@ function LojasPage() {
   const [showNew, setShowNew] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [accessLink, setAccessLink] = useState<{ link: string; type: string } | null>(null);
+  const [toDelete, setToDelete] = useState<{ id: string; name: string; slug: string } | null>(null);
 
   const { data: stores = [], isLoading } = useQuery({
     queryKey: ["master-stores"],
@@ -270,6 +272,15 @@ function LojasPage() {
                     >
                       Reenviar acesso
                     </button>
+                    {s.status === "cancelled" && (
+                      <button
+                        type="button"
+                        onClick={() => setToDelete({ id: s.id, name: s.name, slug: s.slug })}
+                        className="text-[12px] text-red-700 hover:underline"
+                      >
+                        Excluir
+                      </button>
+                    )}
                     <a
                       href={`/loja/${s.slug}`}
                       target="_blank"
@@ -287,6 +298,8 @@ function LojasPage() {
       </div>
 
       {showNew && <NewStoreDialog plans={plans as any[]} onClose={() => setShowNew(false)} />}
+
+      {toDelete && <DeleteStoreDialog store={toDelete} onClose={() => setToDelete(null)} />}
 
       {accessLink && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 px-4">
@@ -339,6 +352,79 @@ function InviteLinkPanel({
         Concluir
       </button>
     </>
+  );
+}
+
+// Exclusão definitiva: só para loja arquivada e com o link digitado como confirmação.
+function DeleteStoreDialog({
+  store,
+  onClose,
+}: {
+  store: { id: string; name: string; slug: string };
+  onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const removeFn = useServerFn(deleteStore);
+  const [typed, setTyped] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const matches = typed.trim().toLowerCase() === store.slug.toLowerCase();
+
+  const mutation = useMutation({
+    mutationFn: () => removeFn({ data: { store_id: store.id, confirm_slug: typed.trim() } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["master-stores"] });
+      qc.invalidateQueries({ queryKey: ["master-stats"] });
+      onClose();
+    },
+    onError: (e) => setError(errorMessage(e, "Falha ao excluir a loja.")),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 px-4">
+      <div className="w-full max-w-lg rounded-2xl border border-border bg-background p-6">
+        <h2 className="text-[16px] font-medium">Excluir loja definitivamente</h2>
+        <p className="mt-2 text-[12px] text-muted-foreground">
+          <strong className="text-foreground">{store.name}</strong> será apagada com produtos,
+          categorias, pedidos, clientes, banners e imagens. O acesso do responsável também é
+          excluído se ele não tiver outra loja.{" "}
+          <strong className="text-red-700">Não dá para desfazer.</strong>
+        </p>
+        <label className="mt-4 block text-[12px] text-muted-foreground">
+          Para confirmar, digite o link da loja:{" "}
+          <code className="text-foreground">{store.slug}</code>
+          <input
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            autoFocus
+            className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] text-foreground outline-none focus:border-foreground/40"
+          />
+        </label>
+        {error && (
+          <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
+            {error}
+          </div>
+        )}
+        <div className="mt-6 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={mutation.isPending}
+            className="flex-1 rounded-md border border-border py-2 text-[13px]"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={() => mutation.mutate()}
+            disabled={!matches || mutation.isPending}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-red-700 py-2 text-[13px] font-medium text-white disabled:opacity-40"
+          >
+            {mutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            Excluir definitivamente
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
