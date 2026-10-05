@@ -104,15 +104,17 @@ export async function getDashboardData(storeId: string): Promise<DashboardData> 
   };
   const sales = (salesRes.data ?? []) as unknown as SaleRow[];
   const monthRevenue = sales.reduce((sum, o) => sum + Number(o.total || 0), 0);
+  // Lucro = total do pedido (já com desconto/acréscimo) - custo dos itens; mesma regra das Finanças.
   const monthProfit = sales.reduce(
     (sum, o) =>
       sum +
+      Number(o.total || 0) -
       (o.order_items ?? []).reduce((s, i) => {
         const cost =
           i.total_cost != null && Number.isFinite(Number(i.total_cost))
             ? Number(i.total_cost)
             : Number(i.unit_cost || 0) * Number(i.quantity || 0);
-        return s + Number(i.total_price || 0) - cost;
+        return s + cost;
       }, 0),
     0,
   );

@@ -653,9 +653,10 @@ function buildStats(
   const salesCount = sales.length;
   const itemsSold = sales.reduce((sum, order) => sum + itemCount(order), 0);
   const averageTicket = salesCount ? revenue / salesCount : 0;
+  // Lucro = total do pedido (já com desconto/acréscimo) - custo dos itens; mesma regra das Finanças.
   const profit = sales.reduce(
     (sum, order) =>
-      sum + order.items.reduce((itemSum, item) => itemSum + (item.total_price - itemCost(item)), 0),
+      sum + order.total - order.items.reduce((itemSum, item) => itemSum + itemCost(item), 0),
     0,
   );
 
