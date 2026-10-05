@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ChevronDown,
   CircleDollarSign,
+  Eye,
   Loader2,
   Package,
   ReceiptText,
@@ -20,6 +21,7 @@ import { useStoreContext } from "@/lib/store-context";
 import { formatBRL } from "@/lib/products";
 import { isCancelledSale, listOrders, saleDate, type OrderRecord } from "@/lib/orders";
 import { paymentMethodLabel, type PaymentMethod } from "@/lib/sales";
+import { listProductViews, type ProductViewRow } from "@/lib/views";
 
 export const Route = createFileRoute("/admin/estatisticas")({
   head: () => ({ meta: [{ title: "Estatisticas - VYNKA" }] }),
@@ -66,6 +68,20 @@ function Estatisticas() {
     [orders, period, startDate, endDate],
   );
   const stats = useMemo(() => buildStats(filteredOrders, user), [filteredOrders, user]);
+
+  const { data: productViews = [] } = useQuery({
+    queryKey: ["product-views", storeId],
+    queryFn: () => listProductViews(storeId),
+    enabled: !!storeId,
+  });
+  const viewRanking = useMemo(
+    () =>
+      buildViewRanking(
+        filterViewsByPeriod(productViews, period, startDate, endDate),
+        stats.productRanking,
+      ),
+    [productViews, period, startDate, endDate, stats.productRanking],
+  );
   const periodLabel = getPeriodLabel(period, startDate, endDate);
 
   return (
@@ -276,6 +292,24 @@ function Estatisticas() {
                   />
                 </Panel>
               </section>
+
+              <section className="grid gap-5 xl:grid-cols-3">
+                <Panel
+                  title="Produtos mais vistos"
+                  subtitle="Visitas na loja x unidades vendidas no período"
+                  icon={<Eye className="h-4 w-4" strokeWidth={1.5} />}
+                >
+                  <RankingList
+                    rows={viewRanking.map((item) => ({
+                      id: item.id,
+                      label: item.name,
+                      detail: `${item.views} visualizaç${item.views === 1 ? "ão" : "ões"} - ${item.sold} vendido${item.sold === 1 ? "" : "s"}`,
+                      value: item.percent,
+                    }))}
+                    empty="Nenhuma visualização registrada no período."
+                  />
+                </Panel>
+              </section>
             </div>
           )}
         </div>
@@ -481,6 +515,46 @@ function RankingList({
       ))}
     </div>
   );
+}
+
+// Dia salvo pelo banco (AAAA-MM-DD) como meio-dia local, para não virar o dia anterior no fuso.
+function viewDate(day: string) {
+  return `${day}T12:00:00`;
+}
+
+function filterViewsByPeriod(
+  rows: ProductViewRow[],
+  period: PeriodFilter | null,
+  startDate: string,
+  endDate: string,
+) {
+  if (!period && !startDate && !endDate) return rows;
+  const start = startDate ? parseDateInput(startDate) : null;
+  const end = endDate ? parseDateInput(endDate) : null;
+  return rows.filter((row) => {
+    if (period) return isInPeriod(viewDate(row.day), period);
+    const day = startOfDay(new Date(viewDate(row.day)));
+    if (start && day < start) return false;
+    if (end && day > end) return false;
+    return true;
+  });
+}
+
+function buildViewRanking(
+  rows: ProductViewRow[],
+  sold: { id: string; quantity: number }[],
+) {
+  const map = new Map<string, { id: string; name: string; views: number }>();
+  for (const row of rows) {
+    const current = map.get(row.product_id) ?? { id: row.product_id, name: row.name, views: 0 };
+    current.views += row.views;
+    map.set(row.product_id, current);
+  }
+  const soldById = new Map(sold.map((item) => [item.id, item.quantity]));
+  const max = Math.max(1, ...[...map.values()].map((item) => item.views));
+  return [...map.values()]
+    .map((item) => ({ ...item, sold: soldById.get(item.id) ?? 0, percent: (item.views / max) * 100 }))
+    .sort((a, b) => b.views - a.views);
 }
 
 function filterOrdersByPeriod(
