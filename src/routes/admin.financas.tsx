@@ -35,6 +35,8 @@ import {
   parseMoney,
   todayISO,
   updateFinanceEntry,
+  CATEGORY_COLORS,
+  type CategoryColor,
   type FinanceCategory,
   type FinanceEntry,
   type FinanceStatus,
@@ -58,6 +60,7 @@ type FormState = {
   amount: string;
   category_id: string;
   newCategory: string;
+  newCategoryColor: CategoryColor;
   description: string;
   entry_date: string;
   status: FinanceStatus;
@@ -89,6 +92,7 @@ function emptyForm(kind: "income" | "expense", day: string): FormState {
     amount: "",
     category_id: "",
     newCategory: "",
+    newCategoryColor: "slate",
     description: "",
     entry_date: day,
     status: "paid",
@@ -346,6 +350,7 @@ function Financas() {
                           amount: e.amount.toFixed(2).replace(".", ","),
                           category_id: e.category_id ?? "",
                           newCategory: "",
+                          newCategoryColor: "slate",
                           description: e.description,
                           entry_date: e.entry_date,
                           status: e.status,
@@ -610,6 +615,20 @@ function saleItemCost(item: {
   return Number(item.unit_cost || 0) * Number(item.quantity || 0);
 }
 
+function CategoryBadge({ category }: { category: FinanceCategory }) {
+  const color = CATEGORY_COLORS[category.color] ?? CATEGORY_COLORS.slate;
+  return (
+    <span
+      className={cn(
+        "max-w-[220px] truncate rounded-full px-2 py-0.5 text-[11px] font-medium",
+        color.badge,
+      )}
+    >
+      {category.name}
+    </span>
+  );
+}
+
 function EntryRow({
   entry,
   category,
@@ -646,9 +665,15 @@ function EntryRow({
             </span>
           )}
         </div>
-        <div className="truncate text-[12px] text-muted-foreground">
-          {adjustment ? "Ajuste de saldo" : (category?.name ?? "Sem categoria")}
-          {outOfResult ? " · fora do saldo" : ""}
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 text-[12px] text-muted-foreground">
+          {adjustment ? (
+            "Ajuste de saldo"
+          ) : category ? (
+            <CategoryBadge category={category} />
+          ) : (
+            "Sem categoria"
+          )}
+          {outOfResult ? <span className="truncate">fora do saldo</span> : null}
         </div>
       </div>
       <div
@@ -726,7 +751,9 @@ function EntryDialog({
       let categoryId = form.category_id || null;
       if (form.category_id === "__new") {
         if (!form.newCategory.trim()) throw new Error("Informe o nome da nova categoria.");
-        categoryId = (await createFinanceCategory(storeId, form.kind, form.newCategory)).id;
+        categoryId = (
+          await createFinanceCategory(storeId, form.kind, form.newCategory, form.newCategoryColor)
+        ).id;
       }
       const input = {
         kind: form.kind,
@@ -797,13 +824,46 @@ function EntryDialog({
             </select>
           </label>
           {form.category_id === "__new" && (
-            <input
-              className={inputClass}
-              placeholder="Nome da categoria"
-              maxLength={60}
-              value={form.newCategory}
-              onChange={(e) => set({ newCategory: e.target.value })}
-            />
+            <div className="grid gap-2">
+              <input
+                className={inputClass}
+                placeholder="Nome da categoria"
+                maxLength={60}
+                value={form.newCategory}
+                onChange={(e) => set({ newCategory: e.target.value })}
+              />
+              <div
+                className="flex flex-wrap items-center gap-2"
+                role="radiogroup"
+                aria-label="Cor da categoria"
+              >
+                {(Object.keys(CATEGORY_COLORS) as CategoryColor[]).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="radio"
+                    aria-checked={form.newCategoryColor === key}
+                    title={CATEGORY_COLORS[key].label}
+                    onClick={() => set({ newCategoryColor: key })}
+                    className={cn(
+                      "h-7 w-7 rounded-full ring-offset-2 ring-offset-background",
+                      CATEGORY_COLORS[key].dot,
+                      form.newCategoryColor === key ? "ring-2 ring-foreground" : "hover:opacity-80",
+                    )}
+                  />
+                ))}
+                {form.newCategory.trim() && (
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-[11px] font-medium",
+                      CATEGORY_COLORS[form.newCategoryColor].badge,
+                    )}
+                  >
+                    {form.newCategory.trim()}
+                  </span>
+                )}
+              </div>
+            </div>
           )}
           <div className="grid grid-cols-2 gap-3">
             <label className="grid gap-1 text-[12px] text-muted-foreground">

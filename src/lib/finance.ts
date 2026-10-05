@@ -12,6 +12,19 @@ const db = supabase as unknown as {
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export type FinanceKind = "income" | "expense" | "adjustment";
+
+// 8 cores fixas do badge de categoria (mesma lista do CHECK no banco).
+export const CATEGORY_COLORS = {
+  slate: { label: "Cinza", badge: "bg-slate-100 text-slate-700", dot: "bg-slate-500" },
+  red: { label: "Vermelho", badge: "bg-red-50 text-red-700", dot: "bg-red-500" },
+  orange: { label: "Laranja", badge: "bg-orange-50 text-orange-700", dot: "bg-orange-500" },
+  amber: { label: "Amarelo", badge: "bg-amber-50 text-amber-800", dot: "bg-amber-400" },
+  emerald: { label: "Verde", badge: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" },
+  sky: { label: "Azul", badge: "bg-sky-50 text-sky-700", dot: "bg-sky-500" },
+  violet: { label: "Roxo", badge: "bg-violet-50 text-violet-700", dot: "bg-violet-500" },
+  pink: { label: "Rosa", badge: "bg-pink-50 text-pink-700", dot: "bg-pink-500" },
+} as const;
+export type CategoryColor = keyof typeof CATEGORY_COLORS;
 export type FinanceStatus = "paid" | "pending";
 
 export interface FinanceCategory {
@@ -20,6 +33,7 @@ export interface FinanceCategory {
   kind: "income" | "expense";
   name: string;
   affects_result: boolean;
+  color: CategoryColor;
   system_key: string | null;
   position: number;
 }
@@ -115,7 +129,7 @@ export async function getFinanceSummary(
 export async function listFinanceCategories(storeId: string): Promise<FinanceCategory[]> {
   const { data, error } = await db
     .from("finance_categories")
-    .select("id, store_id, kind, name, affects_result, system_key, position")
+    .select("id, store_id, kind, name, affects_result, system_key, position, color")
     .or(`store_id.is.null,store_id.eq.${storeId}`)
     .eq("active", true)
     .order("position")
@@ -128,11 +142,12 @@ export async function createFinanceCategory(
   storeId: string,
   kind: "income" | "expense",
   name: string,
+  color: CategoryColor = "slate",
 ) {
   const { data, error } = await db
     .from("finance_categories")
-    .insert({ store_id: storeId, kind, name: name.trim() })
-    .select("id, store_id, kind, name, affects_result, system_key, position")
+    .insert({ store_id: storeId, kind, name: name.trim(), color })
+    .select("id, store_id, kind, name, affects_result, system_key, position, color")
     .single();
   if (error) throw error;
   return data as FinanceCategory;
