@@ -115,6 +115,21 @@ export async function signUpCustomer(input: {
   });
 }
 
+// Quem já tem conta (ex. criada em outra loja) e entra pelo checkout ganha o cadastro nesta loja
+// com o nome/telefone guardados no próprio login.
+export async function ensureStoreCustomer(storeId: string): Promise<StoreCustomer> {
+  const existing = await getStoreCustomer(storeId);
+  if (existing) return existing;
+  const user = await getSessionUser();
+  if (!user) throw new Error("Cliente nao autenticado.");
+  const meta = (user.user_metadata ?? {}) as { full_name?: string; phone?: string };
+  return upsertStoreCustomer(storeId, {
+    name: meta.full_name || user.email?.split("@")[0] || "Cliente",
+    phone: meta.phone ?? null,
+    email: user.email ?? null,
+  });
+}
+
 export async function signOutCustomer() {
   await supabase.auth.signOut();
 }
@@ -219,6 +234,17 @@ export async function createCustomerOrder(input: {
   });
   if (error) throw new Error(error.message || "Não foi possível registrar o pedido.");
   return data as string;
+}
+
+// Pedido como ficou gravado (preços e total do banco), para montar a mensagem do WhatsApp.
+export async function getCustomerOrder(orderId: string): Promise<CustomerOrder> {
+  const { data, error } = await db
+    .from("orders")
+    .select("id,number,created_at,status,total,notes,payment_details,order_items(id,product_name,variant_name,quantity,unit_price,total_price)")
+    .eq("id", orderId)
+    .single();
+  if (error) throw error;
+  return data as CustomerOrder;
 }
 
 export async function listFavoriteProductIds(storeId: string): Promise<string[]> {
