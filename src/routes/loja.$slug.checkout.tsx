@@ -13,8 +13,8 @@ import { cepDigits, formatCep, lookupCep } from "@/lib/cep";
 import {
   createCustomerOrder,
   EmailConfirmationRequiredError,
-  ensureStoreCustomer,
   getCustomerOrder,
+  getStoreCustomer,
   signInCustomer,
   signUpCustomer,
   upsertStoreCustomer,
@@ -58,6 +58,9 @@ function CheckoutPage() {
   const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "not_found" | "failed">("idle");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Login que ainda não tem ficha nesta loja: o cliente digita os dados aqui; nada é copiado de
+  // outra loja.
+  const [needsProfile, setNeedsProfile] = useState(false);
 
   useEffect(() => {
     if (!account) return;
@@ -109,7 +112,7 @@ function CheckoutPage() {
     }
   };
 
-  const showProfileFields = mode === "signup" || !!account;
+  const showProfileFields = mode === "signup" || !!account || needsProfile;
 
   const missingField = () => {
     if (showProfileFields && !customer.name.trim()) return "Informe seu nome.";
@@ -138,7 +141,17 @@ function CheckoutPage() {
     } else {
       await signInCustomer(customer.email, customer.password);
     }
-    return ensureStoreCustomer(store.id);
+    const existing = await getStoreCustomer(store.id);
+    if (existing) return existing;
+    if (!needsProfile) {
+      setNeedsProfile(true);
+      throw new Error("Primeira compra nesta loja: informe seu nome e telefone para continuar.");
+    }
+    return upsertStoreCustomer(store.id, {
+      name: customer.name,
+      phone: customer.phone,
+      email: customer.email,
+    });
   };
 
   const finish = async () => {

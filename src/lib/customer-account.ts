@@ -115,21 +115,6 @@ export async function signUpCustomer(input: {
   });
 }
 
-// Quem já tem conta (ex. criada em outra loja) e entra pelo checkout ganha o cadastro nesta loja
-// com o nome/telefone guardados no próprio login.
-export async function ensureStoreCustomer(storeId: string): Promise<StoreCustomer> {
-  const existing = await getStoreCustomer(storeId);
-  if (existing) return existing;
-  const user = await getSessionUser();
-  if (!user) throw new Error("Cliente nao autenticado.");
-  const meta = (user.user_metadata ?? {}) as { full_name?: string; phone?: string };
-  return upsertStoreCustomer(storeId, {
-    name: meta.full_name || user.email?.split("@")[0] || "Cliente",
-    phone: meta.phone ?? null,
-    email: user.email ?? null,
-  });
-}
-
 export async function signOutCustomer() {
   await supabase.auth.signOut();
 }
