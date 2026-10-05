@@ -40,7 +40,9 @@ import {
   type FinanceStatus,
   type SaleLine,
 } from "@/lib/finance";
+import { getOrder, saleDate } from "@/lib/orders";
 import { formatBRL } from "@/lib/products";
+import { paymentMethodLabel, type PaymentMethod } from "@/lib/sales";
 import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
 
@@ -104,6 +106,7 @@ function Financas() {
   const [filter, setFilter] = useState<Filter>("all");
   const [form, setForm] = useState<FormState | null>(null);
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [saleOpen, setSaleOpen] = useState<string | null>(null);
 
   const summaryQ = useQuery({
     queryKey: ["finance-summary", storeId, from, to],
@@ -325,6 +328,7 @@ function Financas() {
                       sale={row.sale}
                       hideCost={filter === "income"}
                       costOnly={filter === "expense"}
+                      onOpen={() => setSaleOpen(row.sale.id)}
                     />
                   ) : (
                     <EntryRow
@@ -369,6 +373,9 @@ function Financas() {
           categories={categories.filter((c) => c.kind === form.kind)}
           onSaved={refresh}
         />
+      )}
+      {saleOpen && (
+        <SaleDialog storeId={storeId} orderId={saleOpen} onClose={() => setSaleOpen(null)} />
       )}
       {adjustOpen && s && (
         <AdjustDialog
@@ -418,11 +425,17 @@ function SaleRow({
   sale,
   hideCost,
   costOnly,
+  onOpen,
 }: {
   sale: SaleLine;
   hideCost: boolean;
   costOnly: boolean;
+  onOpen: () => void;
 }) {
+  const title =
+    (costOnly ? "Custo da venda" : "Venda") +
+    (sale.number ? ` #${sale.number}` : "") +
+    (sale.customerName ? ` - ${sale.customerName}` : "");
   return (
     <li className="flex items-center gap-3 px-4 py-3 md:gap-4 md:px-6">
       {costOnly ? (
@@ -431,15 +444,15 @@ function SaleRow({
         <ArrowUpCircle className="h-5 w-5 shrink-0 text-emerald-600" strokeWidth={1.5} />
       )}
       <div className="min-w-0 flex-1">
-        <Link
-          to="/admin/pedidos/$id"
-          params={{ id: sale.id }}
-          className="text-[13px] font-medium text-foreground hover:underline"
+        <button
+          type="button"
+          onClick={onOpen}
+          className="block max-w-full truncate text-left text-[13px] font-medium text-foreground hover:underline"
         >
-          {costOnly ? "Custo da venda" : "Venda"} {sale.number ? `#${sale.number}` : ""}
-        </Link>
+          {title}
+        </button>
         <div className="truncate text-[12px] text-muted-foreground">
-          {sale.customerName ?? "Sem cliente"} · automático
+          Venda concluída · automático
           {!hideCost && !costOnly ? ` · custo ${formatBRL(sale.cost)}` : ""}
         </div>
       </div>
@@ -462,6 +475,139 @@ function SaleRow({
       <div className="hidden w-[148px] md:block" />
     </li>
   );
+}
+
+// Visualização rápida da venda; o link leva ao Histórico de vendas (onde ficam as concluídas).
+function SaleDialog({
+  storeId,
+  orderId,
+  onClose,
+}: {
+  storeId: string;
+  orderId: string;
+  onClose: () => void;
+}) {
+  const {
+    data: order,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["finance-sale-detail", storeId, orderId],
+    queryFn: () => getOrder(storeId, orderId),
+  });
+  const cost = order ? order.items.reduce((sum, item) => sum + saleItemCost(item), 0) : 0;
+  const payment = order?.payment_method
+    ? (paymentMethodLabel[order.payment_method as PaymentMethod] ?? order.payment_method)
+    : null;
+  const completed = order ? saleDate(order) : null;
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
+            Venda {order?.number ? `#${order.number}` : ""}
+            {order?.customer?.name ? ` - ${order.customer.name}` : ""}
+          </DialogTitle>
+          <DialogDescription>
+            {completed
+              ? `Concluída em ${new Date(completed).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}`
+              : " "}
+            {payment ? ` · ${payment}` : ""}
+          </DialogDescription>
+        </DialogHeader>
+        {isLoading ? (
+          <div className="grid place-items-center py-10">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : isError || !order ? (
+          <p className="rounded-md bg-red-50 px-3 py-2 text-[13px] text-red-700">
+            Não foi possível carregar a venda.
+          </p>
+        ) : (
+          <div className="grid gap-4">
+            {(order.customer?.phone || order.customer?.email) && (
+              <p className="text-[13px] text-muted-foreground">
+                {[order.customer?.phone, order.customer?.email].filter(Boolean).join(" · ")}
+              </p>
+            )}
+            <ul className="divide-y divide-border rounded-md border border-border">
+              {order.items.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex items-start justify-between gap-3 px-3 py-2 text-[13px]"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-foreground">{item.product_name}</div>
+                    <div className="text-[12px] text-muted-foreground">
+                      {item.variant_name ? `${item.variant_name} · ` : ""}
+                      {item.quantity} x {formatBRL(item.unit_price)} · custo{" "}
+                      {formatBRL(saleItemCost(item))}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-foreground">{formatBRL(item.total_price)}</div>
+                </li>
+              ))}
+            </ul>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-[13px]">
+              <dt className="text-muted-foreground">Subtotal</dt>
+              <dd className="text-right text-foreground">{formatBRL(order.subtotal)}</dd>
+              {order.discount > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Desconto</dt>
+                  <dd className="text-right text-red-700">-{formatBRL(order.discount)}</dd>
+                </>
+              )}
+              {order.surcharge > 0 && (
+                <>
+                  <dt className="text-muted-foreground">Acréscimo</dt>
+                  <dd className="text-right text-foreground">+{formatBRL(order.surcharge)}</dd>
+                </>
+              )}
+              <dt className="font-medium text-foreground">Total</dt>
+              <dd className="text-right font-medium text-foreground">{formatBRL(order.total)}</dd>
+              <dt className="text-muted-foreground">Custo dos produtos</dt>
+              <dd className="text-right text-foreground">-{formatBRL(cost)}</dd>
+              <dt className="font-medium text-foreground">Lucro</dt>
+              <dd className="text-right font-medium text-emerald-700">
+                {formatBRL(order.total - cost)}
+              </dd>
+            </dl>
+            {order.notes && (
+              <p className="rounded-md bg-muted px-3 py-2 text-[12px] text-muted-foreground">
+                {order.notes}
+              </p>
+            )}
+          </div>
+        )}
+        <DialogFooter>
+          <button
+            onClick={onClose}
+            className="rounded-md px-4 py-2 text-[13px] text-muted-foreground hover:bg-muted"
+          >
+            Fechar
+          </button>
+          <Link
+            to={order?.status === "delivered" ? "/admin/historico/$id" : "/admin/pedidos/$id"}
+            params={{ id: orderId }}
+            className="rounded-md bg-foreground px-4 py-2 text-center text-[13px] font-medium text-background hover:opacity-90"
+          >
+            Abrir venda
+          </Link>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function saleItemCost(item: {
+  total_cost: number | null;
+  unit_cost: number | null;
+  quantity: number;
+}) {
+  if (item.total_cost != null && Number.isFinite(Number(item.total_cost)))
+    return Number(item.total_cost);
+  return Number(item.unit_cost || 0) * Number(item.quantity || 0);
 }
 
 function EntryRow({
