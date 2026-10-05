@@ -34,6 +34,7 @@ export interface FinanceCategory {
   name: string;
   affects_result: boolean;
   color: CategoryColor;
+  active: boolean;
   system_key: string | null;
   position: number;
 }
@@ -126,12 +127,12 @@ export async function getFinanceSummary(
   };
 }
 
+/** Todas as categorias visíveis da loja, inclusive arquivadas (lançamentos antigos usam). */
 export async function listFinanceCategories(storeId: string): Promise<FinanceCategory[]> {
   const { data, error } = await db
     .from("finance_categories")
-    .select("id, store_id, kind, name, affects_result, system_key, position, color")
+    .select("id, store_id, kind, name, affects_result, system_key, position, color, active")
     .or(`store_id.is.null,store_id.eq.${storeId}`)
-    .eq("active", true)
     .order("position")
     .order("name");
   if (error) throw error;
@@ -147,10 +148,24 @@ export async function createFinanceCategory(
   const { data, error } = await db
     .from("finance_categories")
     .insert({ store_id: storeId, kind, name: name.trim(), color })
-    .select("id, store_id, kind, name, affects_result, system_key, position, color")
+    .select("id, store_id, kind, name, affects_result, system_key, position, color, active")
     .single();
   if (error) throw error;
   return data as FinanceCategory;
+}
+
+/** Só categorias da própria loja (as padrão são protegidas no banco). */
+export async function updateFinanceCategory(
+  id: string,
+  patch: Partial<{ name: string; color: CategoryColor; active: boolean }>,
+) {
+  const { data, error } = await db
+    .from("finance_categories")
+    .update(patch)
+    .eq("id", id)
+    .select("id");
+  if (error) throw error;
+  if (!data || data.length === 0) throw new Error("Esta categoria não pode ser alterada.");
 }
 
 export async function listFinanceEntries(
