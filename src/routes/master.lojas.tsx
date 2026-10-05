@@ -21,12 +21,11 @@ export const Route = createFileRoute("/master/lojas")({
   component: LojasPage,
 });
 
+// Status exibido (calculado no servidor): "Convite enviado" = loja no ar, dono sem cadastro concluído.
 const STATUS_LABEL: Record<string, string> = {
-  trial: "Em teste",
+  invited: "Convite enviado",
   active: "Ativa",
   suspended: "Suspensa",
-  // "Arquivar" reaproveita o status cancelled: a loja sai do ar, o dono não entra e os dados ficam.
-  cancelled: "Arquivada",
 };
 
 type StoreRow = { id: string; name: string };
@@ -38,19 +37,14 @@ const errorMessage = (e: unknown, fallback: string) =>
 // Pergunta antes de tirar uma loja do ar.
 const STATUS_CONFIRM: Record<string, string> = {
   suspended:
-    "Suspender esta loja? O catálogo sai do ar e o responsável não consegue entrar no painel.",
-  cancelled:
-    "Arquivar esta loja? Ela sai do ar, o responsável não consegue entrar e a loja some da lista padrão. Os dados ficam guardados e dá para reativar depois.",
+    "Suspender esta loja? O catálogo sai do ar e o responsável é desconectado do painel. Os dados ficam guardados e dá para reativar depois.",
 };
 
-// "" = todas, exceto arquivadas (padrão); "all" = todas, inclusive arquivadas.
 const STATUS_FILTERS: { value: string; label: string }[] = [
-  { value: "", label: "Todas, exceto arquivadas" },
+  { value: "", label: "Todas" },
+  { value: "invited", label: "Convite enviado" },
   { value: "active", label: "Ativas" },
-  { value: "trial", label: "Em teste" },
   { value: "suspended", label: "Suspensas" },
-  { value: "cancelled", label: "Arquivadas" },
-  { value: "all", label: "Todas, inclusive arquivadas" },
 ];
 
 function LojasPage() {
@@ -119,8 +113,7 @@ function LojasPage() {
 
   const filtered = (stores as any[]).filter((s) => {
     const q = search.toLowerCase();
-    if (statusFilter === "" && s.status === "cancelled") return false;
-    if (statusFilter && statusFilter !== "all" && s.status !== statusFilter) return false;
+    if (statusFilter && s.display_status !== statusFilter) return false;
     if (!q) return true;
     return (
       s.name.toLowerCase().includes(q) ||
@@ -236,20 +229,17 @@ function LojasPage() {
                   </select>
                 </td>
                 <td className="px-4 py-3">
+                  {/* No banco só existem "no ar" (active) e "suspensa"; "Convite enviado" é active. */}
                   <select
-                    value={s.status}
+                    value={s.display_status === "suspended" ? "suspended" : "active"}
                     disabled={statusMutation.isPending}
                     onChange={(e) => onStatusChange(s, e.target.value)}
                     className="rounded-md border border-border bg-background px-2 py-1 text-[12px] outline-none"
                   >
-                    {Object.entries(STATUS_LABEL)
-                      // "Em teste" só aparece para lojas antigas que ainda estão nesse status.
-                      .filter(([v]) => v !== "trial" || s.status === "trial")
-                      .map(([v, l]) => (
-                        <option key={v} value={v}>
-                          {l}
-                        </option>
-                      ))}
+                    <option value="active">
+                      {s.display_status === "invited" ? STATUS_LABEL.invited : STATUS_LABEL.active}
+                    </option>
+                    <option value="suspended">{STATUS_LABEL.suspended}</option>
                   </select>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
@@ -272,7 +262,7 @@ function LojasPage() {
                     >
                       Reenviar acesso
                     </button>
-                    {s.status === "cancelled" && (
+                    {s.display_status === "suspended" && (
                       <button
                         type="button"
                         onClick={() => setToDelete({ id: s.id, name: s.name, slug: s.slug })}
@@ -355,7 +345,7 @@ function InviteLinkPanel({
   );
 }
 
-// Exclusão definitiva: só para loja arquivada e com o link digitado como confirmação.
+// Exclusão definitiva: só para loja suspensa e com o link digitado como confirmação.
 function DeleteStoreDialog({
   store,
   onClose,
