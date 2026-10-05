@@ -10,6 +10,7 @@ import {
   Pencil,
   Plus,
   Scale,
+  Tags,
   Trash2,
   Wallet,
 } from "lucide-react";
@@ -34,6 +35,7 @@ import {
   monthRange,
   parseMoney,
   todayISO,
+  updateFinanceCategory,
   updateFinanceEntry,
   CATEGORY_COLORS,
   type CategoryColor,
@@ -111,6 +113,7 @@ function Financas() {
   const [form, setForm] = useState<FormState | null>(null);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [saleOpen, setSaleOpen] = useState<string | null>(null);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   const summaryQ = useQuery({
     queryKey: ["finance-summary", storeId, from, to],
@@ -195,6 +198,12 @@ function Financas() {
       description="Saldo da loja, receitas e despesas. Vendas concluídas entram sozinhas."
       actions={
         <>
+          <button
+            onClick={() => setCategoriesOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-[13px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <Tags className="h-3.5 w-3.5" /> Categorias
+          </button>
           <button
             onClick={() => setForm(emptyForm("income", defaultDay))}
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-3.5 py-2 text-[13px] font-medium text-foreground hover:bg-muted"
@@ -375,7 +384,17 @@ function Financas() {
           storeId={storeId}
           form={form}
           setForm={setForm}
-          categories={categories.filter((c) => c.kind === form.kind)}
+          categories={categories.filter(
+            (c) => c.kind === form.kind && (c.active || c.id === form.category_id),
+          )}
+          onSaved={refresh}
+        />
+      )}
+      {categoriesOpen && (
+        <CategoriesDialog
+          storeId={storeId}
+          categories={categories}
+          onClose={() => setCategoriesOpen(false)}
           onSaved={refresh}
         />
       )}
@@ -615,6 +634,243 @@ function saleItemCost(item: {
   return Number(item.unit_cost || 0) * Number(item.quantity || 0);
 }
 
+// Gerenciar categorias: padrão do Vynka só leitura; as da loja editam nome/cor e são arquivadas
+// (não apagadas) para os lançamentos antigos manterem nome e cor.
+function CategoriesDialog({
+  storeId,
+  categories,
+  onClose,
+  onSaved,
+}: {
+  storeId: string;
+  categories: FinanceCategory[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [editing, setEditing] = useState<{
+    id: string | null;
+    kind: "income" | "expense";
+    name: string;
+    color: CategoryColor;
+  } | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!editing) return;
+    if (!editing.name.trim()) return setError("Informe o nome da categoria.");
+    setSaving(true);
+    setError("");
+    try {
+      if (editing.id)
+        await updateFinanceCategory(editing.id, {
+          name: editing.name.trim(),
+          color: editing.color,
+        });
+      else await createFinanceCategory(storeId, editing.kind, editing.name, editing.color);
+      setEditing(null);
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível salvar.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setActive = async (c: FinanceCategory, active: boolean) => {
+    setError("");
+    try {
+      await updateFinanceCategory(c.id, { active });
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível salvar.");
+    }
+  };
+
+  const section = (kind: "income" | "expense", title: string) => {
+    const list = categories.filter((c) => c.kind === kind && (showArchived || c.active));
+    return (
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-[12px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            {title}
+          </h3>
+          <button
+            type="button"
+            onClick={() => setEditing({ id: null, kind, name: "", color: "slate" })}
+            className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground"
+          >
+            <Plus className="h-3.5 w-3.5" /> Nova
+          </button>
+        </div>
+        <ul className="divide-y divide-border rounded-md border border-border">
+          {list.map((c) => {
+            const own = c.store_id !== null;
+            return (
+              <li key={c.id} className="flex items-center gap-2 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <CategoryBadge category={c} />
+                  {!c.affects_result && (
+                    <span className="ml-2 text-[11px] text-muted-foreground">fora do saldo</span>
+                  )}
+                  {!c.active && (
+                    <span className="ml-2 text-[11px] text-muted-foreground">arquivada</span>
+                  )}
+                </div>
+                {own ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditing({ id: c.id, kind: c.kind, name: c.name, color: c.color })
+                      }
+                      className="grid h-7 w-7 place-items-center rounded hover:bg-muted"
+                      aria-label="Editar categoria"
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActive(c, !c.active)}
+                      className="rounded px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      {c.active ? "Arquivar" : "Reativar"}
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-[11px] text-muted-foreground">padrão</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  };
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[90svh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Categorias</DialogTitle>
+          <DialogDescription>
+            As padrão do Vynka não mudam. As suas você renomeia, troca a cor ou arquiva (lançamentos
+            antigos continuam com ela).
+          </DialogDescription>
+        </DialogHeader>
+
+        {editing && (
+          <div className="grid gap-2 rounded-md border border-border p-3">
+            <div className="text-[12px] font-medium text-foreground">
+              {editing.id
+                ? "Editar categoria"
+                : `Nova categoria de ${editing.kind === "income" ? "receita" : "despesa"}`}
+            </div>
+            <input
+              className={inputClass}
+              placeholder="Nome da categoria"
+              maxLength={60}
+              value={editing.name}
+              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+            />
+            <ColorPicker
+              value={editing.color}
+              preview={editing.name}
+              onChange={(color) => setEditing({ ...editing, color })}
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                className="rounded-md px-3 py-1.5 text-[13px] text-muted-foreground hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={save}
+                disabled={saving}
+                className="rounded-md bg-foreground px-3 py-1.5 text-[13px] font-medium text-background disabled:opacity-50"
+              >
+                {saving ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        )}
+        {error && (
+          <p className="rounded-md bg-red-50 px-3 py-2 text-[13px] text-red-700">{error}</p>
+        )}
+
+        <div className="grid gap-5">
+          {section("income", "Receitas")}
+          {section("expense", "Despesas")}
+        </div>
+        <label className="mt-1 flex items-center gap-2 text-[12px] text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+          />
+          Mostrar arquivadas
+        </label>
+        <DialogFooter>
+          <button
+            onClick={onClose}
+            className="rounded-md px-4 py-2 text-[13px] text-muted-foreground hover:bg-muted"
+          >
+            Fechar
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ColorPicker({
+  value,
+  preview,
+  onChange,
+}: {
+  value: CategoryColor;
+  preview: string;
+  onChange: (c: CategoryColor) => void;
+}) {
+  return (
+    <div
+      className="flex flex-wrap items-center gap-2"
+      role="radiogroup"
+      aria-label="Cor da categoria"
+    >
+      {(Object.keys(CATEGORY_COLORS) as CategoryColor[]).map((key) => (
+        <button
+          key={key}
+          type="button"
+          role="radio"
+          aria-checked={value === key}
+          title={CATEGORY_COLORS[key].label}
+          onClick={() => onChange(key)}
+          className={cn(
+            "h-7 w-7 rounded-full ring-offset-2 ring-offset-background",
+            CATEGORY_COLORS[key].dot,
+            value === key ? "ring-2 ring-foreground" : "hover:opacity-80",
+          )}
+        />
+      ))}
+      {preview.trim() && (
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-[11px] font-medium",
+            CATEGORY_COLORS[value].badge,
+          )}
+        >
+          {preview.trim()}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function CategoryBadge({ category }: { category: FinanceCategory }) {
   const color = CATEGORY_COLORS[category.color] ?? CATEGORY_COLORS.slate;
   return (
@@ -832,37 +1088,11 @@ function EntryDialog({
                 value={form.newCategory}
                 onChange={(e) => set({ newCategory: e.target.value })}
               />
-              <div
-                className="flex flex-wrap items-center gap-2"
-                role="radiogroup"
-                aria-label="Cor da categoria"
-              >
-                {(Object.keys(CATEGORY_COLORS) as CategoryColor[]).map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    role="radio"
-                    aria-checked={form.newCategoryColor === key}
-                    title={CATEGORY_COLORS[key].label}
-                    onClick={() => set({ newCategoryColor: key })}
-                    className={cn(
-                      "h-7 w-7 rounded-full ring-offset-2 ring-offset-background",
-                      CATEGORY_COLORS[key].dot,
-                      form.newCategoryColor === key ? "ring-2 ring-foreground" : "hover:opacity-80",
-                    )}
-                  />
-                ))}
-                {form.newCategory.trim() && (
-                  <span
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-[11px] font-medium",
-                      CATEGORY_COLORS[form.newCategoryColor].badge,
-                    )}
-                  >
-                    {form.newCategory.trim()}
-                  </span>
-                )}
-              </div>
+              <ColorPicker
+                value={form.newCategoryColor}
+                preview={form.newCategory}
+                onChange={(color) => set({ newCategoryColor: color })}
+              />
             </div>
           )}
           <div className="grid grid-cols-2 gap-3">
