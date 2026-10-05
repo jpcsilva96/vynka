@@ -1,15 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { ArrowUpRight, Package, ShoppingBag, Users, Eye, Loader2, CheckCircle2, Circle } from "lucide-react";
+import {
+  ArrowUpRight,
+  Package,
+  ShoppingBag,
+  Users,
+  Wallet,
+  Loader2,
+  CheckCircle2,
+  Circle,
+} from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { useStoreContext } from "@/lib/store-context";
-import {
-  computeChecklist,
-  getStoreFull,
-  progressPercent,
-} from "@/lib/onboarding";
+import { computeChecklist, getStoreFull, progressPercent } from "@/lib/onboarding";
 import { isProvisionalName } from "@/lib/provisional-store";
+import { getDashboardData } from "@/lib/dashboard";
+import { orderStatusClass, orderStatusLabel } from "@/lib/orders";
+import { formatBRL } from "@/lib/products";
 
 export const Route = createFileRoute("/admin/")({
   head: () => ({
@@ -20,13 +28,6 @@ export const Route = createFileRoute("/admin/")({
   }),
   component: Dashboard,
 });
-
-const metrics = [
-  { label: "Pedidos", value: "0", icon: ShoppingBag },
-  { label: "Produtos", value: "0", icon: Package },
-  { label: "Clientes", value: "0", icon: Users },
-  { label: "Visitas na loja", value: "0", icon: Eye },
-];
 
 function Dashboard() {
   const { currentStore, loading, user, isPlatformAdmin } = useStoreContext();
@@ -53,6 +54,12 @@ function Dashboard() {
     enabled: !!store,
   });
 
+  const { data: dash, isError: dashError } = useQuery({
+    queryKey: ["dashboard", currentStore?.id],
+    queryFn: () => getDashboardData(currentStore!.id),
+    enabled: !!currentStore,
+  });
+
   if (loading || !currentStore) {
     return (
       <div className="grid min-h-svh w-full flex-1 place-items-center">
@@ -63,6 +70,36 @@ function Dashboard() {
 
   const incomplete = currentStore.publication_status !== "published";
   const percent = checklist ? progressPercent(checklist) : 0;
+  const monthName = new Date().toLocaleDateString("pt-BR", { month: "long" });
+  const pending = dash ? null : dashError ? "—" : "…";
+  const metrics = [
+    {
+      label: "Vendas do mês",
+      value: pending ?? formatBRL(dash!.monthRevenue),
+      hint: dash
+        ? `${dash.monthSales} ${dash.monthSales === 1 ? "venda concluída" : "vendas concluídas"} · lucro ${formatBRL(dash.monthProfit)}`
+        : `Concluídas em ${monthName}`,
+      icon: Wallet,
+    },
+    {
+      label: "Pedidos em aberto",
+      value: pending ?? String(dash!.openOrders),
+      hint: "Ainda não concluídos nem cancelados",
+      icon: ShoppingBag,
+    },
+    {
+      label: "Produtos ativos",
+      value: pending ?? String(dash!.activeProducts),
+      hint: "Visíveis no catálogo",
+      icon: Package,
+    },
+    {
+      label: "Clientes",
+      value: pending ?? String(dash!.customers),
+      hint: "Cadastrados na loja",
+      icon: Users,
+    },
+  ];
 
   return (
     <PageShell title="Dashboard" description="Bem-vinda de volta. Aqui está o resumo da sua loja.">
@@ -109,6 +146,7 @@ function Dashboard() {
               <span className="text-[32px] font-light tracking-tight text-foreground">
                 {m.value}
               </span>
+              <p className="mt-1 text-[12px] text-muted-foreground">{m.hint}</p>
             </div>
           </div>
         ))}
@@ -116,12 +154,56 @@ function Dashboard() {
 
       <section className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded-lg border border-border bg-surface p-8 lg:col-span-2">
-          <h2 className="text-[15px] font-medium text-foreground">Atividade recente</h2>
-          <div className="mt-8 flex min-h-[220px] flex-col items-center justify-center border-t border-border pt-10 text-center">
-            <p className="text-[13px] text-muted-foreground">
-              Sua loja ainda não registrou atividade.
-            </p>
+          <div className="flex items-center justify-between">
+            <h2 className="text-[15px] font-medium text-foreground">Últimos pedidos</h2>
+            <Link
+              to="/admin/pedidos"
+              className="text-[12px] text-muted-foreground hover:text-foreground"
+            >
+              Ver todos
+            </Link>
           </div>
+          {dash && dash.recentOrders.length > 0 ? (
+            <ul className="mt-6 divide-y divide-border border-t border-border">
+              {dash.recentOrders.map((order) => (
+                <li key={order.id}>
+                  <Link
+                    to="/admin/pedidos/$id"
+                    params={{ id: order.id }}
+                    className="flex items-center gap-4 py-3 hover:bg-muted/40"
+                  >
+                    <span className="w-14 shrink-0 text-[13px] text-muted-foreground">
+                      {order.number ? `#${order.number}` : "—"}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">
+                      {order.customerName ?? "Sem cliente"}
+                      <span className="ml-2 text-muted-foreground">
+                        {new Date(order.created_at).toLocaleDateString("pt-BR")}
+                      </span>
+                    </span>
+                    <span
+                      className={`rounded px-2 py-0.5 text-[11px] ${orderStatusClass(order.status)}`}
+                    >
+                      {orderStatusLabel(order.status)}
+                    </span>
+                    <span className="w-24 shrink-0 text-right text-[13px] text-foreground">
+                      {formatBRL(order.total)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="mt-8 flex min-h-[220px] flex-col items-center justify-center border-t border-border pt-10 text-center">
+              <p className="text-[13px] text-muted-foreground">
+                {dashError
+                  ? "Não foi possível carregar os pedidos."
+                  : dash
+                    ? "Sua loja ainda não registrou pedidos."
+                    : "Carregando..."}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-8">
