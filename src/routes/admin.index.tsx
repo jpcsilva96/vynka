@@ -181,7 +181,9 @@ function Dashboard() {
               {dash.recentOrders.map((order) => (
                 <li key={order.id}>
                   <Link
-                    to="/admin/pedidos/$id"
+                    to={
+                      order.status === "delivered" ? "/admin/historico/$id" : "/admin/pedidos/$id"
+                    }
                     params={{ id: order.id }}
                     className="flex items-center gap-4 py-3 hover:bg-muted/40"
                   >
