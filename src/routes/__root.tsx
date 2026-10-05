@@ -15,6 +15,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { MasterStoreBar } from "@/components/master-store-bar";
 import { StoreProvider, useStoreContext } from "@/lib/store-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -174,6 +175,7 @@ function RouteSwitch() {
           {!isLayoutEditor && <AppSidebar />}
           <Outlet />
         </div>
+        {!isLayoutEditor && <MasterStoreBar />}
       </SidebarProvider>
     </LojistaGuard>
   );

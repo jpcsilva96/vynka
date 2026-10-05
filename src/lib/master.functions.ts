@@ -130,19 +130,13 @@ export const masterStats = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
     if (!isAdmin) throw new Error("Forbidden");
-    const [stores, products, orders] = await Promise.all([
-      context.supabase.from("stores").select("id, name, status", { count: "exact" }),
-      context.supabase.from("products").select("id", { count: "exact", head: true }),
-      context.supabase.from("orders").select("id", { count: "exact", head: true }),
-    ]);
+    const stores = await context.supabase.from("stores").select("id, name, status");
     const byStatus: Record<StoreDisplayStatus, number> = { invited: 0, active: 0, suspended: 0 };
     const statuses = await storeDisplayStatuses(stores.data ?? []);
     for (const status of statuses.values()) byStatus[status]++;
     return {
       total_stores: (stores.data ?? []).length,
       by_status: byStatus,
-      total_products: products.count ?? 0,
-      total_orders: orders.count ?? 0,
     };
   });
 
