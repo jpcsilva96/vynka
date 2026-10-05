@@ -221,6 +221,17 @@ export async function createCustomerOrder(input: {
   return data as string;
 }
 
+// Pedido como ficou gravado (preços e total do banco), para montar a mensagem do WhatsApp.
+export async function getCustomerOrder(orderId: string): Promise<CustomerOrder> {
+  const { data, error } = await db
+    .from("orders")
+    .select("id,number,created_at,status,total,notes,payment_details,order_items(id,product_name,variant_name,quantity,unit_price,total_price)")
+    .eq("id", orderId)
+    .single();
+  if (error) throw error;
+  return data as CustomerOrder;
+}
+
 export async function listFavoriteProductIds(storeId: string): Promise<string[]> {
   const customer = await getStoreCustomer(storeId);
   if (!customer) return [];

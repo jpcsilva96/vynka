@@ -101,18 +101,20 @@ export function buildWhatsAppLink(text: string, phone?: string | null) {
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
-export function cartWhatsAppText(list: CartItem[], subtotal: number) {
+// Mensagem do pedido já gravado: itens, preços e total vêm do banco, não do carrinho.
+export function orderWhatsAppText(order: {
+  number: number | null;
+  total: number;
+  order_items: { product_name: string; variant_name: string | null; quantity: number; total_price: number }[];
+}) {
   const brl = (v: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-  const lines = list.map(
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v));
+  const lines = order.order_items.map(
     (i) =>
-      `• ${i.name}${i.variantLabel ? ` — ${i.variantLabel}` : ""} × ${i.quantity} — ${brl(
-        i.price * i.quantity,
-      )}`,
+      `• ${i.product_name}${i.variant_name ? ` — ${i.variant_name}` : ""} × ${i.quantity} — ${brl(i.total_price)}`,
   );
-  return `Olá! Tenho interesse nestes produtos:\n\n${lines.join(
-    "\n",
-  )}\n\nSubtotal: ${brl(subtotal)}`;
+  const title = order.number ? `Olá! Acabei de fazer o pedido nº ${order.number}:` : "Olá! Acabei de fazer este pedido:";
+  return `${title}\n\n${lines.join("\n")}\n\nTotal: ${brl(order.total)}`;
 }
 
 // Convenience effect: rehydrate on mount for SSR safety
