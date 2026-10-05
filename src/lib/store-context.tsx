@@ -138,7 +138,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const currentStore = memberships[0]?.store ?? null;
   const currentRole = memberships[0]?.role ?? null;
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(MASTER_ACTIVE_STORE_KEY);
@@ -146,7 +146,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setMemberships([]);
     setPlatformAdmin(false);
-  };
+  }, []);
 
   const refresh = async () => {
     const { data } = await supabase.auth.getUser();
