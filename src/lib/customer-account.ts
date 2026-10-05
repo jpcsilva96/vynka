@@ -190,55 +190,35 @@ export async function listCustomerOrders(storeId: string): Promise<CustomerOrder
   return (data ?? []) as CustomerOrder[];
 }
 
+// O pedido é criado no banco (create_store_order): o navegador manda só produto, variação e
+// quantidade; preço, custo, total e status saem do banco. A mensagem de erro já vem pronta
+// para o cliente (ex. estoque insuficiente).
 export async function createCustomerOrder(input: {
   storeId: string;
-  customer: StoreCustomer;
   items: CartItem[];
-  subtotal: number;
   notes?: string;
   deliveryAddress?: CustomerAddressForm;
 }) {
   if (input.items.length === 0) throw new Error("Carrinho vazio.");
-  const paymentDetails = {
-    delivery_address: input.deliveryAddress ?? null,
-    customer_snapshot: {
-      name: input.customer.name,
-      phone: input.customer.phone,
-      email: input.customer.email,
-    },
+  // create_store_order ainda não está no types.ts gerado.
+  const rpcDb = supabase as unknown as {
+    rpc: (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
   };
-  const { data: order, error } = await db
-    .from("orders")
-    .insert({
-      store_id: input.storeId,
-      customer_id: input.customer.id,
-      status: "pending",
-      source: "website",
-      subtotal: input.subtotal,
-      total: input.subtotal,
-      notes: input.notes || null,
-      payment_details: paymentDetails as any,
-    })
-    .select("id")
-    .single();
-  if (error) throw error;
-
-  const rows = input.items.map((item) => ({
-    store_id: input.storeId,
-    order_id: order.id,
-    product_id: item.productId,
-    variant_id: item.variantId,
-    product_name: item.name,
-    variant_name: item.variantLabel,
-    quantity: item.quantity,
-    unit_price: item.price,
-    total_price: Number((item.price * item.quantity).toFixed(2)),
-    unit_cost: 0,
-    total_cost: 0,
-  }));
-  const { error: itemError } = await db.from("order_items").insert(rows);
-  if (itemError) throw itemError;
-  return order.id as string;
+  const { data, error } = await rpcDb.rpc("create_store_order", {
+    _store_id: input.storeId,
+    _items: input.items.map((item) => ({
+      product_id: item.productId,
+      variant_id: item.variantId,
+      quantity: item.quantity,
+    })),
+    _notes: input.notes || null,
+    _delivery_address: input.deliveryAddress ?? null,
+  });
+  if (error) throw new Error(error.message || "Não foi possível registrar o pedido.");
+  return data as string;
 }
 
 export async function listFavoriteProductIds(storeId: string): Promise<string[]> {

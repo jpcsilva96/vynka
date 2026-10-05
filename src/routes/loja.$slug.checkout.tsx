@@ -120,12 +120,10 @@ function CheckoutPage() {
     try {
       const authedCustomer = await authenticate();
       if (authedCustomer) {
-        const updatedCustomer = await updateCustomerAddress(store.id, authedCustomer, address);
+        await updateCustomerAddress(store.id, authedCustomer, address);
         await createCustomerOrder({
           storeId: store.id,
-          customer: updatedCustomer,
           items,
-          subtotal,
           notes: customer.notes,
           deliveryAddress: address,
         });
