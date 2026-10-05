@@ -16,6 +16,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { StoreProvider, useStoreContext } from "@/lib/store-context";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 function NotFoundComponent() {
@@ -178,9 +179,15 @@ function RouteSwitch() {
   );
 }
 
+// Loja suspensa ou arquivada: o dono sai do painel mesmo com sessão já aberta. Master continua.
+const OPEN_STORE_STATUSES = ["trial", "active"];
+const STORE_STATUS_CHECK_MS = 60_000;
+
 function LojistaGuard({ children }: { children: ReactNode }) {
-  const { loading, user, memberships, isPlatformAdmin } = useStoreContext();
+  const { loading, user, memberships, currentStore, isPlatformAdmin, signOut } = useStoreContext();
   const navigate = useNavigate();
+  const blocked =
+    !isPlatformAdmin && !!currentStore && !OPEN_STORE_STATUSES.includes(currentStore.status);
 
   useEffect(() => {
     if (loading) return;
@@ -192,10 +199,41 @@ function LojistaGuard({ children }: { children: ReactNode }) {
       } else {
         navigate({ to: "/login", search: { reason: "no-store" }, replace: true });
       }
+    } else if (blocked) {
+      void signOut().then(() =>
+        navigate({ to: "/login", search: { reason: "suspended" }, replace: true }),
+      );
     }
-  }, [loading, user, memberships, isPlatformAdmin, navigate]);
+  }, [loading, user, memberships, isPlatformAdmin, blocked, signOut, navigate]);
 
-  if (loading || !user || memberships.length === 0) {
+  // Com o painel aberto, confere o status da loja a cada minuto e ao voltar para a aba.
+  const storeId = currentStore?.id;
+  useEffect(() => {
+    if (isPlatformAdmin || !storeId) return;
+    let active = true;
+    const check = async () => {
+      const { data } = await supabase
+        .from("stores")
+        .select("status")
+        .eq("id", storeId)
+        .maybeSingle();
+      if (!active || !data || OPEN_STORE_STATUSES.includes(data.status)) return;
+      await signOut();
+      navigate({ to: "/login", search: { reason: "suspended" }, replace: true });
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void check();
+    };
+    const timer = setInterval(() => void check(), STORE_STATUS_CHECK_MS);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      active = false;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [isPlatformAdmin, storeId, signOut, navigate]);
+
+  if (loading || !user || memberships.length === 0 || blocked) {
     return (
       <div className="grid min-h-svh w-full place-items-center bg-background">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
