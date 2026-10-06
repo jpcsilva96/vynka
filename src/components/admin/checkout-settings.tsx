@@ -12,6 +12,7 @@ import {
   Trash2,
   Truck,
 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import {
   Command,
@@ -38,6 +39,15 @@ import {
   type DeliveryCity,
 } from "@/lib/checkout-settings";
 import { parseMoney } from "@/lib/finance";
+import {
+  disconnectShipping,
+  getShippingIntegration,
+  listShippingServices,
+  startShippingConnect,
+  testShippingQuote,
+  type ShippingQuote,
+  type ShippingService,
+} from "@/lib/melhor-envio.functions";
 import { cn } from "@/lib/utils";
 
 // Telas das configurações de checkout (lote A): aba Entrega e Retirada, aba Pedidos e Vendas
@@ -74,6 +84,20 @@ export function DeliverySettingsTab({
     queryKey: ["delivery-cities", storeId],
     queryFn: () => listDeliveryCities(storeId),
     enabled: !!storeId,
+  });
+  const fetchIntegration = useServerFn(getShippingIntegration);
+  const fetchServices = useServerFn(listShippingServices);
+  const { data: integration, isLoading: integrationLoading } = useQuery({
+    queryKey: ["shipping-integration", storeId],
+    queryFn: () => fetchIntegration({ data: { store_id: storeId } }),
+    enabled: !!storeId,
+  });
+  const connected = !!integration?.connected && !integration.needsReconnect;
+  const { data: services, error: servicesError } = useQuery({
+    queryKey: ["shipping-services", storeId],
+    queryFn: () => fetchServices({ data: { store_id: storeId } }),
+    enabled: !!storeId && connected,
+    staleTime: 10 * 60 * 1000,
   });
   const [form, setForm] = useState<CheckoutSettings>(defaultCheckoutSettings);
   const [cities, setCities] = useState<DeliveryCity[]>([]);
@@ -151,6 +175,9 @@ export function DeliverySettingsTab({
     const freeMin = freeShippingOn ? parseMoney(text.freeMin) : null;
     if (freeShippingOn && !(freeMin != null && freeMin > 0))
       return { error: "Informe o valor mínimo do carrinho para frete grátis." };
+    const shippingOn = connected && form.shipping_enabled;
+    if (shippingOn && form.shipping_services.length === 0)
+      return { error: "Escolha ao menos um serviço de envio (ex.: PAC ou SEDEX)." };
     const pkg = [text.weight, text.height, text.width, text.length].map(parseDecimal);
     if (!(pkg[0] > 0 && pkg[0] <= PACKAGE_LIMITS.weightKg))
       return {
@@ -175,6 +202,11 @@ export function DeliverySettingsTab({
         package_length_cm: pkg[3],
         free_shipping_min_amount: freeMin,
         free_shipping_local: freeShippingOn && form.free_shipping_local,
+        shipping_enabled: shippingOn,
+        shipping_services: form.shipping_services,
+        free_shipping_services: freeShippingOn
+          ? form.free_shipping_services.filter((id) => form.shipping_services.includes(id))
+          : [],
       },
     };
   };
@@ -197,9 +229,19 @@ export function DeliverySettingsTab({
     onError: (err) => setError(err instanceof Error ? err.message : "Não foi possível salvar."),
   });
 
-  if (isLoading || citiesLoading) return <LoadingBox />;
+  if (isLoading || citiesLoading || integrationLoading) return <LoadingBox />;
 
-  const noOption = !form.local_delivery_enabled && !form.pickup_enabled && !form.shipping_enabled;
+  const toggleId = (key: "shipping_services" | "free_shipping_services", id: number) =>
+    patch(
+      key,
+      form[key].includes(id) ? form[key].filter((item) => item !== id) : [...form[key], id],
+    );
+  const chosenServices = (services ?? []).filter((service) =>
+    form.shipping_services.includes(service.id),
+  );
+
+  const noOption =
+    !form.local_delivery_enabled && !form.pickup_enabled && !(connected && form.shipping_enabled);
 
   return (
     <div className="space-y-6">
@@ -303,22 +345,39 @@ export function DeliverySettingsTab({
         icon={<Truck className="h-5 w-5" strokeWidth={1.5} />}
         title="Correios e transportadoras"
         description="Envio para todo o Brasil com frete calculado na hora, pela sua conta do Melhor Envio."
-        checked={form.shipping_enabled}
-        disabled
-        onToggle={() => undefined}
+        checked={connected && form.shipping_enabled}
+        disabled={!connected}
+        showContent
+        onToggle={() => patch("shipping_enabled", !form.shipping_enabled)}
       >
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed border-border bg-muted/30 px-4 py-3">
-          <div className="text-[13px]">
-            <div className="font-semibold text-foreground">Melhor Envio: não conectado</div>
-            <div className="text-muted-foreground">
-              A conexão da sua conta chega na próxima etapa. Depois de conectar, você escolhe aqui
-              os serviços (PAC, SEDEX e outros) que quer oferecer.
-            </div>
-          </div>
-          <button type="button" disabled className={cn(secondaryButton, "opacity-60")}>
-            Conectar minha conta (em breve)
-          </button>
-        </div>
+        <MelhorEnvioConnection storeId={storeId} integration={integration} />
+        {connected && (
+          <Field
+            label="Serviços que você oferece"
+            hint="O cliente vê só estes, com o preço e o prazo calculados pelo Melhor Envio."
+          >
+            {servicesError ? (
+              <p className="text-[13px] text-red-700">
+                {servicesError instanceof Error
+                  ? servicesError.message
+                  : "Não foi possível carregar os serviços."}
+              </p>
+            ) : !services ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {services.map((service) => (
+                  <ServiceCheckbox
+                    key={service.id}
+                    service={service}
+                    checked={form.shipping_services.includes(service.id)}
+                    onChange={() => toggleId("shipping_services", service.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </Field>
+        )}
         <Field
           label="Embalagem padrão"
           hint="Usada no cálculo do frete para produtos sem peso e medidas cadastrados."
@@ -376,9 +435,26 @@ export function DeliverySettingsTab({
               />
               Entrega local
             </label>
-            <p className="mt-2 text-[12px] text-muted-foreground">
-              Correios e transportadoras aparecem aqui depois de conectar o Melhor Envio.
-            </p>
+            {chosenServices.map((service) => (
+              <label
+                key={service.id}
+                className="mt-2 flex items-center gap-2 text-[13px] text-foreground"
+              >
+                <input
+                  type="checkbox"
+                  checked={form.free_shipping_services.includes(service.id)}
+                  onChange={() => toggleId("free_shipping_services", service.id)}
+                  className="h-4 w-4 accent-[hsl(var(--primary))]"
+                />
+                {service.company} {service.name}
+              </label>
+            ))}
+            {chosenServices.length === 0 && (
+              <p className="mt-2 text-[12px] text-muted-foreground">
+                Correios e transportadoras aparecem aqui depois de conectar o Melhor Envio e
+                escolher os serviços.
+              </p>
+            )}
           </Field>
         </div>
       </Card>
@@ -707,10 +783,265 @@ export function PaymentSettingsTab() {
   );
 }
 
+// ---------------------------------------------------------------- Melhor Envio
+
+type Integration = Awaited<ReturnType<typeof getShippingIntegration>>;
+
+function MelhorEnvioConnection({
+  storeId,
+  integration,
+}: {
+  storeId: string;
+  integration: Integration | undefined;
+}) {
+  const queryClient = useQueryClient();
+  const start = useServerFn(startShippingConnect);
+  const disconnect = useServerFn(disconnectShipping);
+  const quote = useServerFn(testShippingQuote);
+  const [testZip, setTestZip] = useState("");
+  const [quotes, setQuotes] = useState<ShippingQuote[] | null>(null);
+  const [problem, setProblem] = useState("");
+
+  const connectMutation = useMutation({
+    mutationFn: () => start({ data: { store_id: storeId } }),
+    onSuccess: ({ url }) => window.location.assign(url),
+    onError: (err) => setProblem(err instanceof Error ? err.message : "Não foi possível conectar."),
+  });
+  const disconnectMutation = useMutation({
+    mutationFn: () => disconnect({ data: { store_id: storeId } }),
+    onSuccess: async () => {
+      setQuotes(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["shipping-integration", storeId] }),
+        queryClient.invalidateQueries({ queryKey: ["checkout-settings", storeId] }),
+      ]);
+    },
+  });
+  const quoteMutation = useMutation({
+    mutationFn: () => quote({ data: { store_id: storeId, to_zip: testZip.replace(/\D/g, "") } }),
+    onSuccess: (result) => {
+      setProblem("");
+      setQuotes(result);
+    },
+    onError: (err) => setProblem(err instanceof Error ? err.message : "Não foi possível calcular."),
+  });
+
+  if (!integration?.available) {
+    return (
+      <StatusBox tone="muted" title="Melhor Envio: em breve">
+        A conexão com o Melhor Envio ainda não está liberada nesta instalação do Vynka.
+      </StatusBox>
+    );
+  }
+
+  if (!integration.connected || integration.needsReconnect) {
+    return (
+      <div className="space-y-3">
+        <StatusBox
+          tone={integration.needsReconnect ? "warning" : "muted"}
+          title={
+            integration.needsReconnect
+              ? "Melhor Envio: conexão expirada"
+              : "Melhor Envio: não conectado"
+          }
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                setProblem("");
+                connectMutation.mutate();
+              }}
+              disabled={connectMutation.isPending}
+              className={primaryButton}
+            >
+              {connectMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {integration.needsReconnect ? "Reconectar" : "Conectar minha conta"}
+            </button>
+          }
+        >
+          {integration.needsReconnect
+            ? "A autorização venceu ou foi revogada na sua conta. Reconecte para voltar a calcular fretes."
+            : "Você vai para o site do Melhor Envio, entra com a sua conta e clica em Autorizar. Depois volta para cá já conectado."}
+        </StatusBox>
+        {!integration.needsReconnect && (
+          <div className="rounded-md bg-muted/40 px-4 py-3 text-[13px]">
+            <div className="font-semibold text-foreground">Antes de conectar</div>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+              <li>
+                Tenha uma conta no Melhor Envio (CPF ou CNPJ).{" "}
+                <a
+                  href={
+                    integration.environment === "sandbox"
+                      ? "https://sandbox.melhorenvio.com.br/cadastre-se"
+                      : "https://melhorenvio.com.br/cadastre-se"
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-foreground underline"
+                >
+                  Criar conta
+                </a>
+              </li>
+              <li>Cadastre lá o endereço de onde os pedidos saem.</li>
+              <li>As etiquetas são pagas com o saldo da sua conta no Melhor Envio.</li>
+            </ul>
+            <p className="mt-2 text-muted-foreground">
+              Travou em algum passo? Fale com o suporte do Vynka.
+            </p>
+          </div>
+        )}
+        {problem && <Notice tone="error">{problem}</Notice>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <StatusBox
+        tone="ok"
+        title={`Melhor Envio: conectado${integration.environment === "sandbox" ? " (conta de teste)" : ""}`}
+        action={
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                window.confirm(
+                  "Desconectar a conta do Melhor Envio? Correios e transportadoras saem do checkout.",
+                )
+              )
+                disconnectMutation.mutate();
+            }}
+            disabled={disconnectMutation.isPending}
+            className={secondaryButton}
+          >
+            Desconectar
+          </button>
+        }
+      >
+        {[integration.accountName, integration.accountEmail].filter(Boolean).join(" · ") ||
+          "Conta conectada."}
+      </StatusBox>
+      <div className="flex flex-wrap items-end gap-2">
+        <Field label="Testar frete para o CEP">
+          <input
+            value={testZip}
+            onChange={(event) => setTestZip(event.target.value.replace(/[^\d-]/g, "").slice(0, 9))}
+            inputMode="numeric"
+            placeholder="00000-000"
+            className={cn(inputClass, "w-36")}
+          />
+        </Field>
+        <button
+          type="button"
+          onClick={() => quoteMutation.mutate()}
+          disabled={quoteMutation.isPending || testZip.replace(/\D/g, "").length !== 8}
+          className={cn(secondaryButton, "disabled:opacity-60")}
+        >
+          {quoteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+          Testar
+        </button>
+      </div>
+      {problem && <Notice tone="error">{problem}</Notice>}
+      {quotes && (
+        <div className="divide-y divide-border rounded-md border border-border text-[13px]">
+          <div className="px-3 py-2 text-[12px] text-muted-foreground">
+            Com a embalagem padrão, saindo do CEP da loja:
+          </div>
+          {quotes.map((item) => (
+            <div key={item.id} className="flex items-center justify-between gap-3 px-3 py-2">
+              <span className="text-foreground">
+                {item.company} {item.name}
+              </span>
+              <span
+                className={item.error ? "text-muted-foreground" : "font-medium text-foreground"}
+              >
+                {item.error
+                  ? item.error
+                  : `R$ ${moneyText(item.price)} · ${item.days} dia${item.days === 1 ? "" : "s"}`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatusBox({
+  tone,
+  title,
+  action,
+  children,
+}: {
+  tone: "ok" | "warning" | "muted";
+  title: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-3 rounded-md border px-4 py-3",
+        tone === "ok" && "border-emerald-200 bg-emerald-50",
+        tone === "warning" && "border-amber-200 bg-amber-50",
+        tone === "muted" && "border-dashed border-border bg-muted/30",
+      )}
+    >
+      <div className="min-w-0 flex-1 text-[13px]">
+        <div className="flex items-center gap-2 font-semibold text-foreground">
+          <span
+            className={cn(
+              "h-2.5 w-2.5 rounded-full",
+              tone === "ok" ? "bg-emerald-500" : tone === "warning" ? "bg-amber-500" : "bg-border",
+            )}
+          />
+          {title}
+        </div>
+        <div className="mt-0.5 text-muted-foreground">{children}</div>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function ServiceCheckbox({
+  service,
+  checked,
+  onChange,
+}: {
+  service: ShippingService;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <label
+      className={cn(
+        "flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 text-[13px] transition-colors",
+        checked ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
+      )}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="h-4 w-4 accent-[hsl(var(--primary))]"
+      />
+      {service.picture ? (
+        <img src={service.picture} alt="" className="h-5 w-12 object-contain" />
+      ) : null}
+      <span className="text-foreground">
+        {service.company} <span className="font-semibold">{service.name}</span>
+      </span>
+    </label>
+  );
+}
+
 // ---------------------------------------------------------------- peças pequenas
 
 const inputClass =
   "w-full rounded-md border border-border bg-surface px-3 py-2.5 text-[14px] outline-none focus:border-foreground/40";
+const primaryButton =
+  "inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground hover:bg-graphite disabled:opacity-60";
 const secondaryButton =
   "inline-flex items-center gap-2 rounded-md border border-border bg-surface px-4 py-2.5 text-[13px] font-semibold text-foreground";
 
@@ -748,6 +1079,7 @@ function Card({
   description,
   checked,
   disabled = false,
+  showContent = false,
   onToggle,
   children,
 }: {
@@ -756,6 +1088,8 @@ function Card({
   description: string;
   checked: boolean;
   disabled?: boolean;
+  // Mostra o conteúdo mesmo desligado (ex.: botão de conectar antes de poder ligar).
+  showContent?: boolean;
   onToggle: () => void;
   children: React.ReactNode;
 }) {
@@ -800,7 +1134,7 @@ function Card({
           />
         </button>
       </div>
-      {(checked || disabled) && (
+      {(checked || disabled || showContent) && (
         <div className="mt-5 space-y-4 border-t border-border pt-5">{children}</div>
       )}
     </section>

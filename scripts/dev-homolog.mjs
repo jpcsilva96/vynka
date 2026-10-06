@@ -42,6 +42,12 @@ Object.assign(process.env, {
   SUPABASE_DB_URL: "",
   MASTER_EMAIL: "",
   MASTER_PASSWORD: "",
+  // Melhor Envio: conta de teste (sandbox). A volta da autorização passa pela página publicada, que
+  // repassa para esta porta.
+  MELHORENVIO_ENV: "sandbox",
+  MELHORENVIO_CLIENT_ID: env.MELHORENVIO_SANDBOX_CLIENT_ID ?? "",
+  MELHORENVIO_CLIENT_SECRET: env.MELHORENVIO_SANDBOX_CLIENT_SECRET ?? "",
+  MELHORENVIO_LOCAL_RELAY_PORT: String(Number(process.argv[2] ?? 8081)),
 });
 
 const clientFile = /src\/integrations\/supabase\/client\.ts$/;

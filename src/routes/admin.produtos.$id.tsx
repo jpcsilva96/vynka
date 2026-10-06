@@ -7,6 +7,7 @@ import { ImageUploader } from "@/components/products/image-uploader";
 import { ProductPreview } from "@/components/products/product-preview";
 import { RichEditor } from "@/components/products/rich-editor";
 import { VariationsBuilder } from "@/components/products/variations-builder";
+import { ShippingDimensions } from "@/components/products/shipping-dimensions";
 import {
   getProductForEdit,
   listCategories,
@@ -70,7 +71,12 @@ function EditarProduto() {
       setSaved(true);
     } catch (e) {
       console.error(e);
-      alert("Nao foi possivel salvar o produto.");
+      // Peso/medidas fora do limite: mostra o motivo (a mensagem vem de productDimensions).
+      alert(
+        e instanceof Error && /^(Peso|Altura|Largura|Comprimento):/.test(e.message)
+          ? e.message
+          : "Não foi possível salvar o produto.",
+      );
     } finally {
       setSaving(false);
     }
@@ -253,6 +259,10 @@ function EditarProduto() {
                   placeholder="Descreva o produto, materiais, medidas e diferenciais."
                 />
               </Field>
+            </Card>
+
+            <Card title="Peso e medidas (para o frete)">
+              <ShippingDimensions form={form} onChange={patch} />
             </Card>
 
             <Card title="Fotos">

@@ -107,6 +107,12 @@ function Configuracoes() {
   const storeId = currentStore?.id ?? "";
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("Loja");
+  // Volta do Melhor Envio (e outros links diretos) abre a aba certa: ?aba=entrega.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("aba") === "entrega") {
+      setActiveTab("Entrega e Retirada");
+    }
+  }, []);
   const [form, setForm] = useState<GeneralSettingsForm>(emptyForm);
   const [receiptForm, setReceiptForm] = useState<ReceiptSettings>(defaultReceiptSettings);
   const [uploadingImage, setUploadingImage] = useState<StoreBrandingKind | null>(null);

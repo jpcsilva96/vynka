@@ -163,8 +163,11 @@ function RouteSwitch() {
 
   const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
   const isLayoutEditor = pathname === "/admin/editor-layout";
+  // Volta do Melhor Envio: página própria, fora da guarda do painel (pode só repassar para o app local
+  // de homologação, sem login aqui). A conclusão da conexão exige login na função do servidor.
+  const isShippingReturn = pathname === "/admin/integracoes/melhor-envio/retorno";
 
-  if (!isAdmin) {
+  if (!isAdmin || isShippingReturn) {
     return <Outlet />;
   }
 
