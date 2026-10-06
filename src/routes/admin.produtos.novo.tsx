@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/app-header";
 import { ImageUploader } from "@/components/products/image-uploader";
 import { RichEditor } from "@/components/products/rich-editor";
 import { VariationsBuilder } from "@/components/products/variations-builder";
+import { ShippingDimensions } from "@/components/products/shipping-dimensions";
 import { ProductPreview } from "@/components/products/product-preview";
 import {
   createProduct,
@@ -83,7 +84,12 @@ function NovoProduto() {
       navigate({ to: "/admin/produtos" });
     } catch (e) {
       console.error(e);
-      alert("Não foi possível salvar o produto.");
+      // Peso/medidas fora do limite: mostra o motivo (a mensagem vem de productDimensions).
+      alert(
+        e instanceof Error && /^(Peso|Altura|Largura|Comprimento):/.test(e.message)
+          ? e.message
+          : "Não foi possível salvar o produto.",
+      );
     } finally {
       setSaving(false);
     }
@@ -203,6 +209,13 @@ function NovoProduto() {
                   <PriceInput value={form.cost_price} onChange={(v) => patch({ cost_price: v })} />
                 </Field>
               </div>
+            </Card>
+
+            <Card
+              title="Peso e medidas"
+              description="Para calcular o frete dos Correios e transportadoras."
+            >
+              <ShippingDimensions form={form} onChange={patch} />
             </Card>
 
             <Card title="Visibilidade">

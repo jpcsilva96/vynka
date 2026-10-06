@@ -51,6 +51,7 @@ import { Route as LojaSlugContatoRouteImport } from './routes/loja.$slug.contato
 import { Route as LojaSlugEntrarRouteImport } from './routes/loja.$slug.entrar'
 import { Route as LojaSlugMinhaContaRouteImport } from './routes/loja.$slug.minha-conta'
 import { Route as LojaSlugQuemSomosRouteImport } from './routes/loja.$slug.quem-somos'
+import { Route as AdminIntegracoesMelhorEnvioRetornoRouteImport } from './routes/admin.integracoes.melhor-envio.retorno'
 import { Route as LojaSlugCategoriaCategorySlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug'
 import { Route as LojaSlugProdutoIdRouteImport } from './routes/loja.$slug.produto.$id'
 import { Route as LojaSlugCategoriaCategorySlugChildSlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug.$childSlug'
@@ -265,6 +266,12 @@ const LojaSlugQuemSomosRoute = LojaSlugQuemSomosRouteImport.update({
   path: '/quem-somos',
   getParentRoute: () => LojaSlugRoute,
 } as any)
+const AdminIntegracoesMelhorEnvioRetornoRoute =
+  AdminIntegracoesMelhorEnvioRetornoRouteImport.update({
+    id: '/integracoes/melhor-envio/retorno',
+    path: '/integracoes/melhor-envio/retorno',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const LojaSlugCategoriaCategorySlugRoute =
   LojaSlugCategoriaCategorySlugRouteImport.update({
     id: '/categoria/$categorySlug',
@@ -326,6 +333,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/produtos/': typeof AdminProdutosIndexRoute
   '/loja/$slug/': typeof LojaSlugIndexRoute
+  '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
   '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
@@ -367,6 +375,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/admin/produtos': typeof AdminProdutosIndexRoute
   '/loja/$slug': typeof LojaSlugIndexRoute
+  '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
   '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
@@ -415,6 +424,7 @@ export interface FileRoutesById {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/produtos/': typeof AdminProdutosIndexRoute
   '/loja/$slug/': typeof LojaSlugIndexRoute
+  '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
   '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
@@ -464,6 +474,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/admin/produtos/'
     | '/loja/$slug/'
+    | '/admin/integracoes/melhor-envio/retorno'
     | '/loja/$slug/categoria/$categorySlug'
     | '/loja/$slug/produto/$id'
     | '/loja/$slug/categoria/$categorySlug/$childSlug'
@@ -505,6 +516,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/produtos'
     | '/loja/$slug'
+    | '/admin/integracoes/melhor-envio/retorno'
     | '/loja/$slug/categoria/$categorySlug'
     | '/loja/$slug/produto/$id'
     | '/loja/$slug/categoria/$categorySlug/$childSlug'
@@ -552,6 +564,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/admin/produtos/'
     | '/loja/$slug/'
+    | '/admin/integracoes/melhor-envio/retorno'
     | '/loja/$slug/categoria/$categorySlug'
     | '/loja/$slug/produto/$id'
     | '/loja/$slug/categoria/$categorySlug/$childSlug'
@@ -863,6 +876,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugQuemSomosRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/admin/integracoes/melhor-envio/retorno': {
+      id: '/admin/integracoes/melhor-envio/retorno'
+      path: '/integracoes/melhor-envio/retorno'
+      fullPath: '/admin/integracoes/melhor-envio/retorno'
+      preLoaderRoute: typeof AdminIntegracoesMelhorEnvioRetornoRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/loja/$slug/categoria/$categorySlug': {
       id: '/loja/$slug/categoria/$categorySlug'
       path: '/categoria/$categorySlug'
@@ -947,6 +967,7 @@ interface AdminRouteChildren {
   AdminUsuariosRoute: typeof AdminUsuariosRoute
   AdminVenderRoute: typeof AdminVenderRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminIntegracoesMelhorEnvioRetornoRoute: typeof AdminIntegracoesMelhorEnvioRetornoRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -965,6 +986,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminUsuariosRoute: AdminUsuariosRoute,
   AdminVenderRoute: AdminVenderRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminIntegracoesMelhorEnvioRetornoRoute:
+    AdminIntegracoesMelhorEnvioRetornoRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

@@ -79,6 +79,11 @@ export interface ProductFormState {
   cost_price: string;
   featured: boolean;
   manage_stock: boolean;
+  // Peso (kg) e medidas (cm) para o frete; vazio = embalagem padrão da loja.
+  weight_kg: string;
+  height_cm: string;
+  width_cm: string;
+  length_cm: string;
   status: ProductStatus;
   images: ProductImage[];
   options: ProductOption[];
@@ -147,6 +152,10 @@ interface ProductEditRow {
   cost_price: number | string | null;
   featured: boolean;
   manage_stock?: boolean | null;
+  weight_kg?: number | string | null;
+  height_cm?: number | string | null;
+  width_cm?: number | string | null;
+  length_cm?: number | string | null;
   status: ProductStatus;
   product_images?: ProductEditImageRow[] | null;
   product_options?: ProductEditOptionRow[] | null;
@@ -162,6 +171,10 @@ export const emptyProductForm = (): ProductFormState => ({
   cost_price: "",
   featured: false,
   manage_stock: false,
+  weight_kg: "",
+  height_cm: "",
+  width_cm: "",
+  length_cm: "",
   status: "draft",
   images: [],
   options: [],
@@ -395,6 +408,38 @@ export async function listProducts(storeId: string): Promise<ProductRecord[]> {
   });
 }
 
+const dimensionToInput = (value: number | string | null | undefined) =>
+  value == null || value === "" ? "" : String(Number(value)).replace(".", ",");
+
+const DIMENSION_LIMITS = {
+  weight_kg: { label: "Peso", max: 30, unit: "kg" },
+  height_cm: { label: "Altura", max: 100, unit: "cm" },
+  width_cm: { label: "Largura", max: 100, unit: "cm" },
+  length_cm: { label: "Comprimento", max: 100, unit: "cm" },
+} as const;
+
+// Peso/medidas para o banco: vazio vira null (usa a embalagem padrão da loja); valor fora do limite
+// para aqui com mensagem clara, antes de o banco recusar.
+export function productDimensions(form: ProductFormState) {
+  const out: Record<keyof typeof DIMENSION_LIMITS, number | null> = {
+    weight_kg: null,
+    height_cm: null,
+    width_cm: null,
+    length_cm: null,
+  };
+  for (const key of Object.keys(DIMENSION_LIMITS) as (keyof typeof DIMENSION_LIMITS)[]) {
+    const raw = form[key].trim();
+    if (!raw) continue;
+    const value = Number(raw.replace(",", "."));
+    const { label, max, unit } = DIMENSION_LIMITS[key];
+    if (!Number.isFinite(value) || value <= 0 || value > max) {
+      throw new Error(`${label}: informe um valor maior que 0 e até ${max} ${unit}, ou deixe vazio.`);
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
 export async function getProductForEdit(
   storeId: string,
   productId: string,
@@ -403,6 +448,7 @@ export async function getProductForEdit(
     .from("products")
     .select(
       `id, name, description, category_id, price, promo_price, cost_price, featured, manage_stock, status,
+       weight_kg, height_cm, width_cm, length_cm,
        product_images(id,url,storage_path,position),
        product_options(id,name,position,product_option_values(id,value,position)),
        product_variants(id,options,sku_key,price,image_url,available,stock_quantity,position)`,
@@ -413,7 +459,8 @@ export async function getProductForEdit(
   if (error) throw error;
   if (!data) return null;
 
-  const product = data as ProductEditRow;
+  // Colunas de peso/medidas ainda fora do types.ts gerado.
+  const product = data as unknown as ProductEditRow;
   const images = (product.product_images ?? [])
     .slice()
     .sort((a, b) => a.position - b.position)
@@ -465,6 +512,10 @@ export async function getProductForEdit(
     cost_price: moneyToInput(product.cost_price),
     featured: product.featured,
     manage_stock: product.manage_stock ?? false,
+    weight_kg: dimensionToInput(product.weight_kg),
+    height_cm: dimensionToInput(product.height_cm),
+    width_cm: dimensionToInput(product.width_cm),
+    length_cm: dimensionToInput(product.length_cm),
     status: product.status,
     images,
     options,
@@ -476,10 +527,12 @@ export async function createProduct(storeId: string, form: ProductFormState): Pr
   const priceNum = parseMoney(form.price);
   const promo = form.promo_price ? parseMoney(form.promo_price) : null;
   const cost = parseMoney(form.cost_price);
+  const dimensions = productDimensions(form);
 
   const { data: prod, error } = await supabase
     .from("products")
     .insert({
+      ...(dimensions as object),
       store_id: storeId,
       name: form.name || "Produto sem nome",
       description: form.description,
@@ -552,10 +605,12 @@ export async function updateProduct(
   const priceNum = parseMoney(form.price);
   const promo = form.promo_price ? parseMoney(form.promo_price) : null;
   const cost = parseMoney(form.cost_price);
+  const dimensions = productDimensions(form);
 
   const { error } = await supabase
     .from("products")
     .update({
+      ...(dimensions as object),
       name: form.name || "Produto sem nome",
       description: form.description,
       category_id: form.category_id,
