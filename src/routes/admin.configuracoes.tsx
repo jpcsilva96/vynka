@@ -23,6 +23,12 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { PageShell } from "@/components/page-shell";
+import {
+  DeliverySettingsTab,
+  OrderStockSettingsTab,
+  PaymentSettingsTab,
+} from "@/components/admin/checkout-settings";
+import { CHECKOUT_V2_ENABLED } from "@/lib/checkout-settings";
 import { isProvisionalSlug } from "@/lib/provisional-store";
 import {
   getGeneralSettings,
@@ -264,7 +270,13 @@ function Configuracoes() {
           ))}
         </div>
 
-        {activeTab === "Loja" ? (
+        {CHECKOUT_V2_ENABLED && activeTab === "Pedidos e Vendas" ? (
+          <OrderStockSettingsTab storeId={storeId} />
+        ) : CHECKOUT_V2_ENABLED && activeTab === "Entrega e Retirada" ? (
+          <DeliverySettingsTab storeId={storeId} storeAddress={formatStoreAddress(form)} />
+        ) : CHECKOUT_V2_ENABLED && activeTab === "Pagamentos" ? (
+          <PaymentSettingsTab />
+        ) : activeTab === "Loja" ? (
           isLoading ? (
             <div className="grid min-h-[420px] place-items-center rounded-lg border border-border bg-surface">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
@@ -1014,6 +1026,12 @@ function TextInput({
       {help && <HelpCircle className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.6} />}
     </div>
   );
+}
+
+function formatStoreAddress(store: GeneralSettingsForm) {
+  const street = [store.address, store.address_number].filter((part) => part.trim()).join(", ");
+  const city = [store.city, store.state].filter((part) => part.trim()).join("/");
+  return [street, store.complement, city].filter((part) => part.trim()).join(" · ");
 }
 
 function digitsOnly(value: string) {
