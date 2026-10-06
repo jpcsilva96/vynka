@@ -42,7 +42,6 @@ Object.assign(process.env, {
   SUPABASE_DB_URL: "",
   MASTER_EMAIL: "",
   MASTER_PASSWORD: "",
-  VITE_CHECKOUT_V2: "true",
 });
 
 const clientFile = /src\/integrations\/supabase\/client\.ts$/;

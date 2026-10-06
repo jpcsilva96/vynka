@@ -4,8 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 // Configurações de checkout da loja (escopo checkout/entrega/pagamento, lote A). Só guarda as
 // escolhas do lojista; o checkout passa a usá-las nos lotes seguintes.
 
-// Telas novas só aparecem com a flag ligada (homologação). Sai quando o checkout novo for publicado.
-export const CHECKOUT_V2_ENABLED = import.meta.env.VITE_CHECKOUT_V2 === "true";
 
 export type StockDeduction = "on_order" | "on_payment";
 

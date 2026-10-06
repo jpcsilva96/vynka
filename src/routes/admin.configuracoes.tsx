@@ -28,20 +28,15 @@ import {
   OrderStockSettingsTab,
   PaymentSettingsTab,
 } from "@/components/admin/checkout-settings";
-import { CHECKOUT_V2_ENABLED } from "@/lib/checkout-settings";
 import { isProvisionalSlug } from "@/lib/provisional-store";
 import {
   getGeneralSettings,
-  getDeliverySettings,
   getReceiptSettings,
   updateGeneralSettings,
-  updateDeliverySettings,
   updateReceiptSettings,
   uploadStoreBranding,
-  defaultDeliverySettings,
   defaultReceiptSettings,
   normalizeSlug,
-  type DeliverySettings,
   type GeneralSettingsForm,
   type ReceiptSettings,
   type CatalogStyle,
@@ -114,7 +109,6 @@ function Configuracoes() {
   const [activeTab, setActiveTab] = useState("Loja");
   const [form, setForm] = useState<GeneralSettingsForm>(emptyForm);
   const [receiptForm, setReceiptForm] = useState<ReceiptSettings>(defaultReceiptSettings);
-  const [deliveryForm, setDeliveryForm] = useState<DeliverySettings>(defaultDeliverySettings);
   const [uploadingImage, setUploadingImage] = useState<StoreBrandingKind | null>(null);
   const [cepLoading, setCepLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -129,11 +123,6 @@ function Configuracoes() {
     queryFn: () => getReceiptSettings(storeId),
     enabled: !!storeId,
   });
-  const { data: deliverySettings, isLoading: deliveryLoading } = useQuery({
-    queryKey: ["delivery-settings", storeId],
-    queryFn: () => getDeliverySettings(storeId),
-    enabled: !!storeId,
-  });
 
   useEffect(() => {
     if (data) setForm(data);
@@ -141,9 +130,6 @@ function Configuracoes() {
   useEffect(() => {
     if (receiptSettings) setReceiptForm(receiptSettings);
   }, [receiptSettings]);
-  useEffect(() => {
-    if (deliverySettings) setDeliveryForm(deliverySettings);
-  }, [deliverySettings]);
 
   const saveMutation = useMutation({
     mutationFn: () => updateGeneralSettings(storeId, form),
@@ -186,19 +172,6 @@ function Configuracoes() {
     },
   });
 
-  const deliveryMutation = useMutation({
-    mutationFn: () => updateDeliverySettings(storeId, deliveryForm),
-    onSuccess: async () => {
-      setSaved(true);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["delivery-settings", storeId] }),
-        queryClient.invalidateQueries({ queryKey: ["general-settings", storeId] }),
-        refresh(),
-      ]);
-      window.setTimeout(() => setSaved(false), 2200);
-    },
-  });
-
   const patch = (key: keyof GeneralSettingsForm, value: string) => {
     setSaved(false);
     setForm((current) => ({ ...current, [key]: key === "slug" ? normalizeSlug(value) : value }));
@@ -233,20 +206,9 @@ function Configuracoes() {
       setCepLoading(false);
     }
   };
-  const patchGeneralBoolean = (
-    key: Extract<keyof GeneralSettingsForm, "accepts_whatsapp_orders" | "accepts_site_orders">,
-    value: boolean,
-  ) => {
-    setSaved(false);
-    setForm((current) => ({ ...current, [key]: value }));
-  };
   const patchReceipt = <K extends keyof ReceiptSettings>(key: K, value: ReceiptSettings[K]) => {
     setSaved(false);
     setReceiptForm((current) => ({ ...current, [key]: value }));
-  };
-  const patchDelivery = <K extends keyof DeliverySettings>(key: K, value: DeliverySettings[K]) => {
-    setSaved(false);
-    setDeliveryForm((current) => ({ ...current, [key]: value }));
   };
 
   return (
@@ -270,11 +232,11 @@ function Configuracoes() {
           ))}
         </div>
 
-        {CHECKOUT_V2_ENABLED && activeTab === "Pedidos e Vendas" ? (
+        {activeTab === "Pedidos e Vendas" ? (
           <OrderStockSettingsTab storeId={storeId} />
-        ) : CHECKOUT_V2_ENABLED && activeTab === "Entrega e Retirada" ? (
+        ) : activeTab === "Entrega e Retirada" ? (
           <DeliverySettingsTab storeId={storeId} storeAddress={formatStoreAddress(form)} />
-        ) : CHECKOUT_V2_ENABLED && activeTab === "Pagamentos" ? (
+        ) : activeTab === "Pagamentos" ? (
           <PaymentSettingsTab />
         ) : activeTab === "Loja" ? (
           isLoading ? (
@@ -558,85 +520,6 @@ function Configuracoes() {
               </a>
             </div>
           </div>
-        ) : activeTab === "Pedidos e Vendas" ? (
-          isLoading ? (
-            <div className="grid min-h-[420px] place-items-center rounded-lg border border-border bg-surface">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="text-center">
-                <div className="mx-auto grid h-20 w-20 place-items-center rounded-md text-primary">
-                  <ShoppingCart className="h-14 w-14" strokeWidth={1.3} />
-                </div>
-                <h2 className="mt-2 text-[15px] font-semibold text-foreground">
-                  Pedidos e vendas
-                </h2>
-                <p className="mt-1 text-[12px] text-muted-foreground">
-                  Defina por onde seus clientes podem finalizar as compras.
-                </p>
-              </div>
-
-              <div className="grid gap-5 lg:grid-cols-2">
-                <SettingsCard title="Canais de pedido">
-                  <ToggleRow
-                    title="Receber pedidos pelo WhatsApp"
-                    description="Os botões Comprar pelo WhatsApp usarão este número."
-                    checked={form.accepts_whatsapp_orders}
-                    onChange={() =>
-                      patchGeneralBoolean("accepts_whatsapp_orders", !form.accepts_whatsapp_orders)
-                    }
-                  />
-                  <ToggleRow
-                    title="Receber pedidos pelo site"
-                    description="Permite finalizar a compra pela sacola da loja."
-                    checked={form.accepts_site_orders}
-                    onChange={() =>
-                      patchGeneralBoolean("accepts_site_orders", !form.accepts_site_orders)
-                    }
-                  />
-                </SettingsCard>
-
-                <SettingsCard title="Contato de vendas">
-                  <TextInput
-                    value={form.whatsapp}
-                    onChange={(value) => patch("whatsapp", value)}
-                    placeholder="WhatsApp de pedidos"
-                    help
-                  />
-                  <TextInput
-                    value={form.email}
-                    onChange={(value) => patch("email", value)}
-                    placeholder="E-mail de contato"
-                  />
-                </SettingsCard>
-              </div>
-
-              {saveMutation.error && (
-                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
-                  {saveMutation.error instanceof Error
-                    ? saveMutation.error.message
-                    : "Não foi possível salvar as configurações de pedidos."}
-                </div>
-              )}
-
-              <div className="sticky bottom-4 flex justify-end">
-                <button
-                  type="button"
-                  disabled={saveMutation.isPending}
-                  onClick={() => saveMutation.mutate()}
-                  className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-[13px] font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-graphite disabled:opacity-60"
-                >
-                  {saveMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
-                  ) : saved ? (
-                    <Check className="h-4 w-4" strokeWidth={1.6} />
-                  ) : null}
-                  {saved ? "Salvo" : "Salvar pedidos e vendas"}
-                </button>
-              </div>
-            </div>
-          )
         ) : activeTab === "Recibo" ? (
           receiptLoading || isLoading ? (
             <div className="grid min-h-[420px] place-items-center rounded-lg border border-border bg-surface">
@@ -729,116 +612,6 @@ function Configuracoes() {
               </div>
             </div>
           )
-        ) : activeTab === "Entrega e Retirada" ? (
-          deliveryLoading ? (
-            <div className="grid min-h-[420px] place-items-center rounded-lg border border-border bg-surface">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
-            </div>
-          ) : (
-            <div className="space-y-8">
-              <div className="text-center">
-                <div className="mx-auto grid h-20 w-20 place-items-center rounded-md text-primary">
-                  <Truck className="h-14 w-14" strokeWidth={1.3} />
-                </div>
-                <h2 className="mt-2 text-[15px] font-semibold text-foreground">
-                  Entrega e Retirada
-                </h2>
-                <p className="mt-1 text-[12px] text-muted-foreground">
-                  Quais as opções você disponibiliza em seu negócio?
-                </p>
-              </div>
-
-              <div className="grid gap-5 lg:grid-cols-2">
-                <DeliveryOptionCard
-                  icon={<PackageCheck className="h-6 w-6" strokeWidth={1.5} />}
-                  title="Trabalho com entregas"
-                  description="Um campo obrigatório de endereço será solicitado aos seus clientes."
-                  checked={deliveryForm.delivery_available}
-                  onClick={() =>
-                    patchDelivery("delivery_available", !deliveryForm.delivery_available)
-                  }
-                />
-                <DeliveryOptionCard
-                  icon={<MapPin className="h-6 w-6" strokeWidth={1.5} />}
-                  title="Trabalho com retirada no local"
-                  description="Seu endereço será informado durante o fechamento do pedido."
-                  checked={deliveryForm.pickup_available}
-                  onClick={() => patchDelivery("pickup_available", !deliveryForm.pickup_available)}
-                />
-              </div>
-
-              <SettingsCard title="Detalhes de atendimento">
-                <ToggleRow
-                  title="Combinar entrega pelo WhatsApp"
-                  description="Use o WhatsApp para acertar valor, prazo ou forma de entrega."
-                  checked={deliveryForm.combine_delivery_whatsapp}
-                  onChange={() =>
-                    patchDelivery(
-                      "combine_delivery_whatsapp",
-                      !deliveryForm.combine_delivery_whatsapp,
-                    )
-                  }
-                />
-                <TextInput
-                  value={deliveryForm.address}
-                  onChange={(value) => patchDelivery("address", value)}
-                  placeholder="Endereco ou instrucoes de retirada"
-                />
-                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_110px_160px]">
-                  <TextInput
-                    value={deliveryForm.city}
-                    onChange={(value) => patchDelivery("city", value)}
-                    placeholder="Cidade"
-                  />
-                  <TextInput
-                    value={deliveryForm.state}
-                    onChange={(value) => patchDelivery("state", value.toUpperCase())}
-                    placeholder="UF"
-                  />
-                  <TextInput
-                    value={deliveryForm.zip_code}
-                    onChange={(value) => patchDelivery("zip_code", value)}
-                    placeholder="CEP"
-                  />
-                </div>
-                <TextInput
-                  value={deliveryForm.business_hours}
-                  onChange={(value) => patchDelivery("business_hours", value)}
-                  placeholder="Horario de atendimento"
-                />
-                <textarea
-                  value={deliveryForm.delivery_notes}
-                  onChange={(event) => patchDelivery("delivery_notes", event.target.value)}
-                  placeholder="Observacoes sobre entrega"
-                  className="min-h-24 w-full resize-none rounded-md border border-border bg-surface px-3 py-3 text-[14px] outline-none focus:border-foreground/40"
-                />
-              </SettingsCard>
-
-              {deliveryMutation.error && (
-                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-700">
-                  {deliveryMutation.error instanceof Error
-                    ? deliveryMutation.error.message
-                    : "Não foi possível salvar as configurações de entrega e retirada."}
-                </div>
-              )}
-
-              <div className="sticky bottom-4 flex justify-end">
-                <button
-                  type="button"
-                  disabled={deliveryMutation.isPending}
-                  onClick={() => deliveryMutation.mutate()}
-                  className="inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-[13px] font-semibold text-primary-foreground shadow-lg transition-colors hover:bg-graphite disabled:opacity-60"
-                >
-                  {deliveryMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
-                  ) : saved ? (
-                    <Check className="h-4 w-4" strokeWidth={1.6} />
-                  ) : null}
-                  {saved ? "Salvo" : "Salvar entrega e retirada"}
-                </button>
-              </div>
-            </div>
-          )
         ) : (
           <div className="rounded-lg border border-dashed border-border bg-surface/50 px-6 py-16 text-center">
             <h2 className="text-[16px] font-semibold text-foreground">{activeTab}</h2>
@@ -849,55 +622,6 @@ function Configuracoes() {
         )}
       </div>
     </PageShell>
-  );
-}
-
-function DeliveryOptionCard({
-  icon,
-  title,
-  description,
-  checked,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  checked: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex min-h-32 items-center justify-between gap-5 rounded-lg border bg-surface p-6 text-left shadow-sm transition-all hover:border-primary/60 hover:shadow-md",
-        checked ? "border-primary ring-1 ring-primary/25" : "border-border",
-      )}
-      aria-pressed={checked}
-    >
-      <div className="flex items-start gap-4">
-        <div
-          className={cn(
-            "grid h-11 w-11 shrink-0 place-items-center rounded-md",
-            checked ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
-          )}
-        >
-          {icon}
-        </div>
-        <div>
-          <h3 className="text-[17px] font-semibold text-foreground">{title}</h3>
-          <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{description}</p>
-        </div>
-      </div>
-      <span
-        className={cn(
-          "grid h-6 w-6 shrink-0 place-items-center rounded-full border",
-          checked ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted",
-        )}
-      >
-        {checked && <Check className="h-3.5 w-3.5" strokeWidth={2} />}
-      </span>
-    </button>
   );
 }
 
