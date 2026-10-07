@@ -495,7 +495,7 @@ function PedidoDetalhe() {
             )}
           </div>
 
-          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="mt-5 grid grid-cols-1 gap-5 break-words lg:grid-cols-[minmax(0,1fr)_380px]">
             <section className="space-y-4">
               <InfoCard
                 title="Cliente"
@@ -528,6 +528,27 @@ function PedidoDetalhe() {
                   <span className="text-[13px] text-muted-foreground">Cliente nao informado.</span>
                 )}
               </InfoCard>
+
+              {order.stock_shortage && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-[13px] text-red-800">
+                  <div className="font-medium">Pago sem estoque</div>
+                  <p className="mt-1">
+                    O pagamento chegou quando um dos produtos já tinha esgotado. Nada foi baixado do
+                    estoque. Combine troca ou reembolso com o cliente.
+                  </p>
+                </div>
+              )}
+
+              {((order.status === "pending" && order.payment_due_at) ||
+                order.cancel_reason === "deadline") && (
+                <InfoCard title="Pagamento">
+                  <div className="text-[13px] text-muted-foreground">
+                    {order.cancel_reason === "deadline"
+                      ? "Cancelado automaticamente: o prazo para pagar terminou. As peças voltaram ao estoque."
+                      : `Aguardando pagamento até ${formatDate(order.payment_due_at!)}. Depois disso o pedido é cancelado e as peças voltam ao estoque.`}
+                  </div>
+                </InfoCard>
+              )}
 
               {order.delivery_method && (
                 <InfoCard title="Entrega">

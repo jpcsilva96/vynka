@@ -85,6 +85,26 @@ function OrderPage() {
             <div className="mt-5 border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-800">
               Pedido recebido. O pagamento online (Pix, boleto ou cartão) estará disponível em
               breve; enquanto isso, o pedido fica aguardando pagamento.
+              {order.payment_due_at && (
+                <span className="mt-1 block font-medium">
+                  Pague até {formatDateTime(order.payment_due_at)}. Depois disso o pedido é
+                  cancelado e as peças voltam para a loja.
+                </span>
+              )}
+            </div>
+          )}
+
+          {order.status === "cancelled" && order.cancel_reason === "deadline" && (
+            <div className="mt-5 border border-black/10 bg-neutral-50 px-4 py-3 text-[13px] leading-relaxed text-neutral-700">
+              O prazo para pagamento terminou e o pedido foi cancelado. Se ainda quiser os produtos,
+              faça um novo pedido.
+            </div>
+          )}
+
+          {order.stock_shortage && (
+            <div className="mt-5 border border-red-200 bg-red-50 px-4 py-3 text-[13px] leading-relaxed text-red-800">
+              Recebemos seu pagamento, mas um dos produtos esgotou antes da confirmação. A loja vai
+              falar com você para combinar a troca ou o reembolso.
             </div>
           )}
 
@@ -182,4 +202,13 @@ function WhatsAppButton({ label, href }: { label: string; href: string }) {
       <MessageCircle className="h-4 w-4" /> {label}
     </a>
   );
+}
+
+function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }

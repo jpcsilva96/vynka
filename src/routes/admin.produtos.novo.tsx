@@ -17,6 +17,7 @@ import {
 } from "@/lib/products";
 import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
+import { StockFields } from "@/components/products/stock-fields";
 
 export const Route = createFileRoute("/admin/produtos/novo")({
   head: () => ({
@@ -224,6 +225,16 @@ function NovoProduto() {
                 description="Aparece com destaque na sua vitrine pública."
                 checked={form.featured}
                 onChange={(v) => patch({ featured: v })}
+              />
+            </Card>
+
+            <Card title="Estoque">
+              <StockFields
+                manageStock={form.manage_stock}
+                hasVariants={form.variants.length > 0}
+                quantity={form.stock_quantity}
+                onManageStockChange={(v) => patch({ manage_stock: v })}
+                onQuantityChange={(v) => patch({ stock_quantity: v })}
               />
             </Card>
 

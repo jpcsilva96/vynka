@@ -81,6 +81,10 @@ export interface ProductFormState {
   cost_price: string;
   featured: boolean;
   manage_stock: boolean;
+  // Quantidade do produto sem variação (com variação, vale a de cada variação).
+  stock_quantity: number;
+  // Como veio do banco ao abrir a tela (só grava se o lojista mudou).
+  loaded_stock?: number;
   // Peso (kg) e medidas (cm) para o frete; vazio = embalagem padrão da loja.
   weight_kg: string;
   height_cm: string;
@@ -154,6 +158,7 @@ interface ProductEditRow {
   cost_price: number | string | null;
   featured: boolean;
   manage_stock?: boolean | null;
+  stock_quantity?: number | null;
   weight_kg?: number | string | null;
   height_cm?: number | string | null;
   width_cm?: number | string | null;
@@ -173,6 +178,7 @@ export const emptyProductForm = (): ProductFormState => ({
   cost_price: "",
   featured: false,
   manage_stock: false,
+  stock_quantity: 0,
   weight_kg: "",
   height_cm: "",
   width_cm: "",
@@ -464,7 +470,7 @@ export async function getProductForEdit(
   const { data, error } = await supabase
     .from("products")
     .select(
-      `id, name, description, category_id, price, promo_price, cost_price, featured, manage_stock, status,
+      `id, name, description, category_id, price, promo_price, cost_price, featured, manage_stock, stock_quantity, status,
        weight_kg, height_cm, width_cm, length_cm,
        product_images(id,url,storage_path,position),
        product_options(id,name,position,product_option_values(id,value,position)),
@@ -530,6 +536,8 @@ export async function getProductForEdit(
     cost_price: moneyToInput(product.cost_price),
     featured: product.featured,
     manage_stock: product.manage_stock ?? false,
+    stock_quantity: Number(product.stock_quantity ?? 0),
+    loaded_stock: Number(product.stock_quantity ?? 0),
     weight_kg: dimensionToInput(product.weight_kg),
     height_cm: dimensionToInput(product.height_cm),
     width_cm: dimensionToInput(product.width_cm),
@@ -560,6 +568,9 @@ export async function createProduct(storeId: string, form: ProductFormState): Pr
       cost_price: cost,
       featured: form.featured,
       manage_stock: form.manage_stock,
+      ...({
+        stock_quantity: form.manage_stock && form.variants.length === 0 ? form.stock_quantity : 0,
+      } as object),
       status: form.status,
     })
     .select("id")
@@ -637,6 +648,12 @@ export async function updateProduct(
       cost_price: cost,
       featured: form.featured,
       manage_stock: form.manage_stock,
+      // Quantidade do produto sem variação: só quando o lojista mudou (venda com a tela aberta fica).
+      ...(form.manage_stock &&
+      form.variants.length === 0 &&
+      form.stock_quantity !== form.loaded_stock
+        ? ({ stock_quantity: form.stock_quantity } as object)
+        : {}),
       status: form.status,
     })
     .eq("store_id", storeId)

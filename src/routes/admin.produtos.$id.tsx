@@ -17,6 +17,7 @@ import {
 } from "@/lib/products";
 import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
+import { StockFields } from "@/components/products/stock-fields";
 
 export const Route = createFileRoute("/admin/produtos/$id")({
   head: () => ({
@@ -226,15 +227,13 @@ function EditarProduto() {
 
           <div className="space-y-6">
             <Card title="Estoque">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-[14px] font-medium text-foreground">Gerenciar estoque</div>
-                  <p className="mt-1 text-[13px] text-muted-foreground">
-                    Habilite para controlar a quantidade em estoque por variacao.
-                  </p>
-                </div>
-                <Toggle checked={form.manage_stock} onChange={(v) => patch({ manage_stock: v })} />
-              </div>
+              <StockFields
+                manageStock={form.manage_stock}
+                hasVariants={form.variants.length > 0}
+                quantity={form.stock_quantity}
+                onManageStockChange={(v) => patch({ manage_stock: v })}
+                onQuantityChange={(v) => patch({ stock_quantity: v })}
+              />
             </Card>
 
             <Card title="Informacoes do produto">
