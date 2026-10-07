@@ -29,6 +29,62 @@ export function orderStatusLabel(status: OrderStatus | string | null | undefined
   return allOrderStatuses.find((s) => s.value === status)?.label ?? "Pendente";
 }
 
+export type DeliveryMethod = "local" | "pickup" | "shipping";
+
+// Rótulo conforme o pedido (lote C, sem status novo no banco): pedido do site com entrega escolhida
+// em "pending" aguarda o pagamento online; "in_dispatch" de retirada = pronto para o cliente buscar.
+export function orderStatusLabelFor(order: {
+  status: OrderStatus | string | null | undefined;
+  source?: string | null;
+  delivery_method?: DeliveryMethod | string | null;
+}) {
+  if (order.status === "pending" && order.source === "website" && order.delivery_method)
+    return "Aguardando pagamento";
+  if (order.status === "in_dispatch" && order.delivery_method === "pickup")
+    return "Pronto para retirada";
+  return orderStatusLabel(order.status);
+}
+
+export const deliveryMethodLabel: Record<DeliveryMethod, string> = {
+  local: "Entrega local",
+  pickup: "Retirada na loja",
+  shipping: "Correios/transportadora",
+};
+
+export interface DeliveryAddress {
+  zip_code?: string;
+  street?: string;
+  address_number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  ibge_code?: string;
+}
+
+export function formatDeliveryAddress(address: DeliveryAddress | null | undefined) {
+  if (!address) return "";
+  const zip = address.zip_code?.replace(/^(\d{5})(\d{3})$/, "$1-$2");
+  return [
+    [address.street, address.address_number].filter(Boolean).join(", "),
+    address.complement,
+    address.neighborhood,
+    [address.city, address.state].filter(Boolean).join("/"),
+    zip ? `CEP ${zip}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+export function deliveryDaysLabel(min: number | null | undefined, max: number | null | undefined) {
+  if (min == null && max == null) return "";
+  const lo = min ?? max ?? 0;
+  const hi = max ?? lo;
+  if (hi === 0) return "no mesmo dia";
+  if (lo === hi) return `${hi} ${hi === 1 ? "dia útil" : "dias úteis"}`;
+  return `${lo} a ${hi} dias úteis`;
+}
+
 export function orderStatusClass(status: OrderStatus | string | null | undefined) {
   if (status === "cancelled") return "bg-red-50 text-red-700";
   if (status === "delivered") return "bg-emerald-50 text-emerald-700";
@@ -86,6 +142,12 @@ export interface OrderRecord {
   payment_details: Record<string, unknown>;
   paid_amount: number | null;
   change_due: number | null;
+  delivery_method: DeliveryMethod | null;
+  shipping_service_name: string | null;
+  shipping_amount: number;
+  shipping_min_days: number | null;
+  shipping_max_days: number | null;
+  delivery_address: DeliveryAddress | null;
   customer: OrderCustomer | null;
   items: OrderItem[];
 }
@@ -103,13 +165,15 @@ function normalizeOrder(row: RawOrder): OrderRecord {
     customer: customer ?? null,
     items: row.order_items ?? [],
     payment_details: row.payment_details ?? {},
+    shipping_amount: Number(row.shipping_amount ?? 0),
   };
 }
 
 const ORDER_SELECT = `
   id, number, created_at, updated_at, completed_at, customer_id, created_by, status, source,
   subtotal, discount, surcharge, total, notes, payment_method, payment_details,
-  paid_amount, change_due,
+  paid_amount, change_due, delivery_method, shipping_service_name, shipping_amount,
+  shipping_min_days, shipping_max_days, delivery_address,
   customer:customers(id,name,phone,email),
   order_items(id,product_id,variant_id,product_name,variant_name,quantity,unit_price,total_price,unit_cost,total_cost)
 `;
@@ -232,6 +296,7 @@ export async function replaceOrderItems(
   items: OrderItemInput[],
   discount = 0,
   surcharge = 0,
+  shipping = 0,
 ) {
   if (items.length === 0) throw new Error("O pedido precisa ter ao menos um item.");
 
@@ -255,7 +320,8 @@ export async function replaceOrderItems(
   });
 
   const subtotal = rows.reduce((sum, item) => sum + item.total_price, 0);
-  const total = Number((subtotal - discount + surcharge).toFixed(2));
+  // Frete do pedido do site continua no total quando o lojista edita os itens.
+  const total = Number((subtotal - discount + surcharge + shipping).toFixed(2));
 
   const { error: deleteError } = await supabase
     .from("order_items")

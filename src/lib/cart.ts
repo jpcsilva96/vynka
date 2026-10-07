@@ -101,20 +101,35 @@ export function buildWhatsAppLink(text: string, phone?: string | null) {
   return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
 }
 
-// Mensagem do pedido já gravado: itens, preços e total vêm do banco, não do carrinho.
-export function orderWhatsAppText(order: {
-  number: number | null;
-  total: number;
-  order_items: { product_name: string; variant_name: string | null; quantity: number; total_price: number }[];
-}) {
+// Mensagem sobre um pedido já gravado (contato depois do pagamento; o WhatsApp não fecha venda):
+// itens, frete e total vêm do banco, não do carrinho.
+export function orderWhatsAppText(
+  order: {
+    number: number | null;
+    total: number;
+    shipping_amount?: number;
+    order_items: {
+      product_name: string;
+      variant_name: string | null;
+      quantity: number;
+      total_price: number;
+    }[];
+  },
+  topic: "order" | "delivery" = "order",
+) {
   const brl = (v: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v));
   const lines = order.order_items.map(
     (i) =>
       `• ${i.product_name}${i.variant_name ? ` — ${i.variant_name}` : ""} × ${i.quantity} — ${brl(i.total_price)}`,
   );
-  const title = order.number ? `Olá! Acabei de fazer o pedido nº ${order.number}:` : "Olá! Acabei de fazer este pedido:";
-  return `${title}\n\n${lines.join("\n")}\n\nTotal: ${brl(order.total)}`;
+  const ref = order.number ? `pedido nº ${order.number}` : "meu pedido";
+  const title =
+    topic === "delivery"
+      ? `Olá! Quero falar sobre a entrega do ${ref}:`
+      : `Olá! Quero falar sobre o ${ref}:`;
+  const shipping = order.shipping_amount ? `\nFrete: ${brl(order.shipping_amount)}` : "";
+  return `${title}\n\n${lines.join("\n")}${shipping}\n\nTotal: ${brl(order.total)}`;
 }
 
 // Convenience effect: rehydrate on mount for SSR safety

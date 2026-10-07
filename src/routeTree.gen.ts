@@ -53,6 +53,7 @@ import { Route as LojaSlugMinhaContaRouteImport } from './routes/loja.$slug.minh
 import { Route as LojaSlugQuemSomosRouteImport } from './routes/loja.$slug.quem-somos'
 import { Route as AdminIntegracoesMelhorEnvioRetornoRouteImport } from './routes/admin.integracoes.melhor-envio.retorno'
 import { Route as LojaSlugCategoriaCategorySlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug'
+import { Route as LojaSlugPedidoIdRouteImport } from './routes/loja.$slug.pedido.$id'
 import { Route as LojaSlugProdutoIdRouteImport } from './routes/loja.$slug.produto.$id'
 import { Route as LojaSlugCategoriaCategorySlugChildSlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug.$childSlug'
 
@@ -278,6 +279,11 @@ const LojaSlugCategoriaCategorySlugRoute =
     path: '/categoria/$categorySlug',
     getParentRoute: () => LojaSlugRoute,
   } as any)
+const LojaSlugPedidoIdRoute = LojaSlugPedidoIdRouteImport.update({
+  id: '/pedido/$id',
+  path: '/pedido/$id',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
 const LojaSlugProdutoIdRoute = LojaSlugProdutoIdRouteImport.update({
   id: '/produto/$id',
   path: '/produto/$id',
@@ -335,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/loja/$slug/': typeof LojaSlugIndexRoute
   '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
+  '/loja/$slug/pedido/$id': typeof LojaSlugPedidoIdRoute
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
   '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
 }
@@ -377,6 +384,7 @@ export interface FileRoutesByTo {
   '/loja/$slug': typeof LojaSlugIndexRoute
   '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
+  '/loja/$slug/pedido/$id': typeof LojaSlugPedidoIdRoute
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
   '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
 }
@@ -426,6 +434,7 @@ export interface FileRoutesById {
   '/loja/$slug/': typeof LojaSlugIndexRoute
   '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
+  '/loja/$slug/pedido/$id': typeof LojaSlugPedidoIdRoute
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
   '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
 }
@@ -476,6 +485,7 @@ export interface FileRouteTypes {
     | '/loja/$slug/'
     | '/admin/integracoes/melhor-envio/retorno'
     | '/loja/$slug/categoria/$categorySlug'
+    | '/loja/$slug/pedido/$id'
     | '/loja/$slug/produto/$id'
     | '/loja/$slug/categoria/$categorySlug/$childSlug'
   fileRoutesByTo: FileRoutesByTo
@@ -518,6 +528,7 @@ export interface FileRouteTypes {
     | '/loja/$slug'
     | '/admin/integracoes/melhor-envio/retorno'
     | '/loja/$slug/categoria/$categorySlug'
+    | '/loja/$slug/pedido/$id'
     | '/loja/$slug/produto/$id'
     | '/loja/$slug/categoria/$categorySlug/$childSlug'
   id:
@@ -566,6 +577,7 @@ export interface FileRouteTypes {
     | '/loja/$slug/'
     | '/admin/integracoes/melhor-envio/retorno'
     | '/loja/$slug/categoria/$categorySlug'
+    | '/loja/$slug/pedido/$id'
     | '/loja/$slug/produto/$id'
     | '/loja/$slug/categoria/$categorySlug/$childSlug'
   fileRoutesById: FileRoutesById
@@ -890,6 +902,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugCategoriaCategorySlugRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/loja/$slug/pedido/$id': {
+      id: '/loja/$slug/pedido/$id'
+      path: '/pedido/$id'
+      fullPath: '/loja/$slug/pedido/$id'
+      preLoaderRoute: typeof LojaSlugPedidoIdRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
     '/loja/$slug/produto/$id': {
       id: '/loja/$slug/produto/$id'
       path: '/produto/$id'
@@ -1038,6 +1057,7 @@ interface LojaSlugRouteChildren {
   LojaSlugQuemSomosRoute: typeof LojaSlugQuemSomosRoute
   LojaSlugIndexRoute: typeof LojaSlugIndexRoute
   LojaSlugCategoriaCategorySlugRoute: typeof LojaSlugCategoriaCategorySlugRouteWithChildren
+  LojaSlugPedidoIdRoute: typeof LojaSlugPedidoIdRoute
   LojaSlugProdutoIdRoute: typeof LojaSlugProdutoIdRoute
 }
 
@@ -1050,6 +1070,7 @@ const LojaSlugRouteChildren: LojaSlugRouteChildren = {
   LojaSlugIndexRoute: LojaSlugIndexRoute,
   LojaSlugCategoriaCategorySlugRoute:
     LojaSlugCategoriaCategorySlugRouteWithChildren,
+  LojaSlugPedidoIdRoute: LojaSlugPedidoIdRoute,
   LojaSlugProdutoIdRoute: LojaSlugProdutoIdRoute,
 }
 

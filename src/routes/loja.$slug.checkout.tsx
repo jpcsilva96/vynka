@@ -1,26 +1,28 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+/* eslint-disable @typescript-eslint/no-explicit-any -- store_checkout_settings ainda fora do types.ts gerado */
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Check, CreditCard, Loader2, MapPin, Store, Truck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { clearCart, useCart, useCartTotals } from "@/lib/cart";
+import { cepDigits, formatCep } from "@/lib/cep";
 import {
-  buildWhatsAppLink,
-  clearCart,
-  orderWhatsAppText,
-  useCart,
-  useCartTotals,
-} from "@/lib/cart";
-import { cepDigits, formatCep, lookupCep } from "@/lib/cep";
+  getCheckoutOptions,
+  placeCheckoutOrder,
+  type DeliveryOption,
+  type ZipAddress,
+} from "@/lib/checkout.functions";
 import {
-  createCustomerOrder,
   EmailConfirmationRequiredError,
-  getCustomerOrder,
   getStoreCustomer,
   signInCustomer,
+  signOutCustomer,
   signUpCustomer,
   upsertStoreCustomer,
   useStoreCustomer,
-  type CustomerAddressForm,
 } from "@/lib/customer-account";
+import { deliveryDaysLabel, formatDeliveryAddress } from "@/lib/orders";
 import { formatBRL } from "@/lib/products";
 import { useStorefront } from "@/lib/storefront-context";
 
@@ -28,187 +30,309 @@ export const Route = createFileRoute("/loja/$slug/checkout")({
   component: CheckoutPage,
 });
 
-const emptyAddress: CustomerAddressForm = {
-  zip_code: "",
-  street: "",
-  address_number: "",
-  complement: "",
-  neighborhood: "",
-  city: "",
-  state: "",
-};
+const STEPS = ["Identificação", "Entrega", "Pagamento", "Revisão"] as const;
+type Step = 1 | 2 | 3 | 4;
 
-// Compra só com conta (D17): o pedido sempre é gravado (create_store_order) e a mensagem do
-// WhatsApp é montada a partir do pedido gravado, com os preços do banco.
+const optionKey = (option: Pick<DeliveryOption, "method" | "service_id">) =>
+  `${option.method}:${option.service_id ?? ""}`;
+
+// Checkout em etapas (lote C): identificação -> entrega -> pagamento -> revisão -> "Pedido #N".
+// Opções de entrega e pedido sempre pelo servidor (checkout.functions.ts): a cidade vem do CEP e o
+// frete é recalculado no "Finalizar". Venda só com pagamento integrado (Mercado Pago no lote E); o
+// WhatsApp vira contato depois do pagamento, na página do pedido.
 function CheckoutPage() {
   const store = useStorefront();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const items = useCart();
-  const { subtotal } = useCartTotals();
-  const { data: account } = useStoreCustomer(store.id);
-  const [mode, setMode] = useState<"login" | "signup">("signup");
-  const [customer, setCustomer] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    password: "",
-    notes: "",
-  });
-  const [address, setAddress] = useState(emptyAddress);
-  const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "not_found" | "failed">("idle");
+  const { subtotal: cartSubtotal } = useCartTotals();
+  const { data: account, isLoading: accountLoading } = useStoreCustomer(store.id);
+  const fetchOptions = useServerFn(getCheckoutOptions);
+  const placeOrder = useServerFn(placeCheckoutOrder);
+
+  const [step, setStep] = useState<Step>(1);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  // Login que ainda não tem ficha nesta loja: o cliente digita os dados aqui; nada é copiado de
-  // outra loja.
+  const [busy, setBusy] = useState(false);
+
+  // Etapa 1
+  const [mode, setMode] = useState<"login" | "signup">("signup");
+  const [form, setForm] = useState({ name: "", phone: "", email: "", password: "" });
   const [needsProfile, setNeedsProfile] = useState(false);
 
+  // Etapa 2
+  const [zip, setZip] = useState("");
+  const [quote, setQuote] = useState<{
+    zip: string;
+    itemsKey: string;
+    address: ZipAddress;
+    subtotal: number;
+    options: DeliveryOption[];
+    shippingUnavailable: boolean;
+  } | null>(null);
+  const [choice, setChoice] = useState<string>("");
+  const [street, setStreet] = useState({
+    street: "",
+    address_number: "",
+    complement: "",
+    neighborhood: "",
+  });
+  const [notes, setNotes] = useState("");
+
+  const cartItems = useMemo(
+    () =>
+      items.map((item) => ({
+        product_id: item.productId,
+        variant_id: item.variantId,
+        quantity: item.quantity,
+      })),
+    [items],
+  );
+  const itemsKey = JSON.stringify(cartItems);
+
+  const { data: pickup } = useQuery({
+    queryKey: ["checkout-pickup", store.id],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("store_checkout_settings")
+        .select("pickup_address,pickup_instructions")
+        .eq("store_id", store.id)
+        .maybeSingle();
+      return (data ?? null) as {
+        pickup_address: string | null;
+        pickup_instructions: string | null;
+      } | null;
+    },
+  });
+  const storeAddress = [
+    [store.address, store.address_number].filter(Boolean).join(", "),
+    store.complement,
+    [store.city, store.state].filter(Boolean).join("/"),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  // Cliente já logado nesta loja: pula a identificação e traz o endereço salvo.
   useEffect(() => {
     if (!account) return;
-    setCustomer((current) => ({
-      ...current,
-      name: account.name ?? "",
-      phone: account.phone ?? "",
-      email: account.email ?? "",
-    }));
-    setAddress({
-      zip_code: formatCep(account.zip_code ?? ""),
-      street: account.street ?? "",
-      address_number: account.address_number ?? "",
-      complement: account.complement ?? "",
-      neighborhood: account.neighborhood ?? "",
-      city: account.city ?? "",
-      state: account.state ?? "",
-    });
+    setStep((current) => (current === 1 ? 2 : current));
+    setZip((current) => current || formatCep(account.zip_code ?? ""));
+    setStreet((current) =>
+      current.street || current.address_number
+        ? current
+        : {
+            street: account.street ?? "",
+            address_number: account.address_number ?? "",
+            complement: account.complement ?? "",
+            neighborhood: account.neighborhood ?? "",
+          },
+    );
   }, [account]);
 
-  const changeCep = async (value: string) => {
-    const formatted = formatCep(value);
-    setAddress((current) => ({ ...current, zip_code: formatted }));
-    if (cepDigits(formatted).length !== 8) {
-      setCepStatus("idle");
+  // Opções valem para o CEP e o carrinho do cálculo; mudou um dos dois, calcula de novo.
+  const validQuote =
+    quote && quote.zip === cepDigits(zip) && quote.itemsKey === itemsKey ? quote : null;
+  const chosen = validQuote?.options.find((option) => optionKey(option) === choice) ?? null;
+  const isPickup = chosen?.method === "pickup";
+  const subtotal = validQuote?.subtotal ?? cartSubtotal;
+  const total = subtotal + (chosen?.price ?? 0);
+
+  const calculate = async (value = zip) => {
+    const digits = cepDigits(value);
+    if (digits.length !== 8) {
+      setError("Informe um CEP válido.");
       return;
     }
-    setCepStatus("loading");
+    setBusy(true);
+    setError("");
     try {
-      const found = await lookupCep(formatted);
-      if (!found) {
-        setCepStatus("not_found");
-        return;
-      }
-      setAddress((current) =>
-        cepDigits(current.zip_code) === cepDigits(formatted)
-          ? {
-              ...current,
-              street: found.street || current.street,
-              neighborhood: found.neighborhood || current.neighborhood,
-              city: found.city || current.city,
-              state: found.state || current.state,
-            }
-          : current,
+      const result = await fetchOptions({
+        data: { store_id: store.id, zip: digits, items: cartItems },
+      });
+      setQuote({ zip: digits, itemsKey, ...result });
+      setChoice((current) =>
+        result.options.some((option) => optionKey(option) === current) ? current : "",
       );
-      setCepStatus("idle");
-    } catch {
-      setCepStatus("failed");
+      // Endereço do CEP preenche o que estiver vazio (ou de outro CEP).
+      setStreet((current) => {
+        const sameZip = cepDigits(account?.zip_code ?? "") === digits;
+        return {
+          street: (sameZip && current.street) || result.address.street || current.street,
+          neighborhood:
+            (sameZip && current.neighborhood) ||
+            result.address.neighborhood ||
+            current.neighborhood,
+          address_number: sameZip ? current.address_number : "",
+          complement: sameZip ? current.complement : "",
+        };
+      });
+      if (result.options.length === 0) {
+        setError("Não há forma de entrega disponível para este CEP. Fale com a loja.");
+      }
+    } catch (err) {
+      setQuote(null);
+      setError(err instanceof Error ? err.message : "Não foi possível calcular a entrega.");
+    } finally {
+      setBusy(false);
     }
   };
 
-  const showProfileFields = mode === "signup" || !!account || needsProfile;
+  // Troca de etapa volta ao topo (o indicador de etapas fica visível).
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
 
-  const missingField = () => {
-    if (showProfileFields && !customer.name.trim()) return "Informe seu nome.";
-    if (showProfileFields && !customer.phone.trim()) return "Informe seu telefone.";
-    if (!account && !customer.email.trim()) return "Informe seu e-mail.";
-    if (!account && !customer.password) return "Informe sua senha.";
-    if (cepDigits(address.zip_code).length !== 8) return "Informe um CEP valido.";
-    if (!address.street.trim()) return "Informe a rua.";
-    if (!address.address_number.trim()) return "Informe o numero.";
-    if (!address.neighborhood.trim()) return "Informe o bairro.";
-    if (!address.city.trim()) return "Informe a cidade.";
-    if (!address.state.trim()) return "Informe o estado.";
+  // Ao chegar na etapa 2 com CEP salvo, já calcula.
+  useEffect(() => {
+    if (step === 2 && !validQuote && cepDigits(zip).length === 8 && items.length > 0 && !busy) {
+      void calculate(zip);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, itemsKey]);
+
+  const identify = async () => {
+    const showProfile = mode === "signup" || needsProfile;
+    if (showProfile && !form.name.trim()) return setError("Informe seu nome.");
+    if (showProfile && !form.phone.trim()) return setError("Informe seu telefone.");
+    if (!form.email.trim()) return setError("Informe seu e-mail.");
+    if (!form.password) return setError("Informe sua senha.");
+    setBusy(true);
+    setError("");
+    try {
+      if (mode === "signup" && !needsProfile) {
+        await signUpCustomer({ storeId: store.id, ...form });
+      } else if (!needsProfile) {
+        await signInCustomer(form.email, form.password);
+      }
+      let existing = await getStoreCustomer(store.id);
+      if (!existing) {
+        if (!needsProfile) {
+          setNeedsProfile(true);
+          throw new Error(
+            "Primeira compra nesta loja: informe seu nome e telefone para continuar.",
+          );
+        }
+        existing = await upsertStoreCustomer(store.id, {
+          name: form.name,
+          phone: form.phone,
+          email: form.email,
+        });
+      }
+      await queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
+      setStep(2);
+    } catch (err) {
+      if (err instanceof EmailConfirmationRequiredError) {
+        setError(
+          "Cadastro criado. Confirme seu e-mail e depois entre com sua senha para continuar.",
+        );
+        setMode("login");
+        setForm((current) => ({ ...current, password: "" }));
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Não foi possível entrar.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const signOut = async () => {
+    await signOutCustomer();
+    await queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
+    setQuote(null);
+    setChoice("");
+    setZip("");
+    setStreet({ street: "", address_number: "", complement: "", neighborhood: "" });
+    setStep(1);
+  };
+
+  const deliveryReady = () => {
+    if (!validQuote) return "Calcule a entrega pelo CEP.";
+    if (!chosen) return "Escolha a forma de entrega.";
+    if (!isPickup) {
+      if (!street.street.trim()) return "Informe a rua.";
+      if (!street.address_number.trim()) return "Informe o número.";
+      if (!street.neighborhood.trim()) return "Informe o bairro.";
+    }
     return "";
   };
 
-  const authenticate = async () => {
-    if (account) return account;
-    if (mode === "signup") {
-      await signUpCustomer({
-        storeId: store.id,
-        name: customer.name,
-        phone: customer.phone,
-        email: customer.email,
-        password: customer.password,
-      });
-    } else {
-      await signInCustomer(customer.email, customer.password);
+  const goTo = (target: Step) => {
+    if (target >= 2 && !account) return setError("Entre ou crie sua conta para continuar.");
+    if (target >= 3) {
+      const missing = deliveryReady();
+      if (missing) {
+        setStep(2);
+        return setError(missing);
+      }
     }
-    const existing = await getStoreCustomer(store.id);
-    if (existing) return existing;
-    if (!needsProfile) {
-      setNeedsProfile(true);
-      throw new Error("Primeira compra nesta loja: informe seu nome e telefone para continuar.");
-    }
-    return upsertStoreCustomer(store.id, {
-      name: customer.name,
-      phone: customer.phone,
-      email: customer.email,
-    });
+    setError("");
+    setStep(target);
   };
 
   const finish = async () => {
-    const missing = missingField();
-    if (missing) {
-      setError(missing);
+    const missing = deliveryReady();
+    if (missing || !chosen || !validQuote || !account) {
+      setStep(2);
+      setError(missing || "Confira a entrega.");
       return;
     }
-    setLoading(true);
+    setBusy(true);
     setError("");
-    // A aba do WhatsApp é aberta já no clique: aberta depois das chamadas ao banco, o navegador
-    // costuma bloquear como pop-up.
-    const whatsappTab = window.open("", "_blank");
     try {
-      const authed = await authenticate();
-      await upsertStoreCustomer(store.id, {
-        name: showProfileFields ? customer.name : authed.name,
-        phone: showProfileFields ? customer.phone : authed.phone,
-        email: authed.email,
-        ...address,
-        zip_code: cepDigits(address.zip_code),
-      });
-      const orderId = await createCustomerOrder({
-        storeId: store.id,
-        items,
-        notes: customer.notes,
-        deliveryAddress: { ...address, zip_code: cepDigits(address.zip_code) },
+      const { orderId } = await placeOrder({
+        data: {
+          store_id: store.id,
+          items: cartItems,
+          delivery: { method: chosen.method, service_id: chosen.service_id },
+          expected_shipping: chosen.price,
+          zip: isPickup ? undefined : validQuote.zip,
+          address: isPickup ? undefined : street,
+          notes: notes.trim() || undefined,
+        },
       });
       // Pedido gravado: o carrinho sai já, para um novo clique não duplicar o pedido.
       clearCart();
+      if (!isPickup) {
+        // Endereço usado vira o endereço salvo da conta (cidade/UF do CEP).
+        void upsertStoreCustomer(store.id, {
+          name: account.name,
+          phone: account.phone,
+          email: account.email,
+          zip_code: validQuote.zip,
+          ...street,
+          city: validQuote.address.city,
+          state: validQuote.address.state,
+        }).catch(() => undefined);
+      }
       void queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
       void queryClient.invalidateQueries({ queryKey: ["customer-orders", store.id] });
-      const text = await getCustomerOrder(orderId)
-        .then(orderWhatsAppText)
-        .catch(() => "Olá! Acabei de fazer um pedido pela loja online. Está em Minhas compras.");
-      const link = buildWhatsAppLink(text, store.whatsapp);
-      if (whatsappTab) {
-        whatsappTab.opener = null;
-        whatsappTab.location.href = link;
-      } else {
-        window.location.href = link;
-      }
+      await navigate({ to: "/loja/$slug/pedido/$id", params: { slug: store.slug, id: orderId } });
     } catch (err) {
-      whatsappTab?.close();
-      if (err instanceof EmailConfirmationRequiredError) {
-        setError(
-          "Cadastro criado. Confirme seu e-mail, depois entre com sua senha para finalizar o pedido.",
-        );
-        setMode("login");
-        setCustomer((current) => ({ ...current, password: "" }));
-        return;
+      const message = err instanceof Error ? err.message : "Não foi possível finalizar.";
+      setError(message);
+      // Frete mudou ou opção saiu: volta para a entrega com a conta refeita.
+      if (/frete mudou|não está mais disponível|não está disponível/i.test(message)) {
+        setStep(2);
+        void calculate(validQuote.zip);
       }
-      setError(err instanceof Error ? err.message : "Nao foi possivel finalizar.");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
+
+  if (items.length === 0) {
+    return (
+      <div className="mx-auto max-w-[720px] px-4 py-16 text-center">
+        <p className="text-[14px] text-neutral-600">Seu carrinho está vazio.</p>
+        <Link
+          to="/loja/$slug"
+          params={{ slug: store.slug }}
+          className="mt-6 inline-block bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white"
+        >
+          Ver produtos
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-neutral-50">
@@ -221,199 +345,496 @@ function CheckoutPage() {
           <ArrowLeft className="h-4 w-4" /> Voltar para loja
         </Link>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-[1fr_420px]">
-          <section className="border border-black/10 bg-white p-5 md:p-7">
-            <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">
-              Checkout
-            </div>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-black">
-              Finalizar compra
-            </h1>
+        <ol className="mt-6 flex flex-wrap gap-x-5 gap-y-2" aria-label="Etapas">
+          {STEPS.map((label, index) => {
+            const n = (index + 1) as Step;
+            const done = n < step;
+            return (
+              <li key={label}>
+                <button
+                  type="button"
+                  disabled={n > step || busy}
+                  onClick={() => goTo(n)}
+                  className={`flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.12em] ${
+                    n === step
+                      ? "text-black"
+                      : done
+                        ? "text-neutral-600 hover:text-black"
+                        : "text-neutral-400"
+                  }`}
+                >
+                  <span
+                    className={`grid h-6 w-6 place-items-center rounded-full text-[11px] ${
+                      n === step
+                        ? "bg-black text-white"
+                        : done
+                          ? "bg-neutral-200 text-black"
+                          : "border border-neutral-300"
+                    }`}
+                  >
+                    {done ? <Check className="h-3.5 w-3.5" /> : n}
+                  </span>
+                  {label}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
 
-            {!account && (
-              <>
-                <p className="mt-4 text-[13px] leading-relaxed text-neutral-500">
-                  Para finalizar, entre ou crie sua conta. Seu pedido fica salvo em Minhas compras.
-                </p>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <Choice
-                    active={mode === "signup"}
-                    onClick={() => setMode("signup")}
-                    title="Criar conta"
-                  />
-                  <Choice
-                    active={mode === "login"}
-                    onClick={() => setMode("login")}
-                    title="Ja tenho conta"
-                  />
-                </div>
-              </>
-            )}
-
-            <div className="mt-8 grid gap-4">
-              {showProfileFields && (
-                <>
-                  <Field
-                    label="Nome"
-                    value={customer.name}
-                    onChange={(value) => setCustomer((current) => ({ ...current, name: value }))}
-                  />
-                  <Field
-                    label="Telefone"
-                    type="tel"
-                    value={customer.phone}
-                    onChange={(value) => setCustomer((current) => ({ ...current, phone: value }))}
-                  />
-                </>
-              )}
-              <Field
-                label="E-mail"
-                type="email"
-                value={customer.email}
-                disabled={!!account}
-                onChange={(value) => setCustomer((current) => ({ ...current, email: value }))}
-              />
-              {!account && (
-                <Field
-                  label="Senha"
-                  type="password"
-                  value={customer.password}
-                  onChange={(value) => setCustomer((current) => ({ ...current, password: value }))}
-                />
-              )}
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-1">
-                  <Field
-                    label="CEP"
-                    inputMode="numeric"
-                    value={address.zip_code}
-                    onChange={changeCep}
-                  />
-                  {cepStatus === "loading" && (
-                    <span className="text-[12px] text-neutral-500">Buscando endereco...</span>
-                  )}
-                  {cepStatus === "not_found" && (
-                    <span className="text-[12px] text-red-600">
-                      CEP nao encontrado. Preencha o endereco.
-                    </span>
-                  )}
-                  {cepStatus === "failed" && (
-                    <span className="text-[12px] text-neutral-500">
-                      Nao foi possivel buscar o CEP. Preencha o endereco.
-                    </span>
-                  )}
-                </div>
-                <Field
-                  label="Rua"
-                  value={address.street}
-                  onChange={(value) => setAddress((current) => ({ ...current, street: value }))}
-                />
-                <Field
-                  label="Numero"
-                  value={address.address_number}
-                  onChange={(value) =>
-                    setAddress((current) => ({ ...current, address_number: value }))
-                  }
-                />
-                <Field
-                  label="Complemento"
-                  value={address.complement}
-                  onChange={(value) => setAddress((current) => ({ ...current, complement: value }))}
-                />
-                <Field
-                  label="Bairro"
-                  value={address.neighborhood}
-                  onChange={(value) =>
-                    setAddress((current) => ({ ...current, neighborhood: value }))
-                  }
-                />
-                <Field
-                  label="Cidade"
-                  value={address.city}
-                  onChange={(value) => setAddress((current) => ({ ...current, city: value }))}
-                />
-                <Field
-                  label="Estado"
-                  value={address.state}
-                  onChange={(value) =>
-                    setAddress((current) => ({
-                      ...current,
-                      state: value.toUpperCase().slice(0, 2),
-                    }))
-                  }
-                />
-              </div>
-              <label className="grid gap-2">
-                <span className="text-[12px] font-medium uppercase tracking-[0.14em] text-neutral-500">
-                  Observacoes
-                </span>
-                <textarea
-                  value={customer.notes}
-                  onChange={(event) =>
-                    setCustomer((current) => ({ ...current, notes: event.target.value }))
-                  }
-                  rows={4}
-                  className="resize-none border border-black/10 bg-white px-3 py-3 text-[14px] outline-none focus:border-black"
-                />
-              </label>
-            </div>
-          </section>
-
-          <aside className="border border-black/10 bg-white p-5 md:p-7">
-            <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">
-              Resumo
-            </div>
-            {items.length === 0 ? (
-              <div className="mt-6 text-[13px] text-neutral-500">Seu carrinho esta vazio.</div>
-            ) : (
-              <div className="mt-6 divide-y divide-black/10">
-                {items.map((item) => (
-                  <div key={item.key} className="flex gap-3 py-4 first:pt-0">
-                    <div className="h-16 w-12 shrink-0 bg-neutral-100">
-                      {item.image && (
-                        <img src={item.image} alt="" className="h-full w-full object-cover" />
+        <div className="mt-6 grid gap-6 md:grid-cols-[minmax(0,1fr)_340px] lg:grid-cols-[minmax(0,1fr)_380px]">
+          <section className="min-w-0 border border-black/10 bg-white p-5 md:p-7">
+            {step === 1 && (
+              <StepTitle n={1} title="Identificação">
+                {accountLoading ? (
+                  <p className="mt-4 text-[13px] text-neutral-500">Carregando...</p>
+                ) : account ? (
+                  <div className="mt-4 text-[14px] text-black">
+                    Olá, {account.name}.{" "}
+                    <button type="button" onClick={signOut} className="text-neutral-500 underline">
+                      Não é você? Sair
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mt-3 text-[13px] leading-relaxed text-neutral-500">
+                      Entre ou crie sua conta. Seu pedido fica salvo em Minhas compras.
+                    </p>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      <Choice
+                        active={mode === "signup"}
+                        onClick={() => setMode("signup")}
+                        title="Criar conta"
+                      />
+                      <Choice
+                        active={mode === "login"}
+                        onClick={() => setMode("login")}
+                        title="Já tenho conta"
+                      />
+                    </div>
+                    <div className="mt-6 grid gap-4">
+                      {(mode === "signup" || needsProfile) && (
+                        <>
+                          <Field
+                            label="Nome"
+                            value={form.name}
+                            onChange={(v) => setForm((c) => ({ ...c, name: v }))}
+                          />
+                          <Field
+                            label="Telefone"
+                            type="tel"
+                            value={form.phone}
+                            onChange={(v) => setForm((c) => ({ ...c, phone: v }))}
+                          />
+                        </>
+                      )}
+                      <Field
+                        label="E-mail"
+                        type="email"
+                        value={form.email}
+                        disabled={needsProfile}
+                        onChange={(v) => setForm((c) => ({ ...c, email: v }))}
+                      />
+                      {!needsProfile && (
+                        <Field
+                          label="Senha"
+                          type="password"
+                          value={form.password}
+                          onChange={(v) => setForm((c) => ({ ...c, password: v }))}
+                        />
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="line-clamp-2 text-[13px] font-medium text-black">
-                        {item.name}
-                      </div>
-                      <div className="mt-1 text-[12px] text-neutral-500">
-                        {item.quantity} x {formatBRL(item.price)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  </>
+                )}
+                <PrimaryButton
+                  busy={busy}
+                  onClick={() => (account ? goTo(2) : identify())}
+                  label={
+                    account
+                      ? "Continuar"
+                      : mode === "signup" && !needsProfile
+                        ? "Criar conta e continuar"
+                        : "Continuar"
+                  }
+                />
+              </StepTitle>
             )}
-            <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-5">
-              <span className="text-[12px] uppercase tracking-[0.18em] text-neutral-500">
-                Subtotal
-              </span>
-              <span className="text-lg font-semibold text-black">{formatBRL(subtotal)}</span>
-            </div>
+
+            {step === 2 && (
+              <StepTitle n={2} title="Entrega">
+                <div className="mt-4 flex items-end gap-3">
+                  <div className="w-40 min-w-0 shrink">
+                    <Field
+                      label="CEP"
+                      inputMode="numeric"
+                      value={zip}
+                      onChange={(v) => setZip(formatCep(v))}
+                      onEnter={() => calculate()}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => calculate()}
+                    disabled={busy}
+                    className="h-11 shrink-0 border border-black px-4 text-[12px] font-semibold uppercase tracking-[0.12em] hover:bg-black hover:text-white disabled:opacity-50"
+                  >
+                    {busy && !validQuote ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Calcular"
+                    )}
+                  </button>
+                </div>
+
+                {validQuote && (
+                  <>
+                    <div className="mt-3 text-[13px] text-neutral-600">
+                      <MapPin className="mr-1 inline h-3.5 w-3.5" />
+                      {validQuote.address.city}/{validQuote.address.state}
+                    </div>
+                    <div
+                      className="mt-4 grid gap-2"
+                      role="radiogroup"
+                      aria-label="Formas de entrega"
+                    >
+                      {validQuote.options.map((option) => (
+                        <OptionCard
+                          key={optionKey(option)}
+                          option={option}
+                          selected={choice === optionKey(option)}
+                          onSelect={() => {
+                            setChoice(optionKey(option));
+                            setError("");
+                          }}
+                        />
+                      ))}
+                    </div>
+                    {validQuote.shippingUnavailable && (
+                      <p className="mt-2 text-[12px] text-neutral-500">
+                        Correios/transportadoras indisponíveis no momento. Tente calcular de novo em
+                        instantes.
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {chosen && !isPickup && (
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    <Field
+                      label="Rua"
+                      value={street.street}
+                      onChange={(v) => setStreet((c) => ({ ...c, street: v }))}
+                    />
+                    <Field
+                      label="Número"
+                      value={street.address_number}
+                      onChange={(v) => setStreet((c) => ({ ...c, address_number: v }))}
+                    />
+                    <Field
+                      label="Complemento"
+                      value={street.complement}
+                      onChange={(v) => setStreet((c) => ({ ...c, complement: v }))}
+                    />
+                    <Field
+                      label="Bairro"
+                      value={street.neighborhood}
+                      onChange={(v) => setStreet((c) => ({ ...c, neighborhood: v }))}
+                    />
+                  </div>
+                )}
+
+                {chosen && isPickup && (
+                  <div className="mt-6 border border-black/10 bg-neutral-50 px-4 py-3 text-[13px] text-neutral-700">
+                    <div className="font-medium text-black">Retirar em</div>
+                    <div className="mt-1">
+                      {pickup?.pickup_address || storeAddress || "Endereço informado pela loja."}
+                    </div>
+                    {pickup?.pickup_instructions && (
+                      <div className="mt-2 whitespace-pre-line text-neutral-500">
+                        {pickup.pickup_instructions}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <PrimaryButton
+                  busy={busy}
+                  onClick={() => goTo(3)}
+                  label="Continuar para pagamento"
+                />
+              </StepTitle>
+            )}
+
+            {step === 3 && (
+              <StepTitle n={3} title="Pagamento">
+                <div className="mt-4 flex flex-wrap gap-2 text-[12px] font-medium text-neutral-700">
+                  {["Pix", "Boleto", "Cartão de crédito"].map((label) => (
+                    <span key={label} className="border border-black/10 px-3 py-2">
+                      <CreditCard className="mr-1.5 inline h-3.5 w-3.5" />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-4 text-[13px] leading-relaxed text-neutral-600">
+                  Você escolhe a forma e paga na página segura do Mercado Pago, depois de revisar o
+                  pedido.
+                </p>
+                <div className="mt-4 border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
+                  Pagamento online em breve. Por enquanto o pedido é registrado como aguardando
+                  pagamento.
+                </div>
+                <PrimaryButton busy={busy} onClick={() => goTo(4)} label="Revisar pedido" />
+              </StepTitle>
+            )}
+
+            {step === 4 && chosen && validQuote && (
+              <StepTitle n={4} title="Revisão">
+                <div className="mt-4 divide-y divide-black/10 text-[13px]">
+                  {items.map((item) => (
+                    <div key={item.key} className="flex justify-between gap-4 py-2">
+                      <span>
+                        {item.quantity}x {item.name}
+                        {item.variantLabel ? ` / ${item.variantLabel}` : ""}
+                      </span>
+                      <span>{formatBRL(item.price * item.quantity)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-5 grid gap-3 border-t border-black/10 pt-4 text-[13px]">
+                  <ReviewLine label="Entrega" onEdit={() => goTo(2)}>
+                    {chosen.name} · {chosen.price > 0 ? formatBRL(chosen.price) : "Grátis"}
+                    {deliveryDaysLabel(chosen.min_days, chosen.max_days)
+                      ? ` · ${deliveryDaysLabel(chosen.min_days, chosen.max_days)}`
+                      : ""}
+                  </ReviewLine>
+                  <ReviewLine label={isPickup ? "Retirada" : "Endereço"} onEdit={() => goTo(2)}>
+                    {isPickup
+                      ? pickup?.pickup_address || storeAddress || "Endereço informado pela loja."
+                      : formatDeliveryAddress({ ...validQuote.address, ...street })}
+                  </ReviewLine>
+                  <ReviewLine label="Pagamento" onEdit={() => goTo(3)}>
+                    Mercado Pago (Pix, boleto ou cartão)
+                  </ReviewLine>
+                </div>
+                <label className="mt-5 grid gap-2">
+                  <span className="text-[12px] font-medium uppercase tracking-[0.14em] text-neutral-500">
+                    Observações
+                  </span>
+                  <textarea
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    rows={3}
+                    maxLength={1000}
+                    className="w-full min-w-0 resize-none border border-black/10 bg-white px-3 py-3 text-[14px] outline-none focus:border-black"
+                  />
+                </label>
+                <PrimaryButton busy={busy} onClick={finish} label="Finalizar e pagar" />
+              </StepTitle>
+            )}
+
             {error && (
-              <div className="mt-4 border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700">
+              <div
+                className="mt-4 border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700"
+                role="alert"
+              >
                 {error}
               </div>
             )}
-            <button
-              onClick={finish}
-              disabled={loading || items.length === 0}
-              className="mt-6 flex w-full items-center justify-center gap-2 bg-black px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800 disabled:opacity-50"
-            >
-              <MessageCircle className="h-4 w-4" />{" "}
-              {loading ? "Finalizando..." : "Finalizar pelo WhatsApp"}
-            </button>
-            <p className="mt-3 text-[12px] leading-relaxed text-neutral-500">
-              O pedido fica salvo em Minhas compras e o WhatsApp da loja abre com o resumo. Valores
-              finais conferidos pela loja.
-            </p>
+          </section>
+
+          <aside className="order-first border border-black/10 bg-white p-5 md:order-none md:self-start md:p-7">
+            <details className="group md:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between text-[13px]">
+                <span className="text-neutral-500">
+                  Resumo ({items.length} {items.length === 1 ? "item" : "itens"})
+                </span>
+                <span className="text-[16px] font-semibold text-black">{formatBRL(total)}</span>
+              </summary>
+              <div className="mt-4">
+                <Summary items={items} subtotal={subtotal} chosen={chosen} total={total} />
+              </div>
+            </details>
+            <div className="hidden md:block">
+              <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">
+                Resumo
+              </div>
+              <div className="mt-6">
+                <Summary items={items} subtotal={subtotal} chosen={chosen} total={total} />
+              </div>
+            </div>
           </aside>
         </div>
       </div>
     </div>
+  );
+}
+
+function Summary({
+  items,
+  subtotal,
+  chosen,
+  total,
+}: {
+  items: ReturnType<typeof useCart>;
+  subtotal: number;
+  chosen: DeliveryOption | null;
+  total: number;
+}) {
+  return (
+    <>
+      <div className="divide-y divide-black/10">
+        {items.map((item) => (
+          <div key={item.key} className="flex gap-3 py-3 first:pt-0">
+            <div className="h-14 w-11 shrink-0 bg-neutral-100">
+              {item.image && <img src={item.image} alt="" className="h-full w-full object-cover" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="line-clamp-2 text-[13px] font-medium text-black">{item.name}</div>
+              {item.variantLabel && (
+                <div className="text-[12px] text-neutral-500">{item.variantLabel}</div>
+              )}
+              <div className="mt-0.5 text-[12px] text-neutral-500">
+                {item.quantity} x {formatBRL(item.price)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 space-y-1.5 border-t border-black/10 pt-4 text-[13px] text-neutral-600">
+        <div className="flex justify-between">
+          <span>Produtos</span>
+          <span>{formatBRL(subtotal)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Frete</span>
+          <span>{chosen ? (chosen.price > 0 ? formatBRL(chosen.price) : "Grátis") : "—"}</span>
+        </div>
+        <div className="flex justify-between pt-2 text-[16px] font-semibold text-black">
+          <span>Total</span>
+          <span>{formatBRL(total)}</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function OptionCard({
+  option,
+  selected,
+  onSelect,
+}: {
+  option: DeliveryOption;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const Icon = option.method === "pickup" ? Store : option.method === "local" ? MapPin : Truck;
+  const days = deliveryDaysLabel(option.min_days, option.max_days);
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={`flex items-center gap-3 border px-4 py-3 text-left ${
+        selected ? "border-black bg-neutral-50" : "border-black/10 hover:border-black/40"
+      }`}
+    >
+      <span
+        className={`grid h-4 w-4 shrink-0 place-items-center rounded-full border ${selected ? "border-black" : "border-neutral-400"}`}
+      >
+        {selected && <span className="h-2 w-2 rounded-full bg-black" />}
+      </span>
+      <Icon className="h-4 w-4 shrink-0 text-neutral-500" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13px] font-medium text-black">{option.name}</span>
+        <span className="block text-[12px] text-neutral-500">
+          {option.method === "pickup" ? "Retire na loja" : days ? `Chega em ${days}` : ""}
+        </span>
+      </span>
+      <span className="text-right text-[13px] font-semibold text-black">
+        {option.free ? (
+          <>
+            <span className="block text-emerald-700">Grátis</span>
+            <span className="block text-[11px] font-normal text-neutral-400 line-through">
+              {formatBRL(option.original_price)}
+            </span>
+          </>
+        ) : option.price > 0 ? (
+          formatBRL(option.price)
+        ) : (
+          "Grátis"
+        )}
+      </span>
+    </button>
+  );
+}
+
+function StepTitle({
+  n,
+  title,
+  children,
+}: {
+  n: number;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">
+        Etapa {n} de 4
+      </div>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-black">{title}</h1>
+      {children}
+    </div>
+  );
+}
+
+function ReviewLine({
+  label,
+  onEdit,
+  children,
+}: {
+  label: string;
+  onEdit: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+          {label}
+        </div>
+        <div className="mt-1 text-black">{children}</div>
+      </div>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="text-[12px] text-neutral-500 underline hover:text-black"
+      >
+        Alterar
+      </button>
+    </div>
+  );
+}
+
+function PrimaryButton({
+  busy,
+  onClick,
+  label,
+}: {
+  busy: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      className="mt-6 flex w-full items-center justify-center gap-2 bg-black px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800 disabled:opacity-50 sm:w-auto"
+    >
+      {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+      {label}
+    </button>
   );
 }
 
@@ -445,6 +866,7 @@ function Field({
   label,
   value,
   onChange,
+  onEnter,
   type = "text",
   inputMode,
   disabled,
@@ -452,12 +874,13 @@ function Field({
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onEnter?: () => void;
   type?: string;
   inputMode?: "numeric" | "text";
   disabled?: boolean;
 }) {
   return (
-    <label className="grid gap-2">
+    <label className="grid min-w-0 gap-2">
       <span className="text-[12px] font-medium uppercase tracking-[0.14em] text-neutral-500">
         {label}
       </span>
@@ -467,7 +890,13 @@ function Field({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 border border-black/10 bg-white px-3 text-[14px] outline-none focus:border-black disabled:bg-neutral-50 disabled:text-neutral-500"
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && onEnter) {
+            event.preventDefault();
+            onEnter();
+          }
+        }}
+        className="h-11 w-full min-w-0 border border-black/10 bg-white px-3 text-[14px] outline-none focus:border-black disabled:bg-neutral-50 disabled:text-neutral-500"
       />
     </label>
   );
