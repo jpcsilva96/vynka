@@ -35,6 +35,8 @@ import {
   formatDeliveryAddress,
   orderStatusLabelFor,
   replaceOrderItems,
+  stageActionLabel,
+  websiteNextStages,
   updateOrderCustomer,
   updateOrderNotes,
   updateOrderPayment,
@@ -201,23 +203,30 @@ function PedidoDetalhe() {
   }
 
   // Pedido do site: só o Mercado Pago confirma o pagamento (o banco também barra, lote E4). O
-  // lojista pode cancelar enquanto aguarda e conclui depois de pago.
+  // lojista pode cancelar enquanto aguarda; depois de pago, avança as etapas (só para a frente;
+  // Correios/transportadora só até "Em separação", o resto vem do Melhor Envio).
   const isWebsite = order.source === "website";
   const awaitingPayment = isWebsite && order.status === "pending";
-  const canChangeStatus = order.status === "pending" && !isWebsite;
+  const nextStages = websiteNextStages(order);
+  const nextStage = nextStages[0];
+  const shippingByCarrier =
+    isWebsite &&
+    order.delivery_method === "shipping" &&
+    ["paid", "in_production"].includes(order.status);
+  const canChangeStatus = (order.status === "pending" && !isWebsite) || nextStages.length > 0;
   const canConfirmOrder = order.status === "pending" && !isWebsite;
-  const canConcludeSale =
-    order.status === "confirmed" ||
-    (isWebsite && ["paid", "in_production", "in_dispatch", "shipped"].includes(order.status));
+  const canConcludeSale = order.status === "confirmed";
   const canCancelSale = order.status !== "cancelled" && order.status !== "delivered";
   const cancelWarning =
     isWebsite && order.paid_at
       ? "Cancelar este pedido? Ele já foi pago: o reembolso ao cliente é feito na sua conta do Mercado Pago."
       : "Cancelar este pedido?";
-  const statusChoices: { value: OrderStatus; label: string; icon: React.ReactNode }[] = [
-    { value: "confirmed", label: "Confirmado", icon: <Check className="h-4 w-4" /> },
-    { value: "cancelled", label: "Cancelado", icon: <XCircle className="h-4 w-4" /> },
-  ];
+  const statusChoices: { value: OrderStatus; label: string; icon: React.ReactNode }[] = isWebsite
+    ? nextStages.map((stage) => ({ ...stage, icon: <Check className="h-4 w-4" /> }))
+    : [
+        { value: "confirmed", label: "Confirmado", icon: <Check className="h-4 w-4" /> },
+        { value: "cancelled", label: "Cancelado", icon: <XCircle className="h-4 w-4" /> },
+      ];
 
   const saveCustomer = () => {
     orderMutation.mutate(async () => {
@@ -412,7 +421,9 @@ function PedidoDetalhe() {
                         ))}
                       </div>
                       <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
-                        Após confirmado ou cancelado, um pedido não pode voltar ao status Pendente.
+                        {isWebsite
+                          ? "No pedido do site a etapa só avança: não dá para voltar depois."
+                          : "Após confirmado ou cancelado, um pedido não pode voltar ao status Pendente."}
                       </p>
                       <button
                         disabled={!nextStatus || statusMutation.isPending}
@@ -492,6 +503,21 @@ function PedidoDetalhe() {
                     Concluir venda
                   </button>
                 )}
+
+                {nextStage && (
+                  <button
+                    disabled={statusMutation.isPending}
+                    onClick={() => statusMutation.mutate(nextStage.value)}
+                    className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-[12.5px] font-medium text-primary-foreground hover:bg-graphite disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {statusMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.6} />
+                    ) : (
+                      <Check className="h-4 w-4" strokeWidth={1.6} />
+                    )}
+                    {stageActionLabel(nextStage.value, order.delivery_method)}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -504,6 +530,15 @@ function PedidoDetalhe() {
                 {order.payment_due_at
                   ? `; sem pagamento até ${formatDate(order.payment_due_at)}, ele é cancelado e as peças voltam ao estoque.`
                   : "."}
+              </span>
+            </div>
+          )}
+          {shippingByCarrier && (
+            <div className="mt-3 rounded-md border border-border bg-surface px-4 py-3 text-[12.5px] text-foreground">
+              <span className="font-medium">Envio por Correios/transportadora.</span>{" "}
+              <span className="text-muted-foreground">
+                Você marca "Em separação"; "Enviado" e "Entregue" são atualizados automaticamente
+                pelo Melhor Envio quando a etiqueta for gerada pelo Vynka.
               </span>
             </div>
           )}
