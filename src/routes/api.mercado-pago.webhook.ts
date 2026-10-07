@@ -35,6 +35,11 @@ async function handleWebhook(request: Request) {
   const requestId = request.headers.get("x-request-id");
   const signature = request.headers.get("x-signature");
   const mpUserId = String(body.user_id ?? "");
+  // O Mercado Pago manda o mesmo aviso em dois formatos: "?data.id=&type=" (webhook) e "?id=&topic="
+  // (antigo). A assinatura só inclui o id quando ele vem como data.id no endereço; usar o "id" do
+  // formato antigo recusava avisos legítimos (medido em 07/10: 7 de 8 recusados no pedido #22).
+  const signedId = url.searchParams.get("data.id");
+  const format = signedId ? "webhook" : "ipn";
 
   const log = async (fields: Record<string, unknown>) => {
     const row = {
@@ -43,6 +48,7 @@ async function handleWebhook(request: Request) {
       resource_id: dataId || null,
       mp_user_id: /^\d{1,18}$/.test(mpUserId) ? mpUserId : null,
       ...fields,
+      result: `${format}:${String(fields.result ?? "")}`.slice(0, 200),
     };
     const { error } = requestId
       ? await db.from("payment_webhook_events").upsert(row, { onConflict: "request_id" })
@@ -52,7 +58,7 @@ async function handleWebhook(request: Request) {
 
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
   if (signature && secret) {
-    const ok = await mp.validWebhookSignature(secret, signature, requestId, dataId || null);
+    const ok = await mp.validWebhookSignature(secret, signature, requestId, signedId);
     if (!ok) {
       await log({ result: "bad_signature", processed_at: new Date().toISOString() });
       return new Response("invalid signature", { status: 401 });
