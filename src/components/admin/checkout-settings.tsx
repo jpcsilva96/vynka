@@ -880,6 +880,10 @@ function MercadoPagoConnection({
                 O dinheiro das vendas cai direto na sua conta; o Vynka não recebe nada por você.
               </li>
               <li>Parcelas e juros do cartão você configura na sua conta do Mercado Pago.</li>
+              <li>
+                Tenha uma chave Pix cadastrada no Mercado Pago; sem ela, o Pix não aparece para o
+                cliente.
+              </li>
             </ul>
             <p className="mt-2 text-muted-foreground">
               Travou em algum passo? Fale com o suporte do Vynka.

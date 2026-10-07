@@ -319,6 +319,7 @@ interface MpPayment {
   payment_method_id?: string;
   external_reference?: string | null;
   date_last_updated?: string | null;
+  date_of_expiration?: string | null;
   date_approved?: string | null;
   date_created?: string | null;
 }
@@ -377,6 +378,27 @@ export async function applyPayment(storeId: string, payment: MpPayment) {
     _approved_at: payment.date_approved ?? null,
   });
   if (error) throw error;
+  // Boleto/Pix pendente: o Mercado Pago pode dar mais prazo que o da loja (boleto do pedido #23
+  // venceu em 13/10 no MP e em 10/10 no Vynka, medido em 07/10). Vale o mais longo, para o pedido
+  // não ser cancelado enquanto o cliente ainda pode pagar.
+  const method = paymentMethod(payment);
+  const mpDue = payment.date_of_expiration ? new Date(payment.date_of_expiration) : null;
+  if (
+    String(data) === "deadline_set" &&
+    (method === "boleto" || method === "pix") &&
+    mpDue &&
+    !Number.isNaN(mpDue.getTime())
+  ) {
+    const due = mpDue.toISOString();
+    const { error: dueError } = await (supabaseAdmin as any)
+      .from("orders")
+      .update({ payment_due_at: due })
+      .eq("id", orderId)
+      .eq("status", "pending")
+      .is("paid_at", null)
+      .lt("payment_due_at", due);
+    if (dueError) throw dueError;
+  }
   return { orderId, result: String(data) };
 }
 
