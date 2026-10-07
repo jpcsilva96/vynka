@@ -211,7 +211,7 @@ function VenderPage() {
   };
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col bg-background">
+    <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
       <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur-xl">
         <div className="flex h-16 items-center gap-4 px-6">
           <SidebarTrigger className="-ml-1 h-8 w-8 text-muted-foreground hover:text-foreground" />
@@ -1199,7 +1199,7 @@ function CheckoutScreen({
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
 
   const buildPayload = () => {
-    let details: Record<string, unknown> = {};
+    const details: Record<string, unknown> = {};
     let paid: number | null = null;
     let ch: number | null = null;
     if (method === "cash") {

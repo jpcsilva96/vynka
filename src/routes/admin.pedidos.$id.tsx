@@ -310,7 +310,7 @@ function PedidoDetalhe() {
   };
 
   return (
-    <div className="min-h-svh flex-1 bg-background">
+    <div className="min-h-svh min-w-0 flex-1 bg-background">
       <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur-xl">
         <div className="flex h-20 items-center gap-4 px-6">
           <button
