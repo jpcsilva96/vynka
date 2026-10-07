@@ -52,6 +52,7 @@ import { Route as LojaSlugEntrarRouteImport } from './routes/loja.$slug.entrar'
 import { Route as LojaSlugMinhaContaRouteImport } from './routes/loja.$slug.minha-conta'
 import { Route as LojaSlugQuemSomosRouteImport } from './routes/loja.$slug.quem-somos'
 import { Route as AdminIntegracoesMelhorEnvioRetornoRouteImport } from './routes/admin.integracoes.melhor-envio.retorno'
+import { Route as AdminIntegracoesMercadoPagoRetornoRouteImport } from './routes/admin.integracoes.mercado-pago.retorno'
 import { Route as LojaSlugCategoriaCategorySlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug'
 import { Route as LojaSlugPedidoIdRouteImport } from './routes/loja.$slug.pedido.$id'
 import { Route as LojaSlugProdutoIdRouteImport } from './routes/loja.$slug.produto.$id'
@@ -273,6 +274,12 @@ const AdminIntegracoesMelhorEnvioRetornoRoute =
     path: '/integracoes/melhor-envio/retorno',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminIntegracoesMercadoPagoRetornoRoute =
+  AdminIntegracoesMercadoPagoRetornoRouteImport.update({
+    id: '/integracoes/mercado-pago/retorno',
+    path: '/integracoes/mercado-pago/retorno',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const LojaSlugCategoriaCategorySlugRoute =
   LojaSlugCategoriaCategorySlugRouteImport.update({
     id: '/categoria/$categorySlug',
@@ -340,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/admin/produtos/': typeof AdminProdutosIndexRoute
   '/loja/$slug/': typeof LojaSlugIndexRoute
   '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
+  '/admin/integracoes/mercado-pago/retorno': typeof AdminIntegracoesMercadoPagoRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   '/loja/$slug/pedido/$id': typeof LojaSlugPedidoIdRoute
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
@@ -383,6 +391,7 @@ export interface FileRoutesByTo {
   '/admin/produtos': typeof AdminProdutosIndexRoute
   '/loja/$slug': typeof LojaSlugIndexRoute
   '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
+  '/admin/integracoes/mercado-pago/retorno': typeof AdminIntegracoesMercadoPagoRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   '/loja/$slug/pedido/$id': typeof LojaSlugPedidoIdRoute
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
@@ -433,6 +442,7 @@ export interface FileRoutesById {
   '/admin/produtos/': typeof AdminProdutosIndexRoute
   '/loja/$slug/': typeof LojaSlugIndexRoute
   '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
+  '/admin/integracoes/mercado-pago/retorno': typeof AdminIntegracoesMercadoPagoRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   '/loja/$slug/pedido/$id': typeof LojaSlugPedidoIdRoute
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
@@ -484,6 +494,7 @@ export interface FileRouteTypes {
     | '/admin/produtos/'
     | '/loja/$slug/'
     | '/admin/integracoes/melhor-envio/retorno'
+    | '/admin/integracoes/mercado-pago/retorno'
     | '/loja/$slug/categoria/$categorySlug'
     | '/loja/$slug/pedido/$id'
     | '/loja/$slug/produto/$id'
@@ -527,6 +538,7 @@ export interface FileRouteTypes {
     | '/admin/produtos'
     | '/loja/$slug'
     | '/admin/integracoes/melhor-envio/retorno'
+    | '/admin/integracoes/mercado-pago/retorno'
     | '/loja/$slug/categoria/$categorySlug'
     | '/loja/$slug/pedido/$id'
     | '/loja/$slug/produto/$id'
@@ -576,6 +588,7 @@ export interface FileRouteTypes {
     | '/admin/produtos/'
     | '/loja/$slug/'
     | '/admin/integracoes/melhor-envio/retorno'
+    | '/admin/integracoes/mercado-pago/retorno'
     | '/loja/$slug/categoria/$categorySlug'
     | '/loja/$slug/pedido/$id'
     | '/loja/$slug/produto/$id'
@@ -895,6 +908,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIntegracoesMelhorEnvioRetornoRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/integracoes/mercado-pago/retorno': {
+      id: '/admin/integracoes/mercado-pago/retorno'
+      path: '/integracoes/mercado-pago/retorno'
+      fullPath: '/admin/integracoes/mercado-pago/retorno'
+      preLoaderRoute: typeof AdminIntegracoesMercadoPagoRetornoRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/loja/$slug/categoria/$categorySlug': {
       id: '/loja/$slug/categoria/$categorySlug'
       path: '/categoria/$categorySlug'
@@ -987,6 +1007,7 @@ interface AdminRouteChildren {
   AdminVenderRoute: typeof AdminVenderRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminIntegracoesMelhorEnvioRetornoRoute: typeof AdminIntegracoesMelhorEnvioRetornoRoute
+  AdminIntegracoesMercadoPagoRetornoRoute: typeof AdminIntegracoesMercadoPagoRetornoRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -1007,6 +1028,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   AdminIntegracoesMelhorEnvioRetornoRoute:
     AdminIntegracoesMelhorEnvioRetornoRoute,
+  AdminIntegracoesMercadoPagoRetornoRoute:
+    AdminIntegracoesMercadoPagoRetornoRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

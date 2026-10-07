@@ -48,6 +48,12 @@ Object.assign(process.env, {
   MELHORENVIO_CLIENT_ID: env.MELHORENVIO_SANDBOX_CLIENT_ID ?? "",
   MELHORENVIO_CLIENT_SECRET: env.MELHORENVIO_SANDBOX_CLIENT_SECRET ?? "",
   MELHORENVIO_LOCAL_RELAY_PORT: String(Number(process.argv[2] ?? 8081)),
+  // Mercado Pago: mesmo aplicativo do publicado; a volta da autorização também passa pela página
+  // publicada, que repassa para esta porta. Testar com as contas de teste (vendedor/comprador).
+  MERCADOPAGO_CLIENT_ID: env.MERCADOPAGO_CLIENT_ID ?? "",
+  MERCADOPAGO_CLIENT_SECRET: env.MERCADOPAGO_CLIENT_SECRET ?? "",
+  MERCADOPAGO_WEBHOOK_SECRET: env.MERCADOPAGO_WEBHOOK_SECRET ?? "",
+  MERCADOPAGO_LOCAL_RELAY_PORT: String(Number(process.argv[2] ?? 8081)),
 });
 
 const clientFile = /src\/integrations\/supabase\/client\.ts$/;

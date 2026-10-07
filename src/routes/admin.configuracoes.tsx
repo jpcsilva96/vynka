@@ -107,11 +107,12 @@ function Configuracoes() {
   const storeId = currentStore?.id ?? "";
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("Loja");
-  // Volta do Melhor Envio (e outros links diretos) abre a aba certa: ?aba=entrega.
+  // Volta do Melhor Envio / Mercado Pago (e outros links diretos) abre a aba certa:
+  // ?aba=entrega ou ?aba=pagamentos.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("aba") === "entrega") {
-      setActiveTab("Entrega e Retirada");
-    }
+    const aba = new URLSearchParams(window.location.search).get("aba");
+    if (aba === "entrega") setActiveTab("Entrega e Retirada");
+    if (aba === "pagamentos") setActiveTab("Pagamentos");
   }, []);
   const [form, setForm] = useState<GeneralSettingsForm>(emptyForm);
   const [receiptForm, setReceiptForm] = useState<ReceiptSettings>(defaultReceiptSettings);
@@ -243,7 +244,7 @@ function Configuracoes() {
         ) : activeTab === "Entrega e Retirada" ? (
           <DeliverySettingsTab storeId={storeId} storeAddress={formatStoreAddress(form)} />
         ) : activeTab === "Pagamentos" ? (
-          <PaymentSettingsTab />
+          <PaymentSettingsTab storeId={storeId} />
         ) : activeTab === "Loja" ? (
           isLoading ? (
             <div className="grid min-h-[420px] place-items-center rounded-lg border border-border bg-surface">
