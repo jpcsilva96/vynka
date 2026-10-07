@@ -85,7 +85,7 @@ function Estatisticas() {
   const periodLabel = getPeriodLabel(period, startDate, endDate);
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col bg-background">
+    <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
       <main className="flex-1 px-6 py-7 md:px-8">
         <div className="mx-auto w-full max-w-7xl">
           <div className="mb-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">

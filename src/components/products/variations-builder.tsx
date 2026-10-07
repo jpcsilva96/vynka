@@ -75,9 +75,7 @@ export function VariationsBuilder({
     if (!option) return;
     updateOptionValues(
       name,
-      option.values.map((item, itemIndex) =>
-        itemIndex === index ? { ...item, value } : item,
-      ),
+      option.values.map((item, itemIndex) => (itemIndex === index ? { ...item, value } : item)),
     );
   };
 
@@ -89,7 +87,9 @@ export function VariationsBuilder({
   };
 
   const updateVariant = (idx: number, patch: Partial<ProductVariant>) =>
-    onVariantsChange(variants.map((variant, index) => (index === idx ? { ...variant, ...patch } : variant)));
+    onVariantsChange(
+      variants.map((variant, index) => (index === idx ? { ...variant, ...patch } : variant)),
+    );
 
   return (
     <div className="space-y-6">
@@ -172,18 +172,18 @@ export function VariationsBuilder({
             </div>
           </div>
           <div className="divide-y divide-border">
-            <div className="grid grid-cols-[minmax(0,1fr)_120px_100px] items-center gap-3 bg-background/40 px-4 py-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground sm:grid-cols-[minmax(0,1fr)_120px_120px_100px]">
-              <span>Combinacao</span>
-              <span>Preco</span>
-              <span className="hidden sm:block">Estoque</span>
-              <span>Disponivel</span>
+            <div className="grid grid-cols-[minmax(3.5rem,1fr)_minmax(0,6.5rem)_minmax(0,4.5rem)_auto] items-center gap-2 bg-background/40 px-3 py-2 text-[11px] uppercase tracking-[0.1em] text-muted-foreground sm:gap-3 sm:px-4">
+              <span className="truncate">Combinacao</span>
+              <span className="truncate">Preco</span>
+              <span className="truncate">Estoque</span>
+              <span className="truncate">Ativa</span>
             </div>
             {variants.map((variant, index) => (
               <div
                 key={variant.sku_key}
-                className="grid grid-cols-[minmax(0,1fr)_120px_100px] items-center gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_120px_120px_100px]"
+                className="grid grid-cols-[minmax(3.5rem,1fr)_minmax(0,6.5rem)_minmax(0,4.5rem)_auto] items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4"
               >
-                <div className="min-w-0 text-[13px] font-medium text-foreground">
+                <div className="min-w-0 break-words text-[13px] font-medium text-foreground">
                   {variantLabel(variant)}
                 </div>
                 <input
@@ -193,7 +193,7 @@ export function VariationsBuilder({
                     updateVariant(index, { price: raw === "" ? null : Number(raw) });
                   }}
                   placeholder={formatBRL(0)}
-                  className="rounded-md border border-border bg-surface px-2.5 py-1.5 text-[13px] outline-none focus:border-foreground/40"
+                  className="w-full min-w-0 rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] outline-none focus:border-foreground/40"
                 />
                 <input
                   type="number"
@@ -204,7 +204,7 @@ export function VariationsBuilder({
                       stock_quantity: Math.max(0, Number(event.target.value) || 0),
                     })
                   }
-                  className="hidden rounded-md border border-border bg-surface px-2.5 py-1.5 text-[13px] outline-none focus:border-foreground/40 sm:block"
+                  className="w-full min-w-0 rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] outline-none focus:border-foreground/40"
                 />
                 <label className="inline-flex cursor-pointer items-center gap-2 text-[13px]">
                   <input

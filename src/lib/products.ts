@@ -49,6 +49,8 @@ export interface ProductVariant {
   image_url: string | null;
   available: boolean;
   stock_quantity: number;
+  // Quantidade como veio do banco ao abrir a tela (só grava se o lojista mudou).
+  loaded_stock?: number;
   position: number;
 }
 
@@ -269,9 +271,9 @@ export async function uploadProductImage(storeId: string, file: File): Promise<P
 export async function listCategories(storeId: string): Promise<Category[]> {
   const [{ data, error }, counts] = await Promise.all([
     supabase
-    .from("categories")
+      .from("categories")
       .select("id, name, slug, display_order, parent_id, active")
-    .eq("store_id", storeId)
+      .eq("store_id", storeId)
       .order("display_order")
       .order("name"),
     supabase.from("products").select("id, category_id").eq("store_id", storeId),
@@ -324,15 +326,20 @@ export async function updateCategory(
   const name = form.name.trim();
   const slug = slugifyCategory(form.slug || name);
   if (!name || !slug) throw new Error("Nome e slug sao obrigatorios.");
-  if (form.parent_id === categoryId) throw new Error("Uma categoria nao pode ser filha dela mesma.");
+  if (form.parent_id === categoryId)
+    throw new Error("Uma categoria nao pode ser filha dela mesma.");
 
   const categories = await listCategories(storeId);
-  let cursor = form.parent_id ? categories.find((category) => category.id === form.parent_id) : null;
+  let cursor = form.parent_id
+    ? categories.find((category) => category.id === form.parent_id)
+    : null;
   while (cursor) {
     if (cursor.parent_id === categoryId) {
       throw new Error("Essa alteracao criaria um ciclo de subcategorias.");
     }
-    cursor = cursor.parent_id ? categories.find((category) => category.id === cursor?.parent_id) ?? null : null;
+    cursor = cursor.parent_id
+      ? (categories.find((category) => category.id === cursor?.parent_id) ?? null)
+      : null;
   }
 
   const { error } = await supabase
@@ -351,28 +358,36 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(storeId: string, categoryId: string): Promise<void> {
-  const [{ count: productsCount, error: productsError }, { count: childrenCount, error: childrenError }] =
-    await Promise.all([
-      supabase
-        .from("products")
-        .select("id", { count: "exact", head: true })
-        .eq("store_id", storeId)
-        .eq("category_id", categoryId),
-      supabase
-        .from("categories")
-        .select("id", { count: "exact", head: true })
-        .eq("store_id", storeId)
-        .eq("parent_id", categoryId),
-    ]);
+  const [
+    { count: productsCount, error: productsError },
+    { count: childrenCount, error: childrenError },
+  ] = await Promise.all([
+    supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId)
+      .eq("category_id", categoryId),
+    supabase
+      .from("categories")
+      .select("id", { count: "exact", head: true })
+      .eq("store_id", storeId)
+      .eq("parent_id", categoryId),
+  ]);
   if (productsError || childrenError) throw productsError ?? childrenError;
   if ((productsCount ?? 0) > 0) {
-    throw new Error("Esta categoria possui produtos vinculados. Remova ou altere a categoria dos produtos antes de excluir.");
+    throw new Error(
+      "Esta categoria possui produtos vinculados. Remova ou altere a categoria dos produtos antes de excluir.",
+    );
   }
   if ((childrenCount ?? 0) > 0) {
     throw new Error("Esta categoria possui subcategorias. Exclua ou mova as subcategorias antes.");
   }
 
-  const { error } = await supabase.from("categories").delete().eq("store_id", storeId).eq("id", categoryId);
+  const { error } = await supabase
+    .from("categories")
+    .delete()
+    .eq("store_id", storeId)
+    .eq("id", categoryId);
   if (error) throw error;
 }
 
@@ -433,7 +448,9 @@ export function productDimensions(form: ProductFormState) {
     const value = Number(raw.replace(",", "."));
     const { label, max, unit } = DIMENSION_LIMITS[key];
     if (!Number.isFinite(value) || value <= 0 || value > max) {
-      throw new Error(`${label}: informe um valor maior que 0 e até ${max} ${unit}, ou deixe vazio.`);
+      throw new Error(
+        `${label}: informe um valor maior que 0 e até ${max} ${unit}, ou deixe vazio.`,
+      );
     }
     out[key] = value;
   }
@@ -499,6 +516,7 @@ export async function getProductForEdit(
       image_url: variant.image_url,
       available: variant.available,
       stock_quantity: variant.stock_quantity ?? 0,
+      loaded_stock: variant.stock_quantity ?? 0,
       position: index,
     }));
 
@@ -625,14 +643,14 @@ export async function updateProduct(
     .eq("id", productId);
   if (error) throw error;
 
-  const [{ error: imageDelete }, { error: variantDelete }, { error: optionDelete }] =
-    await Promise.all([
-      supabase.from("product_images").delete().eq("product_id", productId),
-      supabase.from("product_variants").delete().eq("product_id", productId),
-      supabase.from("product_options").delete().eq("product_id", productId),
-    ]);
-  if (imageDelete || variantDelete || optionDelete) {
-    throw imageDelete ?? variantDelete ?? optionDelete;
+  // Variações ficam no lugar (mesmo id): os pedidos apontam para elas e o estoque é baixado e
+  // devolvido nelas. Imagens e opções continuam sendo regravadas.
+  const [{ error: imageDelete }, { error: optionDelete }] = await Promise.all([
+    supabase.from("product_images").delete().eq("product_id", productId),
+    supabase.from("product_options").delete().eq("product_id", productId),
+  ]);
+  if (imageDelete || optionDelete) {
+    throw imageDelete ?? optionDelete;
   }
 
   if (form.images.length) {
@@ -668,20 +686,67 @@ export async function updateProduct(
     }
   }
 
-  if (form.variants.length) {
-    const { error: variantError } = await supabase.from("product_variants").insert(
-      form.variants.map((v, i) => ({
+  await saveVariantsInPlace(storeId, productId, form);
+}
+
+// Atualiza as variações que já existem (pelo id ou pela combinação), insere as novas e apaga só as
+// que saíram. A quantidade só é gravada quando o lojista mudou o número na tela: assim uma venda
+// feita enquanto a tela estava aberta não é desfeita ao salvar.
+async function saveVariantsInPlace(storeId: string, productId: string, form: ProductFormState) {
+  const { data: current, error: loadError } = await supabase
+    .from("product_variants")
+    .select("id, sku_key")
+    .eq("product_id", productId);
+  if (loadError) throw loadError;
+  const byId = new Map((current ?? []).map((row) => [row.id as string, row]));
+  const byKey = new Map((current ?? []).map((row) => [row.sku_key as string, row]));
+
+  const kept = new Set<string>();
+  const updates: { id: string; patch: Record<string, unknown> }[] = [];
+  const inserts: Record<string, unknown>[] = [];
+  form.variants.forEach((v, i) => {
+    const match = (v.id && byId.get(v.id)) || byKey.get(v.sku_key);
+    const fields = {
+      options: v.options,
+      sku_key: v.sku_key,
+      price: v.price,
+      image_url: v.image_url,
+      available: v.available,
+      position: i,
+    };
+    const stock = Math.max(0, v.stock_quantity ?? 0);
+    if (match && !kept.has(match.id as string)) {
+      kept.add(match.id as string);
+      const stockChanged = form.manage_stock && stock !== (v.loaded_stock ?? null);
+      updates.push({
+        id: match.id as string,
+        patch: stockChanged ? { ...fields, stock_quantity: stock } : fields,
+      });
+    } else {
+      inserts.push({
+        ...fields,
         store_id: storeId,
         product_id: productId,
-        options: v.options,
-        sku_key: v.sku_key,
-        price: v.price,
-        image_url: v.image_url,
-        available: v.available,
-        stock_quantity: form.manage_stock ? Math.max(0, v.stock_quantity ?? 0) : 0,
-        position: i,
-      })),
-    );
-    if (variantError) throw variantError;
+        stock_quantity: form.manage_stock ? stock : 0,
+      });
+    }
+  });
+
+  const removed = (current ?? []).map((row) => row.id as string).filter((id) => !kept.has(id));
+  if (removed.length) {
+    const { error } = await supabase.from("product_variants").delete().in("id", removed);
+    if (error) throw error;
+  }
+  for (const { id, patch } of updates) {
+    const { error } = await supabase
+      .from("product_variants")
+      .update(patch as never)
+      .eq("id", id)
+      .eq("product_id", productId);
+    if (error) throw error;
+  }
+  if (inserts.length) {
+    const { error } = await supabase.from("product_variants").insert(inserts as never);
+    if (error) throw error;
   }
 }

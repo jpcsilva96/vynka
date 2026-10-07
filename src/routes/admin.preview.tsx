@@ -12,7 +12,7 @@ function PreviewRoute() {
   if (!currentStore) return null;
   const url = `/loja/${currentStore.slug}?preview=1`;
   return (
-    <div className="flex min-h-svh flex-1 flex-col bg-background">
+    <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
       <div className="flex items-center justify-between border-b border-border bg-surface px-6 py-3">
         <Link
           to="/admin/configuracoes"

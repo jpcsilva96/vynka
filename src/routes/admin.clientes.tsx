@@ -344,7 +344,7 @@ function Clientes() {
   };
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col bg-background">
+    <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
       <AppHeader title="Clientes" />
 
       <main className="flex-1 px-6 py-7 md:px-8">

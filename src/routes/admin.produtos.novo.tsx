@@ -96,12 +96,12 @@ function NovoProduto() {
   };
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col bg-background">
+    <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
       <AppHeader title="Novo produto" description="Cadastre um produto no seu catálogo." />
 
       {/* Barra de ações */}
       <div className="sticky top-16 z-10 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-6 py-3 md:px-10">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-3 px-6 py-3 md:px-10">
           <Link
             to="/admin/produtos"
             className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground"

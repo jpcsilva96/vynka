@@ -92,7 +92,7 @@ function EditarProduto() {
 
   if (!product) {
     return (
-      <div className="flex min-h-svh flex-1 flex-col bg-background">
+      <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
         <AppHeader title="Produto nao encontrado" />
         <main className="grid flex-1 place-items-center px-6">
           <Link
@@ -108,7 +108,7 @@ function EditarProduto() {
   }
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col bg-background">
+    <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
       <AppHeader
         title={form.name || "Produto sem nome"}
         description="Edite os detalhes do produto."

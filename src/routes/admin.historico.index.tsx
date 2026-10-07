@@ -135,7 +135,7 @@ function Historico() {
   });
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col bg-background">
+    <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
       <main className="flex-1 px-6 py-7 md:px-8">
         <div className="mx-auto w-full max-w-7xl">
           <h1 className="mb-4 text-[26px] font-semibold tracking-[0] text-foreground">

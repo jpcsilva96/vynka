@@ -271,7 +271,7 @@ function Configuracoes() {
                 </p>
               </div>
 
-              <div className="grid gap-5 xl:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
                 <SettingsCard title="Dados da loja">
                   <LabeledField label="Nome da loja">
                     <TextInput

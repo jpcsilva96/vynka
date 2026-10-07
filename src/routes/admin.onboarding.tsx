@@ -97,7 +97,7 @@ function OnboardingRoute() {
   };
 
   return (
-    <div className="flex min-h-svh flex-1 flex-col bg-background">
+    <div className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
       <AppHeader title="Configuração inicial" description="Publique sua loja em minutos." />
 
       <div className="border-b border-border bg-surface">
