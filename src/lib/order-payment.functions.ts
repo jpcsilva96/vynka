@@ -88,7 +88,6 @@ export const startOrderPayment = createServerFn({ method: "POST" })
           unit_price: Number(item.unit_price),
         })),
         shipping: Number(order.shipping_amount ?? 0),
-        payer: { name: customer?.name ?? null, email: customer?.email ?? null },
         expiresAt: new Date(new Date(order.created_at).getTime() + days * 24 * 60 * 60 * 1000),
         returnUrl: `${origin}/loja/${store?.slug}/pedido/${order.id}`,
       });
