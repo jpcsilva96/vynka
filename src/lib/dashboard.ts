@@ -16,6 +16,8 @@ export interface DashboardData {
     number: number | null;
     created_at: string;
     status: OrderStatus;
+    source: string;
+    delivery_method: string | null;
     total: number;
     customerName: string | null;
   }[];
@@ -69,7 +71,9 @@ export async function getDashboardData(storeId: string): Promise<DashboardData> 
       .gte("completed_at", monthStart),
     supabase
       .from("orders")
-      .select("id, number, created_at, status, total, customer:customers(name)")
+      .select(
+        "id, number, created_at, status, source, delivery_method, total, customer:customers(name)",
+      )
       .eq("store_id", storeId)
       .order("created_at", { ascending: false })
       .limit(5),

@@ -11,7 +11,7 @@ import {
   type CustomerAddressForm,
 } from "@/lib/customer-account";
 import { formatBRL } from "@/lib/products";
-import { orderStatusLabel } from "@/lib/orders";
+import { deliveryMethodLabel, orderStatusLabelFor } from "@/lib/orders";
 import { useStorefront } from "@/lib/storefront-context";
 
 export const Route = createFileRoute("/loja/$slug/minha-conta")({
@@ -89,11 +89,18 @@ function CustomerAccountPage() {
     <div className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
       <div className="flex flex-col justify-between gap-4 border-b border-black/10 pb-8 md:flex-row md:items-end">
         <div>
-          <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">{store.name}</div>
+          <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">
+            {store.name}
+          </div>
           <h1 className="mt-2 text-4xl font-semibold tracking-tight text-black">Minha conta</h1>
-          <p className="mt-2 text-[14px] text-neutral-500">{customer.name} · {customer.email}</p>
+          <p className="mt-2 text-[14px] text-neutral-500">
+            {customer.name} · {customer.email}
+          </p>
         </div>
-        <button onClick={logout} className="w-max border border-black px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.16em] hover:bg-black hover:text-white">
+        <button
+          onClick={logout}
+          className="w-max border border-black px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.16em] hover:bg-black hover:text-white"
+        >
           Sair
         </button>
       </div>
@@ -102,15 +109,47 @@ function CustomerAccountPage() {
         <div className="border border-black/10 bg-white p-5">
           <h2 className="text-xl font-semibold text-black">Endereco de entrega</h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <Field label="CEP" value={address.zip_code} onChange={(value) => setAddress((current) => ({ ...current, zip_code: value }))} />
-            <Field label="Rua" value={address.street} onChange={(value) => setAddress((current) => ({ ...current, street: value }))} />
-            <Field label="Numero" value={address.address_number} onChange={(value) => setAddress((current) => ({ ...current, address_number: value }))} />
-            <Field label="Complemento" value={address.complement} onChange={(value) => setAddress((current) => ({ ...current, complement: value }))} />
-            <Field label="Bairro" value={address.neighborhood} onChange={(value) => setAddress((current) => ({ ...current, neighborhood: value }))} />
-            <Field label="Cidade" value={address.city} onChange={(value) => setAddress((current) => ({ ...current, city: value }))} />
-            <Field label="Estado" value={address.state} onChange={(value) => setAddress((current) => ({ ...current, state: value }))} />
+            <Field
+              label="CEP"
+              value={address.zip_code}
+              onChange={(value) => setAddress((current) => ({ ...current, zip_code: value }))}
+            />
+            <Field
+              label="Rua"
+              value={address.street}
+              onChange={(value) => setAddress((current) => ({ ...current, street: value }))}
+            />
+            <Field
+              label="Numero"
+              value={address.address_number}
+              onChange={(value) => setAddress((current) => ({ ...current, address_number: value }))}
+            />
+            <Field
+              label="Complemento"
+              value={address.complement}
+              onChange={(value) => setAddress((current) => ({ ...current, complement: value }))}
+            />
+            <Field
+              label="Bairro"
+              value={address.neighborhood}
+              onChange={(value) => setAddress((current) => ({ ...current, neighborhood: value }))}
+            />
+            <Field
+              label="Cidade"
+              value={address.city}
+              onChange={(value) => setAddress((current) => ({ ...current, city: value }))}
+            />
+            <Field
+              label="Estado"
+              value={address.state}
+              onChange={(value) => setAddress((current) => ({ ...current, state: value }))}
+            />
           </div>
-          <button onClick={saveAddress} disabled={saving} className="mt-5 bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800 disabled:opacity-50">
+          <button
+            onClick={saveAddress}
+            disabled={saving}
+            className="mt-5 bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800 disabled:opacity-50"
+          >
             {saving ? "Salvando..." : "Salvar endereco"}
           </button>
         </div>
@@ -127,23 +166,52 @@ function CustomerAccountPage() {
                 <article key={order.id} className="border border-black/10 bg-white p-5">
                   <div className="flex flex-col justify-between gap-2 sm:flex-row">
                     <div>
-                      <div className="font-semibold text-black">Pedido #{order.number ?? order.id.slice(0, 8)}</div>
+                      <Link
+                        to="/loja/$slug/pedido/$id"
+                        params={{ slug: store.slug, id: order.id }}
+                        className="font-semibold text-black hover:underline"
+                      >
+                        Pedido #{order.number ?? order.id.slice(0, 8)}
+                      </Link>
                       <div className="mt-1 text-[12px] text-neutral-500">
-                        {new Date(order.created_at).toLocaleDateString("pt-BR")} · {orderStatusLabel(order.status)}
+                        {new Date(order.created_at).toLocaleDateString("pt-BR")} ·{" "}
+                        {orderStatusLabelFor(order)}
                       </div>
                     </div>
-                    <div className="text-[16px] font-semibold text-black">{formatBRL(order.total)}</div>
+                    <div className="text-[16px] font-semibold text-black">
+                      {formatBRL(order.total)}
+                    </div>
                   </div>
                   <div className="mt-4 divide-y divide-black/10">
                     {order.order_items.map((item) => (
                       <div key={item.id} className="flex justify-between gap-4 py-2 text-[13px]">
-                        <span>{item.quantity}x {item.product_name}{item.variant_name ? ` / ${item.variant_name}` : ""}</span>
+                        <span>
+                          {item.quantity}x {item.product_name}
+                          {item.variant_name ? ` / ${item.variant_name}` : ""}
+                        </span>
                         <span>{formatBRL(item.total_price)}</span>
                       </div>
                     ))}
                   </div>
-                  {typeof order.payment_details?.delivery_address === "object" && order.payment_details.delivery_address && (
-                    <div className="mt-3 text-[12px] text-neutral-500">Endereco salvo no pedido.</div>
+                  {order.delivery_method ? (
+                    <div className="mt-3 flex justify-between gap-4 text-[12px] text-neutral-500">
+                      <span>
+                        {order.delivery_method === "shipping" && order.shipping_service_name
+                          ? order.shipping_service_name
+                          : deliveryMethodLabel[order.delivery_method]}
+                      </span>
+                      <span>
+                        Frete{" "}
+                        {order.shipping_amount > 0 ? formatBRL(order.shipping_amount) : "grátis"}
+                      </span>
+                    </div>
+                  ) : (
+                    typeof order.payment_details?.delivery_address === "object" &&
+                    order.payment_details.delivery_address && (
+                      <div className="mt-3 text-[12px] text-neutral-500">
+                        Endereco salvo no pedido.
+                      </div>
+                    )
                   )}
                 </article>
               ))
@@ -158,7 +226,12 @@ function CustomerAccountPage() {
             <h2 className="text-xl font-semibold text-black">Meus favoritos</h2>
             <p className="mt-1 text-[13px] text-neutral-500">Produtos salvos para ver depois.</p>
           </div>
-          <Link to="/loja/$slug" params={{ slug: store.slug }} hash="produtos" className="text-[12px] font-medium uppercase tracking-[0.16em] text-neutral-500 hover:text-black">
+          <Link
+            to="/loja/$slug"
+            params={{ slug: store.slug }}
+            hash="produtos"
+            className="text-[12px] font-medium uppercase tracking-[0.16em] text-neutral-500 hover:text-black"
+          >
             Ver catalogo
           </Link>
         </div>
@@ -168,7 +241,9 @@ function CustomerAccountPage() {
           </div>
         ) : (
           <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-4">
-            {favorites.map((product) => <ProductCard key={product.id} product={product} />)}
+            {favorites.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
           </div>
         )}
       </section>
@@ -176,14 +251,24 @@ function CustomerAccountPage() {
   );
 }
 
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function Field({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
   return (
-    <label className="grid gap-2">
-      <span className="text-[12px] font-medium uppercase tracking-[0.14em] text-neutral-500">{label}</span>
+    <label className="grid min-w-0 gap-2">
+      <span className="text-[12px] font-medium uppercase tracking-[0.14em] text-neutral-500">
+        {label}
+      </span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 border border-black/10 px-3 text-[14px] outline-none focus:border-black"
+        className="h-10 w-full min-w-0 border border-black/10 px-3 text-[14px] outline-none focus:border-black"
       />
     </label>
   );

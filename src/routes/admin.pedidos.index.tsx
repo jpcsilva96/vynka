@@ -9,7 +9,7 @@ import {
   listOrders,
   allOrderStatuses,
   orderStatusClass,
-  orderStatusLabel,
+  orderStatusLabelFor,
   type OrderStatus,
 } from "@/lib/orders";
 
@@ -132,7 +132,7 @@ function Pedidos() {
                   <span
                     className={`rounded px-2 py-1 text-[11.5px] font-medium ${orderStatusClass(order.status)}`}
                   >
-                    {orderStatusLabel(order.status)}
+                    {orderStatusLabelFor(order)}
                   </span>
                 </div>
               </a>

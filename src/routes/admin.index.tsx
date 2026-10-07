@@ -17,7 +17,7 @@ import { useStoreContext } from "@/lib/store-context";
 import { computeChecklist, getStoreFull, progressPercent } from "@/lib/onboarding";
 import { isProvisionalName } from "@/lib/provisional-store";
 import { getDashboardData } from "@/lib/dashboard";
-import { orderStatusClass, orderStatusLabel } from "@/lib/orders";
+import { orderStatusClass, orderStatusLabelFor } from "@/lib/orders";
 import { formatBRL } from "@/lib/products";
 
 export const Route = createFileRoute("/admin/")({
@@ -199,7 +199,7 @@ function Dashboard() {
                     <span
                       className={`rounded px-2 py-0.5 text-[11px] ${orderStatusClass(order.status)}`}
                     >
-                      {orderStatusLabel(order.status)}
+                      {orderStatusLabelFor(order)}
                     </span>
                     <span className="w-24 shrink-0 text-right text-[13px] text-foreground">
                       {formatBRL(order.total)}

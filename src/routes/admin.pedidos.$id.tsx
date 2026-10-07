@@ -30,7 +30,10 @@ import {
 import {
   getOrder,
   orderStatusClass,
-  orderStatusLabel,
+  deliveryDaysLabel,
+  deliveryMethodLabel,
+  formatDeliveryAddress,
+  orderStatusLabelFor,
   replaceOrderItems,
   updateOrderCustomer,
   updateOrderNotes,
@@ -248,7 +251,14 @@ function PedidoDetalhe() {
       return;
     }
     orderMutation.mutate(() =>
-      replaceOrderItems(storeId, id, items, order.discount ?? 0, order.surcharge ?? 0),
+      replaceOrderItems(
+        storeId,
+        id,
+        items,
+        order.discount ?? 0,
+        order.surcharge ?? 0,
+        order.shipping_amount ?? 0,
+      ),
     );
   };
 
@@ -349,7 +359,7 @@ function PedidoDetalhe() {
                     )} ${canChangeStatus ? "hover:bg-muted" : "cursor-default"}`}
                   >
                     <Clock3 className="h-3.5 w-3.5" strokeWidth={1.5} />
-                    {orderStatusLabel(order.status)}
+                    {orderStatusLabelFor(order)}
                     {canChangeStatus && <ChevronDown className="h-3.5 w-3.5" strokeWidth={1.5} />}
                   </button>
 
@@ -519,6 +529,30 @@ function PedidoDetalhe() {
                 )}
               </InfoCard>
 
+              {order.delivery_method && (
+                <InfoCard title="Entrega">
+                  <div className="space-y-1 text-[13px]">
+                    <div className="font-medium text-foreground">
+                      {order.delivery_method === "shipping" && order.shipping_service_name
+                        ? order.shipping_service_name
+                        : deliveryMethodLabel[order.delivery_method]}
+                      {" · "}
+                      {order.shipping_amount > 0 ? formatBRL(order.shipping_amount) : "Grátis"}
+                    </div>
+                    {deliveryDaysLabel(order.shipping_min_days, order.shipping_max_days) && (
+                      <div className="text-muted-foreground">
+                        Prazo: {deliveryDaysLabel(order.shipping_min_days, order.shipping_max_days)}
+                      </div>
+                    )}
+                    <div className="text-muted-foreground">
+                      {order.delivery_method === "pickup"
+                        ? "O cliente retira na loja."
+                        : formatDeliveryAddress(order.delivery_address)}
+                    </div>
+                  </div>
+                </InfoCard>
+              )}
+
               <InfoCard
                 title="Observacao"
                 action={
@@ -582,7 +616,7 @@ function PedidoDetalhe() {
                   />
                   <HistoryLine
                     icon={<Check className="h-4 w-4" strokeWidth={1.5} />}
-                    label={orderStatusLabel(order.status)}
+                    label={orderStatusLabelFor(order)}
                     date={order.updated_at}
                   />
                 </ol>
@@ -917,6 +951,12 @@ function SummaryCard({ order }: { order: OrderRecord }) {
         {order.surcharge > 0 && (
           <SummaryRow label="Acrescimo" value={`+${formatBRL(order.surcharge)}`} />
         )}
+        {order.delivery_method && (
+          <SummaryRow
+            label="Frete"
+            value={order.shipping_amount > 0 ? `+${formatBRL(order.shipping_amount)}` : "Grátis"}
+          />
+        )}
         <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
           <span className="text-[15px] font-medium text-foreground">Total</span>
           <span className="text-[20px] font-medium text-foreground">{formatBRL(order.total)}</span>
@@ -1154,6 +1194,6 @@ function buildReceiptText(order: OrderRecord) {
       (item) => `${item.quantity}x ${item.product_name} - ${formatBRL(item.total_price)}`,
     ),
     `Total: ${formatBRL(order.total)}`,
-    `Status: ${orderStatusLabel(order.status)}`,
+    `Status: ${orderStatusLabelFor(order)}`,
   ].join("\n");
 }

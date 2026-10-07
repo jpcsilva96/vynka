@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { CartItem } from "@/lib/cart";
-import type { OrderStatus } from "@/lib/orders";
+import type { DeliveryAddress, DeliveryMethod, OrderStatus } from "@/lib/orders";
 import { type PublicProduct, isOnSale } from "@/lib/public-shop";
 
 type Db = typeof supabase;
@@ -45,9 +44,17 @@ export interface CustomerOrder {
   number: number | null;
   created_at: string;
   status: OrderStatus;
+  source: string;
+  subtotal: number;
   total: number;
   notes: string | null;
   payment_details: Record<string, unknown>;
+  delivery_method: DeliveryMethod | null;
+  shipping_service_name: string | null;
+  shipping_amount: number;
+  shipping_min_days: number | null;
+  shipping_max_days: number | null;
+  delivery_address: DeliveryAddress | null;
   order_items: {
     id: string;
     product_name: string;
@@ -77,7 +84,9 @@ export async function getStoreCustomer(storeId: string): Promise<StoreCustomer |
   if (!user) return null;
   const { data, error } = await db
     .from("customers")
-    .select("id,store_id,user_id,name,phone,email,zip_code,street,address_number,complement,neighborhood,city,state")
+    .select(
+      "id,store_id,user_id,name,phone,email,zip_code,street,address_number,complement,neighborhood,city,state",
+    )
     .eq("store_id", storeId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -156,19 +165,27 @@ export async function upsertStoreCustomer(
         .from("customers")
         .update(payload)
         .eq("id", existing.id)
-        .select("id,store_id,user_id,name,phone,email,zip_code,street,address_number,complement,neighborhood,city,state")
+        .select(
+          "id,store_id,user_id,name,phone,email,zip_code,street,address_number,complement,neighborhood,city,state",
+        )
         .single()
     : db
         .from("customers")
         .insert(payload)
-        .select("id,store_id,user_id,name,phone,email,zip_code,street,address_number,complement,neighborhood,city,state")
+        .select(
+          "id,store_id,user_id,name,phone,email,zip_code,street,address_number,complement,neighborhood,city,state",
+        )
         .single();
   const { data, error } = await query;
   if (error) throw error;
   return data as StoreCustomer;
 }
 
-export async function updateCustomerAddress(storeId: string, customer: StoreCustomer, address: CustomerAddressForm) {
+export async function updateCustomerAddress(
+  storeId: string,
+  customer: StoreCustomer,
+  address: CustomerAddressForm,
+) {
   return upsertStoreCustomer(storeId, {
     name: customer.name,
     phone: customer.phone,
@@ -182,54 +199,40 @@ export async function listCustomerOrders(storeId: string): Promise<CustomerOrder
   if (!customer) return [];
   const { data, error } = await db
     .from("orders")
-    .select("id,number,created_at,status,total,notes,payment_details,order_items(id,product_name,variant_name,quantity,unit_price,total_price)")
+    .select(CUSTOMER_ORDER_SELECT)
     .eq("store_id", storeId)
     .eq("customer_id", customer.id)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as CustomerOrder[];
+  return ((data ?? []) as unknown as CustomerOrder[]).map(normalizeCustomerOrder);
 }
 
-// O pedido é criado no banco (create_store_order): o navegador manda só produto, variação e
-// quantidade; preço, custo, total e status saem do banco. A mensagem de erro já vem pronta
-// para o cliente (ex. estoque insuficiente).
-export async function createCustomerOrder(input: {
-  storeId: string;
-  items: CartItem[];
-  notes?: string;
-  deliveryAddress?: CustomerAddressForm;
-}) {
-  if (input.items.length === 0) throw new Error("Carrinho vazio.");
-  // create_store_order ainda não está no types.ts gerado.
-  const rpcDb = supabase as unknown as {
-    rpc: (
-      fn: string,
-      args: Record<string, unknown>,
-    ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
-  };
-  const { data, error } = await rpcDb.rpc("create_store_order", {
-    _store_id: input.storeId,
-    _items: input.items.map((item) => ({
-      product_id: item.productId,
-      variant_id: item.variantId,
-      quantity: item.quantity,
-    })),
-    _notes: input.notes || null,
-    _delivery_address: input.deliveryAddress ?? null,
-  });
-  if (error) throw new Error(error.message || "Não foi possível registrar o pedido.");
-  return data as string;
-}
+const CUSTOMER_ORDER_SELECT =
+  "id,number,created_at,status,source,subtotal,total,notes,payment_details," +
+  "delivery_method,shipping_service_name,shipping_amount,shipping_min_days,shipping_max_days,delivery_address," +
+  "order_items(id,product_name,variant_name,quantity,unit_price,total_price)";
 
-// Pedido como ficou gravado (preços e total do banco), para montar a mensagem do WhatsApp.
-export async function getCustomerOrder(orderId: string): Promise<CustomerOrder> {
+const normalizeCustomerOrder = (order: CustomerOrder): CustomerOrder => ({
+  ...order,
+  subtotal: Number(order.subtotal ?? 0),
+  total: Number(order.total ?? 0),
+  shipping_amount: Number(order.shipping_amount ?? 0),
+});
+
+// Pedido como ficou gravado (preços, frete e total do banco). O pedido do site é criado pelo
+// servidor (placeCheckoutOrder em checkout.functions.ts), não pelo navegador.
+export async function getCustomerOrder(
+  storeId: string,
+  orderId: string,
+): Promise<CustomerOrder | null> {
   const { data, error } = await db
     .from("orders")
-    .select("id,number,created_at,status,total,notes,payment_details,order_items(id,product_name,variant_name,quantity,unit_price,total_price)")
+    .select(CUSTOMER_ORDER_SELECT)
+    .eq("store_id", storeId)
     .eq("id", orderId)
-    .single();
+    .maybeSingle();
   if (error) throw error;
-  return data as CustomerOrder;
+  return data ? normalizeCustomerOrder(data as unknown as CustomerOrder) : null;
 }
 
 export async function listFavoriteProductIds(storeId: string): Promise<string[]> {
@@ -275,13 +278,15 @@ export async function listFavoriteProducts(storeId: string): Promise<PublicProdu
   if (!customer?.user_id) return [];
   const { data, error } = await db
     .from("customer_favorites")
-    .select(`
+    .select(
+      `
       product:products(
         id,name,description,price,promo_price,featured,status,created_at,
         category:categories(id,name,slug,display_order,parent_id,active),
         product_images(url,position)
       )
-    `)
+    `,
+    )
     .eq("store_id", storeId)
     .eq("user_id", customer.user_id)
     .order("created_at", { ascending: false });
