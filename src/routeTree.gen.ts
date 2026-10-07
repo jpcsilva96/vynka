@@ -45,6 +45,7 @@ import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminProdutosIndexRouteImport } from './routes/admin.produtos.index'
 import { Route as AdminProdutosIdRouteImport } from './routes/admin.produtos.$id'
 import { Route as AdminProdutosNovoRouteImport } from './routes/admin.produtos.novo'
+import { Route as ApiMercadoPagoWebhookRouteImport } from './routes/api.mercado-pago.webhook'
 import { Route as LojaSlugIndexRouteImport } from './routes/loja.$slug.index'
 import { Route as LojaSlugCheckoutRouteImport } from './routes/loja.$slug.checkout'
 import { Route as LojaSlugContatoRouteImport } from './routes/loja.$slug.contato'
@@ -238,6 +239,11 @@ const AdminProdutosNovoRoute = AdminProdutosNovoRouteImport.update({
   path: '/novo',
   getParentRoute: () => AdminProdutosRoute,
 } as any)
+const ApiMercadoPagoWebhookRoute = ApiMercadoPagoWebhookRouteImport.update({
+  id: '/api/mercado-pago/webhook',
+  path: '/api/mercado-pago/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LojaSlugIndexRoute = LojaSlugIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -337,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
+  '/api/mercado-pago/webhook': typeof ApiMercadoPagoWebhookRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
@@ -381,6 +388,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
+  '/api/mercado-pago/webhook': typeof ApiMercadoPagoWebhookRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
@@ -432,6 +440,7 @@ export interface FileRoutesById {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
+  '/api/mercado-pago/webhook': typeof ApiMercadoPagoWebhookRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
@@ -484,6 +493,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/mercado-pago/webhook'
     | '/loja/$slug/checkout'
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
@@ -528,6 +538,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/mercado-pago/webhook'
     | '/loja/$slug/checkout'
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
@@ -578,6 +589,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/mercado-pago/webhook'
     | '/loja/$slug/checkout'
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
@@ -603,6 +615,7 @@ export interface RootRouteChildren {
   MasterRoute: typeof MasterRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
+  ApiMercadoPagoWebhookRoute: typeof ApiMercadoPagoWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -859,6 +872,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProdutosNovoRouteImport
       parentRoute: typeof AdminProdutosRoute
     }
+    '/api/mercado-pago/webhook': {
+      id: '/api/mercado-pago/webhook'
+      path: '/api/mercado-pago/webhook'
+      fullPath: '/api/mercado-pago/webhook'
+      preLoaderRoute: typeof ApiMercadoPagoWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/loja/$slug/': {
       id: '/loja/$slug/'
       path: '/'
@@ -1109,6 +1129,7 @@ const rootRouteChildren: RootRouteChildren = {
   MasterRoute: MasterRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
+  ApiMercadoPagoWebhookRoute: ApiMercadoPagoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

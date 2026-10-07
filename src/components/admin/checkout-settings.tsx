@@ -895,7 +895,7 @@ function MercadoPagoConnection({
     <div className="space-y-3">
       <StatusBox
         tone="ok"
-        title={`Mercado Pago: conectado${integration.liveMode === false ? " (conta de teste)" : ""}`}
+        title={`Mercado Pago: conectado${integration.testAccount ? " (conta de teste)" : ""}`}
         action={
           <div className="flex flex-wrap gap-2">
             <button

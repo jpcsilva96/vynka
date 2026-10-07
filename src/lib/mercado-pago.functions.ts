@@ -47,6 +47,11 @@ export const getPaymentIntegration = createServerFn({ method: "GET" })
       available: !!cfg,
       connected: !!row,
       liveMode: row ? (row.live_mode as boolean) : null,
+      // Conta de teste do Mercado Pago vem com chave de produção (medido em 07/10); o e-mail
+      // @testuser.com é o sinal confiável.
+      testAccount:
+        !!row &&
+        (row.live_mode === false || /@testuser.com$/i.test(String(row.account_email ?? ""))),
       needsReconnect: !!row && row.last_error === "reconnect_required",
       accountName: row ? (row.account_name as string | null) : null,
       accountEmail: row ? (row.account_email as string | null) : null,
