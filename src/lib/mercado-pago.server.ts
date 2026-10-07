@@ -256,7 +256,7 @@ interface PreferenceOrder {
   storeName: string;
   items: { title: string; quantity: number; unit_price: number }[];
   shipping: number;
-  // Fim do prazo mais longo da loja (boleto); o Pix vence antes pela regra do banco.
+  // Fim do prazo do Pix da loja (cartão não tem prazo; boleto não é oferecido).
   expiresAt: Date;
   // Para onde o cliente volta (página "Pedido #N").
   returnUrl: string;
@@ -292,6 +292,9 @@ export async function createPreference(
       // Sem "payer": o Mercado Pago usa a conta de quem estiver logado na página dele. Mandar o
       // e-mail do cadastro da loja bloqueia o pagamento quando ele difere da conta que paga
       // ("Ops, ocorreu um erro" com a conta de teste Comprador, medido em 07/10).
+      // Sem boleto (nem lotérica, mesmo tipo "ticket"), em todas as lojas (João, 07/10): só Pix e
+      // cartão.
+      payment_methods: { excluded_payment_types: [{ id: "ticket" }] },
       external_reference: order.id,
       metadata: { order_id: order.id, store_id: storeId },
       statement_descriptor: order.storeName.replace(/[^A-Za-z0-9 ]/g, "").slice(0, 13) || undefined,

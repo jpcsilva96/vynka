@@ -701,10 +701,10 @@ export function OrderStockSettingsTab({ storeId }: { storeId: string }) {
       <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
         <h3 className="text-[16px] font-semibold text-foreground">Prazo para pagar</h3>
         <p className="mt-1 text-[13px] text-muted-foreground">
-          Passado o prazo sem pagamento, o pedido é cancelado e o Pix ou boleto vence. Se o cliente
-          pagar depois, o próprio Mercado Pago devolve o dinheiro a ele.
+          Passado o prazo sem pagamento, o pedido é cancelado e o Pix vence. Se o cliente pagar
+          depois, o próprio Mercado Pago devolve o dinheiro a ele.
         </p>
-        <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
           <Field label="Pix" hint={`Mínimo ${PIX_HOURS.min} horas.`}>
             <UnitInput
               unit="horas"
@@ -716,20 +716,7 @@ export function OrderStockSettingsTab({ storeId }: { storeId: string }) {
               }}
             />
           </Field>
-          <Field
-            label="Boleto"
-            hint={`Mínimo ${BOLETO_DAYS.min} dias (recomendação do Mercado Pago).`}
-          >
-            <UnitInput
-              unit="dias"
-              label="Prazo do boleto"
-              value={boletoDays}
-              onChange={(value) => {
-                touch();
-                setBoletoDays(value);
-              }}
-            />
-          </Field>
+          {/* Boleto não é oferecido (João, 07/10): o prazo dele fica salvo como estava, sem campo. */}
           <Field label="Cartão de crédito">
             <p className="pt-2 text-[13px] text-muted-foreground">
               Sem prazo: a resposta sai na hora. Se ficar “em análise”, o pedido espera o Mercado
@@ -764,7 +751,7 @@ export function PaymentSettingsTab({ storeId }: { storeId: string }) {
       <TabHeader
         icon={<CreditCard className="h-14 w-14" strokeWidth={1.3} />}
         title="Pagamentos"
-        description="Pix, boleto e cartão de crédito pela sua conta do Mercado Pago. O dinheiro das vendas cai direto nela."
+        description="Pix e cartão de crédito pela sua conta do Mercado Pago. O dinheiro das vendas cai direto nela."
       />
       <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
         {isLoading ? (

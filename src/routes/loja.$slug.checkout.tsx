@@ -582,7 +582,7 @@ function CheckoutPage() {
             {step === 3 && (
               <StepTitle n={3} title="Pagamento">
                 <div className="mt-4 flex flex-wrap gap-2 text-[12px] font-medium text-neutral-700">
-                  {["Pix", "Boleto", "Cartão de crédito"].map((label) => (
+                  {["Pix", "Cartão de crédito"].map((label) => (
                     <span key={label} className="border border-black/10 px-3 py-2">
                       <CreditCard className="mr-1.5 inline h-3.5 w-3.5" />
                       {label}
@@ -623,7 +623,7 @@ function CheckoutPage() {
                       : formatDeliveryAddress({ ...validQuote.address, ...street })}
                   </ReviewLine>
                   <ReviewLine label="Pagamento" onEdit={() => goTo(3)}>
-                    Mercado Pago (Pix, boleto ou cartão)
+                    Mercado Pago (Pix ou cartão)
                   </ReviewLine>
                 </div>
                 <label className="mt-5 grid gap-2">

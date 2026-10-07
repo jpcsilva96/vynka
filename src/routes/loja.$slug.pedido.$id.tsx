@@ -234,7 +234,7 @@ function paymentMessage(status: string | null, method: string | null) {
     return "Seu pagamento está em análise pelo Mercado Pago. Avisamos aqui assim que for aprovado.";
   if (status === "rejected" || status === "cancelled")
     return "O pagamento não foi aprovado. Você pode tentar de novo com outra forma de pagamento.";
-  return "Pedido recebido. Pague com Pix, boleto ou cartão na página segura do Mercado Pago.";
+  return "Pedido recebido. Pague com Pix ou cartão na página segura do Mercado Pago.";
 }
 
 function Row({ label, value }: { label: string; value: string }) {
