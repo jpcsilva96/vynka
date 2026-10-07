@@ -33,11 +33,17 @@ export type DeliveryMethod = "local" | "pickup" | "shipping";
 
 // Rótulo conforme o pedido (lote C, sem status novo no banco): pedido do site com entrega escolhida
 // em "pending" aguarda o pagamento online; "in_dispatch" de retirada = pronto para o cliente buscar.
+// Lote D: cancelado pelo agendador (prazo) e pago sem estoque (pagamento chegou sem peça).
 export function orderStatusLabelFor(order: {
   status: OrderStatus | string | null | undefined;
   source?: string | null;
   delivery_method?: DeliveryMethod | string | null;
+  cancel_reason?: string | null;
+  stock_shortage?: boolean | null;
 }) {
+  if (order.status === "cancelled" && order.cancel_reason === "deadline")
+    return "Cancelado por prazo";
+  if (order.stock_shortage) return "Pago sem estoque";
   if (order.status === "pending" && order.source === "website" && order.delivery_method)
     return "Aguardando pagamento";
   if (order.status === "in_dispatch" && order.delivery_method === "pickup")
@@ -148,6 +154,10 @@ export interface OrderRecord {
   shipping_min_days: number | null;
   shipping_max_days: number | null;
   delivery_address: DeliveryAddress | null;
+  payment_due_at: string | null;
+  paid_at: string | null;
+  cancel_reason: "deadline" | "manual" | null;
+  stock_shortage: boolean;
   customer: OrderCustomer | null;
   items: OrderItem[];
 }
@@ -174,6 +184,7 @@ const ORDER_SELECT = `
   subtotal, discount, surcharge, total, notes, payment_method, payment_details,
   paid_amount, change_due, delivery_method, shipping_service_name, shipping_amount,
   shipping_min_days, shipping_max_days, delivery_address,
+  payment_due_at, paid_at, cancel_reason, stock_shortage,
   customer:customers(id,name,phone,email),
   order_items(id,product_id,variant_id,product_name,variant_name,quantity,unit_price,total_price,unit_cost,total_cost)
 `;

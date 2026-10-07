@@ -181,7 +181,7 @@ function Estatisticas() {
                 />
               </section>
 
-              <section className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.85fr)]">
+              <section className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.85fr)]">
                 <Panel title="Faturamento por dia" subtitle="Ultimos 7 dias">
                   <div className="flex h-72 items-end gap-3">
                     {stats.dailyRevenue.map((day) => (
@@ -243,7 +243,7 @@ function Estatisticas() {
                 </Panel>
               </section>
 
-              <section className="grid gap-5 xl:grid-cols-3">
+              <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
                 <Panel
                   title="Produto mais vendido"
                   subtitle={stats.topProduct?.name ?? "Sem produto"}
@@ -293,7 +293,7 @@ function Estatisticas() {
                 </Panel>
               </section>
 
-              <section className="grid gap-5 xl:grid-cols-3">
+              <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
                 <Panel
                   title="Produtos mais vistos"
                   subtitle="Visitas na loja x unidades vendidas no período"

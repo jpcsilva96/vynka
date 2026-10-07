@@ -180,7 +180,7 @@ function VendaDetalhe() {
             {sellerName(order, user?.id, userDisplayName(user))}
           </div>
 
-          <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="mt-5 grid grid-cols-1 gap-5 break-words lg:grid-cols-[minmax(0,1fr)_420px]">
             <section className="space-y-4">
               <InfoCard title="Cliente">
                 {order.customer ? (

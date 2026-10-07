@@ -41,6 +41,8 @@ export interface PublicOption {
 }
 
 export interface PublicProductDetail extends PublicProduct {
+  manage_stock: boolean;
+  stock_quantity: number;
   options: PublicOption[];
   variants: PublicVariant[];
 }
@@ -280,6 +282,7 @@ export async function getPublicProduct(
     .from("products")
     .select(
       `id, name, description, price, promo_price, featured, status, created_at,
+       manage_stock, stock_quantity,
        category:categories(id,name,slug,display_order,parent_id,active),
        product_images(url,position),
        product_options(id,name,position,product_option_values(id,value,position)),
@@ -312,7 +315,13 @@ export async function getPublicProduct(
     available: v.available,
     stock_quantity: v.stock_quantity ?? 0,
   }));
-  return { ...base, options, variants };
+  return {
+    ...base,
+    manage_stock: !!data.manage_stock,
+    stock_quantity: Number(data.stock_quantity ?? 0),
+    options,
+    variants,
+  };
 }
 
 export async function listRelatedProducts(

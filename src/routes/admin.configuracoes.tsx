@@ -532,7 +532,7 @@ function Configuracoes() {
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
             </div>
           ) : (
-            <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
               <div className="space-y-5">
                 <SettingsCard title="Dados da Loja">
                   <p className="text-[13px] leading-relaxed text-foreground">

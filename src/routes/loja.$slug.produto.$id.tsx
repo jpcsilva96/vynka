@@ -61,7 +61,11 @@ function ProductView({ product }: { product: PublicProductDetail }) {
 
   const sale = isOnSale(product);
   const price = currentVariant?.price ?? (sale ? product.promo_price! : product.price);
-  const canBuy = product.options.length === 0 || (!!currentVariant && currentVariant.available && currentVariant.stock_quantity > 0);
+  // Estoque só conta quando o produto controla estoque (sem controle: sempre disponível).
+  const canBuy =
+    product.options.length === 0
+      ? !product.manage_stock || product.stock_quantity > 0
+      : !!currentVariant && currentVariant.available && (!product.manage_stock || currentVariant.stock_quantity > 0);
   const images = product.images.length ? product.images : [{ url: "", position: 0 }];
   const image = currentVariant?.image_url || images[activeImage]?.url || product.primary_image || "";
   const variantLabel = product.options.length ? Object.entries(selected).map(([key, value]) => `${key}: ${value}`).join(" / ") : null;
@@ -241,7 +245,7 @@ function isValueAvailable(product: PublicProductDetail, optionName: string, valu
     if (color && !selected[color.name]) return false;
   }
   return product.variants.some((variant) => {
-    if (variant.options[optionName] !== value || !variant.available || variant.stock_quantity <= 0) return false;
+    if (variant.options[optionName] !== value || !variant.available || (product.manage_stock && variant.stock_quantity <= 0)) return false;
     return Object.entries(selected).every(([key, selectedValue]) => key === optionName || !selectedValue || variant.options[key] === selectedValue);
   });
 }
