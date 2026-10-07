@@ -62,10 +62,10 @@ export const startOrderPayment = createServerFn({ method: "POST" })
 
     const { data: settings } = await supabaseAdmin
       .from("store_checkout_settings")
-      .select("boleto_expiration_days")
+      .select("pix_expiration_hours")
       .eq("store_id", order.store_id)
       .maybeSingle();
-    const days = Number(settings?.boleto_expiration_days ?? 3);
+    const hours = Number(settings?.pix_expiration_hours ?? 24);
     // Volta para o mesmo endereço em que o cliente está (app publicado; localhost só no app local
     // de homologação).
     const published = publicOrigin(cfg);
@@ -88,7 +88,7 @@ export const startOrderPayment = createServerFn({ method: "POST" })
           unit_price: Number(item.unit_price),
         })),
         shipping: Number(order.shipping_amount ?? 0),
-        expiresAt: new Date(new Date(order.created_at).getTime() + days * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(new Date(order.created_at).getTime() + hours * 60 * 60 * 1000),
         returnUrl: `${origin}/loja/${store?.slug}/pedido/${order.id}`,
       });
       const { error } = await supabaseAdmin

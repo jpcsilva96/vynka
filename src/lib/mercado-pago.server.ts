@@ -256,7 +256,7 @@ interface PreferenceOrder {
   storeName: string;
   items: { title: string; quantity: number; unit_price: number }[];
   shipping: number;
-  // Fim do prazo mais longo da loja (boleto); o Pix vence antes pela regra do banco.
+  // Fim do prazo do Pix da loja (cartão não tem prazo; boleto não é oferecido).
   expiresAt: Date;
   // Para onde o cliente volta (página "Pedido #N").
   returnUrl: string;
@@ -292,6 +292,9 @@ export async function createPreference(
       // Sem "payer": o Mercado Pago usa a conta de quem estiver logado na página dele. Mandar o
       // e-mail do cadastro da loja bloqueia o pagamento quando ele difere da conta que paga
       // ("Ops, ocorreu um erro" com a conta de teste Comprador, medido em 07/10).
+      // Sem boleto (nem lotérica, mesmo tipo "ticket"), em todas as lojas (João, 07/10): só Pix e
+      // cartão.
+      payment_methods: { excluded_payment_types: [{ id: "ticket" }] },
       external_reference: order.id,
       metadata: { order_id: order.id, store_id: storeId },
       statement_descriptor: order.storeName.replace(/[^A-Za-z0-9 ]/g, "").slice(0, 13) || undefined,
@@ -319,6 +322,7 @@ interface MpPayment {
   payment_method_id?: string;
   external_reference?: string | null;
   date_last_updated?: string | null;
+  date_of_expiration?: string | null;
   date_approved?: string | null;
   date_created?: string | null;
 }
@@ -377,6 +381,27 @@ export async function applyPayment(storeId: string, payment: MpPayment) {
     _approved_at: payment.date_approved ?? null,
   });
   if (error) throw error;
+  // Boleto/Pix pendente: o Mercado Pago pode dar mais prazo que o da loja (boleto do pedido #23
+  // venceu em 13/10 no MP e em 10/10 no Vynka, medido em 07/10). Vale o mais longo, para o pedido
+  // não ser cancelado enquanto o cliente ainda pode pagar.
+  const method = paymentMethod(payment);
+  const mpDue = payment.date_of_expiration ? new Date(payment.date_of_expiration) : null;
+  if (
+    String(data) === "deadline_set" &&
+    (method === "boleto" || method === "pix") &&
+    mpDue &&
+    !Number.isNaN(mpDue.getTime())
+  ) {
+    const due = mpDue.toISOString();
+    const { error: dueError } = await (supabaseAdmin as any)
+      .from("orders")
+      .update({ payment_due_at: due })
+      .eq("id", orderId)
+      .eq("status", "pending")
+      .is("paid_at", null)
+      .lt("payment_due_at", due);
+    if (dueError) throw dueError;
+  }
   return { orderId, result: String(data) };
 }
 

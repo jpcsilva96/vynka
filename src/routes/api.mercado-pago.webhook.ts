@@ -57,7 +57,11 @@ async function handleWebhook(request: Request) {
   };
 
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-  if (signature && secret) {
+  // Assinatura conferida só no formato novo (com data.id): é o único que a documentação descreve, e
+  // os avisos no formato antigo chegam com uma assinatura que não fecha (medido em 07/10, 8 de 8). No
+  // formato antigo segue sem conferir, o que é seguro porque o corpo nunca é confiado: o pagamento é
+  // sempre consultado na API com a chave da loja.
+  if (signature && secret && signedId) {
     const ok = await mp.validWebhookSignature(secret, signature, requestId, signedId);
     if (!ok) {
       await log({ result: "bad_signature", processed_at: new Date().toISOString() });
