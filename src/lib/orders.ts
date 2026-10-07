@@ -13,7 +13,7 @@ export type OrderStatus =
 export const orderStatuses: { value: OrderStatus; label: string }[] = [
   { value: "confirmed", label: "Confirmado" },
   { value: "paid", label: "Pago" },
-  { value: "in_production", label: "Em producao" },
+  { value: "in_production", label: "Em separação" },
   { value: "in_dispatch", label: "Em expedicao" },
   { value: "delivered", label: "Concluido" },
   { value: "cancelled", label: "Cancelado" },
@@ -34,6 +34,8 @@ export type DeliveryMethod = "local" | "pickup" | "shipping";
 // Rótulo conforme o pedido (lote C, sem status novo no banco): pedido do site com entrega escolhida
 // em "pending" aguarda o pagamento online; "in_dispatch" de retirada = pronto para o cliente buscar.
 // Lote D: cancelado pelo agendador (prazo) e pago sem estoque (pagamento chegou sem peça).
+// Etapas (ata 07/10, D1): "in_dispatch" de entrega local = saiu para entrega; concluído do site =
+// entregue ou retirado; "Pago sem estoque" só enquanto o pedido não avança.
 export function orderStatusLabelFor(order: {
   status: OrderStatus | string | null | undefined;
   source?: string | null;
@@ -43,12 +45,136 @@ export function orderStatusLabelFor(order: {
 }) {
   if (order.status === "cancelled" && order.cancel_reason === "deadline")
     return "Cancelado por prazo";
-  if (order.stock_shortage) return "Pago sem estoque";
+  if (order.stock_shortage && order.status === "paid") return "Pago sem estoque";
   if (order.status === "pending" && order.source === "website" && order.delivery_method)
     return "Aguardando pagamento";
   if (order.status === "in_dispatch" && order.delivery_method === "pickup")
     return "Pronto para retirada";
+  if (order.status === "in_dispatch" && order.delivery_method === "local")
+    return "Saiu para entrega";
+  if (order.status === "delivered" && order.source === "website")
+    return order.delivery_method === "pickup" ? "Retirado" : "Entregue";
   return orderStatusLabel(order.status);
+}
+
+// Etapas do pedido do site pago. Espelha a trava do banco (orders_website_guard): só anda para a
+// frente e pode pular etapa; em Correios/transportadora o lojista só separa (Enviado e Entregue vêm
+// do Melhor Envio).
+const stageRank: Partial<Record<OrderStatus, number>> = {
+  paid: 1,
+  in_production: 2,
+  in_dispatch: 3,
+  shipped: 3,
+  delivered: 4,
+};
+
+type StageOrder = {
+  status: OrderStatus | string | null | undefined;
+  source?: string | null;
+  delivery_method?: DeliveryMethod | string | null;
+};
+
+export function websiteNextStages(order: StageOrder): { value: OrderStatus; label: string }[] {
+  const current = stageRank[order.status as OrderStatus];
+  if (order.source !== "website" || !current) return [];
+  const targets: OrderStatus[] =
+    order.delivery_method === "shipping"
+      ? ["in_production"]
+      : ["in_production", "in_dispatch", "delivered"];
+  return targets
+    .filter((status) => (stageRank[status] ?? 0) > current)
+    .map((status) => ({ value: status, label: orderStatusLabelFor({ ...order, status }) }));
+}
+
+// Texto do botão que leva o pedido do site para a etapa.
+export function stageActionLabel(status: OrderStatus, deliveryMethod?: string | null) {
+  if (status === "in_production") return "Iniciar separação";
+  if (status === "in_dispatch")
+    return deliveryMethod === "pickup" ? "Pronto para retirada" : "Saiu para entrega";
+  if (status === "delivered")
+    return deliveryMethod === "pickup" ? "Marcar como retirado" : "Marcar como entregue";
+  return orderStatusLabel(status);
+}
+
+export interface OrderStatusEvent {
+  status: OrderStatus;
+  actor: "painel" | "sistema" | "importado";
+  created_at: string;
+}
+
+// Eventos gravados pelo banco a cada mudança de status (lê quem lê o pedido: loja e cliente).
+export async function listOrderStatusEvents(orderId: string): Promise<OrderStatusEvent[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tabela ainda fora do types.ts
+  const { data, error } = await (supabase as any)
+    .from("order_status_events")
+    .select("status, actor, created_at")
+    .eq("order_id", orderId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as OrderStatusEvent[];
+}
+
+export interface TimelineStep {
+  key: string;
+  label: string;
+  at: string | null;
+  done: boolean;
+}
+
+// Linha do tempo do pedido do site: etapas na ordem; feita mostra a data do evento (etapa pulada ou
+// pedido antigo sem registro aparece feita, sem data). Cancelado: o que aconteceu + o cancelamento.
+export function websiteTimeline(
+  order: StageOrder & {
+    created_at: string;
+    paid_at?: string | null;
+    cancel_reason?: string | null;
+  },
+  events: OrderStatusEvent[],
+): TimelineStep[] {
+  const lastAt = (status: OrderStatus) =>
+    [...events].reverse().find((event) => event.status === status)?.created_at ?? null;
+  const method = order.delivery_method;
+  const steps: { status: OrderStatus; label: string; at: string | null }[] = [
+    { status: "pending", label: "Pedido feito", at: lastAt("pending") ?? order.created_at },
+    { status: "paid", label: "Pagamento aprovado", at: lastAt("paid") ?? order.paid_at ?? null },
+    { status: "in_production", label: "Em separação", at: lastAt("in_production") },
+    method === "shipping"
+      ? { status: "shipped", label: "Enviado", at: lastAt("shipped") }
+      : {
+          status: "in_dispatch",
+          label: method === "pickup" ? "Pronto para retirada" : "Saiu para entrega",
+          at: lastAt("in_dispatch"),
+        },
+    {
+      status: "delivered",
+      label: method === "pickup" ? "Retirado" : "Entregue",
+      at: lastAt("delivered"),
+    },
+  ];
+
+  if (order.status === "cancelled") {
+    return [
+      ...steps
+        .filter((step) => step.status === "pending" || step.at)
+        .map((step) => ({ key: step.status, label: step.label, at: step.at, done: true })),
+      {
+        key: "cancelled",
+        label: order.cancel_reason === "deadline" ? "Cancelado por prazo" : "Cancelado",
+        at: lastAt("cancelled"),
+        done: true,
+      },
+    ];
+  }
+
+  const rank = (status: OrderStatus | string | null | undefined) =>
+    status === "pending" ? 0 : (stageRank[status as OrderStatus] ?? 0);
+  const current = rank(order.status);
+  return steps.map((step) => ({
+    key: step.status,
+    label: step.label,
+    at: step.at,
+    done: rank(step.status) <= current,
+  }));
 }
 
 export const deliveryMethodLabel: Record<DeliveryMethod, string> = {

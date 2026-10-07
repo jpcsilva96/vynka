@@ -6,11 +6,14 @@ import { ArrowLeft, CheckCircle2, Clock3, Loader2, MessageCircle } from "lucide-
 import { buildWhatsAppLink, orderWhatsAppText } from "@/lib/cart";
 import { getCustomerOrder } from "@/lib/customer-account";
 import { startOrderPayment, syncOrderPayment } from "@/lib/order-payment.functions";
+import { OrderTimeline } from "@/components/order-timeline";
 import {
   deliveryDaysLabel,
   deliveryMethodLabel,
   formatDeliveryAddress,
+  listOrderStatusEvents,
   orderStatusLabelFor,
+  websiteTimeline,
 } from "@/lib/orders";
 import { formatBRL } from "@/lib/products";
 import { useStorefront } from "@/lib/storefront-context";
@@ -22,7 +25,7 @@ export const Route = createFileRoute("/loja/$slug/pedido/$id")({
 // Depois do "Finalizar" e na volta do Mercado Pago: o pedido como está gravado. Aguardando pagamento:
 // botão "Pagar agora" (abre o Checkout Pro) e, ao abrir a página, consulta o pagamento no Mercado
 // Pago (o webhook também grava sozinho). Pago: botões de WhatsApp para falar com a loja (contato, não
-// venda).
+// venda). Linha do tempo com as etapas e a data de cada uma (eventos gravados pelo banco).
 function OrderPage() {
   const store = useStorefront();
   const { id } = Route.useParams();
@@ -30,6 +33,12 @@ function OrderPage() {
   const { data: order, isLoading } = useQuery({
     queryKey: ["customer-order", store.id, id],
     queryFn: () => getCustomerOrder(store.id, id),
+  });
+  const hasTimeline = order?.source === "website" && !!order.delivery_method;
+  const { data: events = [] } = useQuery({
+    queryKey: ["customer-order-events", id, order?.status],
+    queryFn: () => listOrderStatusEvents(id),
+    enabled: hasTimeline,
   });
   const startPayment = useServerFn(startOrderPayment);
   const syncPayment = useServerFn(syncOrderPayment);
@@ -150,7 +159,16 @@ function OrderPage() {
             </div>
           )}
 
-          <div className="mt-6 divide-y divide-black/10">
+          {hasTimeline && (
+            <div className="mt-6 border-t border-black/10 pt-4">
+              <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-500">
+                Andamento
+              </div>
+              <OrderTimeline steps={websiteTimeline(order, events)} />
+            </div>
+          )}
+
+          <div className="mt-6 divide-y divide-black/10 border-t border-black/10 pt-2">
             {order.order_items.map((item) => (
               <div key={item.id} className="flex justify-between gap-4 py-2.5 text-[13px]">
                 <span>
