@@ -48,6 +48,12 @@ import {
   type ShippingQuote,
   type ShippingService,
 } from "@/lib/melhor-envio.functions";
+import {
+  disconnectPayment,
+  getPaymentIntegration,
+  startPaymentConnect,
+  testPaymentConnection,
+} from "@/lib/mercado-pago.functions";
 import { cn } from "@/lib/utils";
 
 // Telas das configurações de checkout (lote A): aba Entrega e Retirada, aba Pedidos e Vendas
@@ -746,7 +752,13 @@ export function OrderStockSettingsTab({ storeId }: { storeId: string }) {
 
 // ---------------------------------------------------------------- Pagamentos
 
-export function PaymentSettingsTab() {
+export function PaymentSettingsTab({ storeId }: { storeId: string }) {
+  const fetchIntegration = useServerFn(getPaymentIntegration);
+  const { data: integration, isLoading } = useQuery({
+    queryKey: ["payment-integration", storeId],
+    queryFn: () => fetchIntegration({ data: { store_id: storeId } }),
+    enabled: !!storeId,
+  });
   return (
     <div className="space-y-6">
       <TabHeader
@@ -755,30 +767,173 @@ export function PaymentSettingsTab() {
         description="Pix, boleto e cartão de crédito pela sua conta do Mercado Pago. O dinheiro das vendas cai direto nela."
       />
       <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
-              <span className="h-2.5 w-2.5 rounded-full bg-border" /> Mercado Pago: não conectado
-            </div>
-            <p className="mt-1 text-[13px] text-muted-foreground">
-              A conexão da sua conta chega numa próxima etapa.
+        {isLoading ? (
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" strokeWidth={1.5} />
+        ) : (
+          <MercadoPagoConnection storeId={storeId} integration={integration} />
+        )}
+      </section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Mercado Pago
+
+type PaymentIntegration = Awaited<ReturnType<typeof getPaymentIntegration>>;
+
+function MercadoPagoConnection({
+  storeId,
+  integration,
+}: {
+  storeId: string;
+  integration: PaymentIntegration | undefined;
+}) {
+  const queryClient = useQueryClient();
+  const start = useServerFn(startPaymentConnect);
+  const disconnect = useServerFn(disconnectPayment);
+  const test = useServerFn(testPaymentConnection);
+  const [problem, setProblem] = useState("");
+  const [testResult, setTestResult] = useState("");
+
+  const connectMutation = useMutation({
+    mutationFn: () => start({ data: { store_id: storeId } }),
+    onSuccess: ({ url }) => window.location.assign(url),
+    onError: (err) => setProblem(err instanceof Error ? err.message : "Não foi possível conectar."),
+  });
+  const disconnectMutation = useMutation({
+    mutationFn: () => disconnect({ data: { store_id: storeId } }),
+    onSuccess: async () => {
+      setTestResult("");
+      await queryClient.invalidateQueries({ queryKey: ["payment-integration", storeId] });
+    },
+  });
+  const testMutation = useMutation({
+    mutationFn: () => test({ data: { store_id: storeId } }),
+    onSuccess: (result) => {
+      setProblem("");
+      setTestResult(
+        result.account
+          ? `Tudo certo: a conta ${result.account} respondeu.`
+          : "Tudo certo: a conta respondeu.",
+      );
+    },
+    onError: async (err) => {
+      setTestResult("");
+      setProblem(err instanceof Error ? err.message : "Não foi possível testar.");
+      await queryClient.invalidateQueries({ queryKey: ["payment-integration", storeId] });
+    },
+  });
+
+  if (!integration?.available) {
+    return (
+      <StatusBox tone="muted" title="Mercado Pago: em breve">
+        A conexão com o Mercado Pago ainda não está liberada nesta instalação do Vynka.
+      </StatusBox>
+    );
+  }
+
+  if (!integration.connected || integration.needsReconnect) {
+    return (
+      <div className="space-y-3">
+        <StatusBox
+          tone={integration.needsReconnect ? "warning" : "muted"}
+          title={
+            integration.needsReconnect
+              ? "Mercado Pago: conexão expirada"
+              : "Mercado Pago: não conectado"
+          }
+          action={
+            <button
+              type="button"
+              onClick={() => {
+                setProblem("");
+                connectMutation.mutate();
+              }}
+              disabled={connectMutation.isPending}
+              className={primaryButton}
+            >
+              {connectMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              {integration.needsReconnect ? "Reconectar" : "Conectar minha conta"}
+            </button>
+          }
+        >
+          {integration.needsReconnect
+            ? "A autorização foi revogada na sua conta. Reconecte para voltar a receber pagamentos."
+            : "Você vai para o site do Mercado Pago, entra com a sua conta e clica em Autorizar. Depois volta para cá já conectado."}
+        </StatusBox>
+        {!integration.needsReconnect && (
+          <div className="rounded-md bg-muted/40 px-4 py-3 text-[13px]">
+            <div className="font-semibold text-foreground">Antes de conectar</div>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+              <li>
+                Tenha uma conta no Mercado Pago (o mesmo login do Mercado Livre serve).{" "}
+                <a
+                  href="https://www.mercadopago.com.br"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-foreground underline"
+                >
+                  Criar conta
+                </a>
+              </li>
+              <li>
+                O dinheiro das vendas cai direto na sua conta; o Vynka não recebe nada por você.
+              </li>
+              <li>Parcelas e juros do cartão você configura na sua conta do Mercado Pago.</li>
+            </ul>
+            <p className="mt-2 text-muted-foreground">
+              Travou em algum passo? Fale com o suporte do Vynka.
             </p>
           </div>
-          <button type="button" disabled className={cn(secondaryButton, "opacity-60")}>
-            Conectar minha conta (em breve)
-          </button>
+        )}
+        {problem && <Notice tone="error">{problem}</Notice>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <StatusBox
+        tone="ok"
+        title={`Mercado Pago: conectado${integration.liveMode === false ? " (conta de teste)" : ""}`}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => testMutation.mutate()}
+              disabled={testMutation.isPending}
+              className={secondaryButton}
+            >
+              {testMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Testar
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Desconectar a conta do Mercado Pago? A loja deixa de receber pagamentos pelo site até conectar de novo.",
+                  )
+                )
+                  disconnectMutation.mutate();
+              }}
+              disabled={disconnectMutation.isPending}
+              className={secondaryButton}
+            >
+              Desconectar
+            </button>
+          </div>
+        }
+      >
+        {[integration.accountName, integration.accountEmail].filter(Boolean).join(" · ") ||
+          "Conta conectada."}
+      </StatusBox>
+      {testResult && (
+        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] text-emerald-800">
+          {testResult}
         </div>
-        <div className="mt-5 rounded-md bg-muted/40 px-4 py-3 text-[13px] text-foreground">
-          <div className="font-semibold">Antes de conectar</div>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
-            <li>Tenha uma conta no Mercado Pago (o mesmo login do Mercado Livre serve).</li>
-            <li>
-              O dinheiro das vendas cai direto na sua conta; o Vynka não recebe nada por você.
-            </li>
-            <li>Parcelas e juros do cartão você configura na sua conta do Mercado Pago.</li>
-          </ul>
-        </div>
-      </section>
+      )}
+      {problem && <Notice tone="error">{problem}</Notice>}
     </div>
   );
 }
