@@ -256,7 +256,6 @@ interface PreferenceOrder {
   storeName: string;
   items: { title: string; quantity: number; unit_price: number }[];
   shipping: number;
-  payer: { name: string | null; email: string | null };
   // Fim do prazo mais longo da loja (boleto); o Pix vence antes pela regra do banco.
   expiresAt: Date;
   // Para onde o cliente volta (página "Pedido #N").
@@ -290,10 +289,9 @@ export async function createPreference(
     idempotencyKey: `vynka-pref-${order.id}`,
     body: {
       items,
-      payer: {
-        ...(order.payer.name ? { name: order.payer.name } : {}),
-        ...(order.payer.email ? { email: order.payer.email } : {}),
-      },
+      // Sem "payer": o Mercado Pago usa a conta de quem estiver logado na página dele. Mandar o
+      // e-mail do cadastro da loja bloqueia o pagamento quando ele difere da conta que paga
+      // ("Ops, ocorreu um erro" com a conta de teste Comprador, medido em 07/10).
       external_reference: order.id,
       metadata: { order_id: order.id, store_id: storeId },
       statement_descriptor: order.storeName.replace(/[^A-Za-z0-9 ]/g, "").slice(0, 13) || undefined,
