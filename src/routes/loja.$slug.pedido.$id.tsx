@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, Clock3, MessageCircle } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useRef } from "react";
+import { ArrowLeft, CheckCircle2, Clock3, Loader2, MessageCircle } from "lucide-react";
 import { buildWhatsAppLink, orderWhatsAppText } from "@/lib/cart";
 import { getCustomerOrder } from "@/lib/customer-account";
+import { startOrderPayment, syncOrderPayment } from "@/lib/order-payment.functions";
 import {
   deliveryDaysLabel,
   deliveryMethodLabel,
@@ -16,16 +19,38 @@ export const Route = createFileRoute("/loja/$slug/pedido/$id")({
   component: OrderPage,
 });
 
-// Depois do "Finalizar": o pedido como ficou gravado. Enquanto não há pagamento online (lote E), o
-// pedido fica "Aguardando pagamento". Pago: botões de WhatsApp para falar com a loja (contato, não
+// Depois do "Finalizar" e na volta do Mercado Pago: o pedido como está gravado. Aguardando pagamento:
+// botão "Pagar agora" (abre o Checkout Pro) e, ao abrir a página, consulta o pagamento no Mercado
+// Pago (o webhook também grava sozinho). Pago: botões de WhatsApp para falar com a loja (contato, não
 // venda).
 function OrderPage() {
   const store = useStorefront();
   const { id } = Route.useParams();
+  const queryClient = useQueryClient();
   const { data: order, isLoading } = useQuery({
     queryKey: ["customer-order", store.id, id],
     queryFn: () => getCustomerOrder(store.id, id),
   });
+  const startPayment = useServerFn(startOrderPayment);
+  const syncPayment = useServerFn(syncOrderPayment);
+  const payMutation = useMutation({
+    mutationFn: () =>
+      startPayment({ data: { order_id: id, return_origin: window.location.origin } }),
+    onSuccess: ({ url }) => window.location.assign(url),
+  });
+  // Uma consulta por visita enquanto aguarda pagamento (volta do Mercado Pago, Pix pago depois...).
+  const synced = useRef(false);
+  const awaitingOrder = order?.status === "pending";
+  useEffect(() => {
+    if (!awaitingOrder || synced.current) return;
+    synced.current = true;
+    syncPayment({ data: { order_id: id } })
+      .then((result) => {
+        if (result.updated)
+          void queryClient.invalidateQueries({ queryKey: ["customer-order", store.id, id] });
+      })
+      .catch(() => undefined);
+  }, [awaitingOrder, id, queryClient, store.id, syncPayment]);
 
   if (isLoading) {
     return (
@@ -83,12 +108,29 @@ function OrderPage() {
 
           {awaiting && (
             <div className="mt-5 border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-800">
-              Pedido recebido. O pagamento online (Pix, boleto ou cartão) estará disponível em
-              breve; enquanto isso, o pedido fica aguardando pagamento.
+              {paymentMessage(order.mp_payment_status, order.payment_method)}
               {order.payment_due_at && (
                 <span className="mt-1 block font-medium">
                   Pague até {formatDateTime(order.payment_due_at)}. Depois disso o pedido é
                   cancelado e as peças voltam para a loja.
+                </span>
+              )}
+              {order.mp_payment_status !== "in_process" && (
+                <button
+                  type="button"
+                  onClick={() => payMutation.mutate()}
+                  disabled={payMutation.isPending}
+                  className="mt-3 flex w-full items-center justify-center gap-2 bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white disabled:opacity-60 sm:w-auto"
+                >
+                  {payMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {order.mp_payment_status === "pending" ? "Ver pagamento" : "Pagar agora"}
+                </button>
+              )}
+              {payMutation.isError && (
+                <span className="mt-2 block text-red-700">
+                  {payMutation.error instanceof Error
+                    ? payMutation.error.message
+                    : "Não foi possível abrir o pagamento."}
                 </span>
               )}
             </div>
@@ -180,6 +222,19 @@ function OrderPage() {
       </div>
     </div>
   );
+}
+
+// Texto do aviso conforme o que o Mercado Pago já registrou para o pedido.
+function paymentMessage(status: string | null, method: string | null) {
+  if (status === "pending" && method === "pix")
+    return "Seu Pix foi gerado. Assim que o pagamento cair, o pedido é confirmado automaticamente.";
+  if (status === "pending" && method === "boleto")
+    return "Seu boleto foi gerado. A confirmação chega em até 2 dias úteis depois do pagamento.";
+  if (status === "in_process")
+    return "Seu pagamento está em análise pelo Mercado Pago. Avisamos aqui assim que for aprovado.";
+  if (status === "rejected" || status === "cancelled")
+    return "O pagamento não foi aprovado. Você pode tentar de novo com outra forma de pagamento.";
+  return "Pedido recebido. Pague com Pix, boleto ou cartão na página segura do Mercado Pago.";
 }
 
 function Row({ label, value }: { label: string; value: string }) {

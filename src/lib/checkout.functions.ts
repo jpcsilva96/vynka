@@ -240,6 +240,15 @@ export const placeCheckoutOrder = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => placeInput.parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await server();
+    // Venda no site só com pagamento integrado: loja sem Mercado Pago conectado não recebe pedido.
+    const { data: payment } = await supabaseAdmin
+      .from("store_payment_connections")
+      .select("store_id")
+      .eq("store_id", data.store_id)
+      .maybeSingle();
+    if (!payment) {
+      throw new Error("Esta loja ainda não está recebendo pagamentos online. Fale com a loja.");
+    }
     const pickup = data.delivery.method === "pickup";
     let address: (ZipAddress & { address_number: string; complement: string }) | null = null;
     if (!pickup) {

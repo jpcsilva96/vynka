@@ -58,6 +58,8 @@ export interface CustomerOrder {
   payment_due_at: string | null;
   cancel_reason: string | null;
   stock_shortage: boolean;
+  payment_method: string | null;
+  mp_payment_status: string | null;
   order_items: {
     id: string;
     product_name: string;
@@ -213,7 +215,7 @@ export async function listCustomerOrders(storeId: string): Promise<CustomerOrder
 const CUSTOMER_ORDER_SELECT =
   "id,number,created_at,status,source,subtotal,total,notes,payment_details," +
   "delivery_method,shipping_service_name,shipping_amount,shipping_min_days,shipping_max_days,delivery_address," +
-  "payment_due_at,cancel_reason,stock_shortage," +
+  "payment_due_at,cancel_reason,stock_shortage,payment_method,mp_payment_status," +
   "order_items(id,product_name,variant_name,quantity,unit_price,total_price)";
 
 const normalizeCustomerOrder = (order: CustomerOrder): CustomerOrder => ({

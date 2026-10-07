@@ -13,6 +13,7 @@ import {
   type DeliveryOption,
   type ZipAddress,
 } from "@/lib/checkout.functions";
+import { startOrderPayment } from "@/lib/order-payment.functions";
 import {
   EmailConfirmationRequiredError,
   getStoreCustomer,
@@ -49,6 +50,7 @@ function CheckoutPage() {
   const { data: account, isLoading: accountLoading } = useStoreCustomer(store.id);
   const fetchOptions = useServerFn(getCheckoutOptions);
   const placeOrder = useServerFn(placeCheckoutOrder);
+  const startPayment = useServerFn(startOrderPayment);
 
   const [step, setStep] = useState<Step>(1);
   const [error, setError] = useState("");
@@ -305,7 +307,20 @@ function CheckoutPage() {
       }
       void queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
       void queryClient.invalidateQueries({ queryKey: ["customer-orders", store.id] });
-      await navigate({ to: "/loja/$slug/pedido/$id", params: { slug: store.slug, id: orderId } });
+      // Pedido gravado: vai pagar na página do Mercado Pago. Se a cobrança não abrir, a página do
+      // pedido tem o botão "Pagar agora" para tentar de novo.
+      try {
+        const { url } = await startPayment({
+          data: { order_id: orderId, return_origin: window.location.origin },
+        });
+        window.location.assign(url);
+        return;
+      } catch {
+        await navigate({
+          to: "/loja/$slug/pedido/$id",
+          params: { slug: store.slug, id: orderId },
+        });
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Não foi possível finalizar.";
       setError(message);
@@ -578,10 +593,6 @@ function CheckoutPage() {
                   Você escolhe a forma e paga na página segura do Mercado Pago, depois de revisar o
                   pedido.
                 </p>
-                <div className="mt-4 border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-800">
-                  Pagamento online em breve. Por enquanto o pedido é registrado como aguardando
-                  pagamento.
-                </div>
                 <PrimaryButton busy={busy} onClick={() => goTo(4)} label="Revisar pedido" />
               </StepTitle>
             )}

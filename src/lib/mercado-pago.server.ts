@@ -238,3 +238,198 @@ export async function mercadoPagoFetch(
   if (!response.ok) throw new Error(`mercado_pago_${response.status}`);
   return json;
 }
+
+// ---------------------------------------------------------------- Cobrança e pagamento (lote E3)
+
+// Endereço público do app (webhook e volta do cliente): o mesmo do retorno do OAuth.
+export const publicOrigin = (cfg: MercadoPagoConfig) => new URL(cfg.redirectUri).origin;
+
+// O Mercado Pago pede data com fuso (yyyy-MM-ddTHH:mm:ss.SSS-03:00).
+function brtTimestamp(date: Date) {
+  const local = new Date(date.getTime() - 3 * 60 * 60 * 1000);
+  return local.toISOString().replace("Z", "-03:00");
+}
+
+interface PreferenceOrder {
+  id: string;
+  number: string | null;
+  storeName: string;
+  items: { title: string; quantity: number; unit_price: number }[];
+  shipping: number;
+  payer: { name: string | null; email: string | null };
+  // Fim do prazo mais longo da loja (boleto); o Pix vence antes pela regra do banco.
+  expiresAt: Date;
+  // Para onde o cliente volta (página "Pedido #N").
+  returnUrl: string;
+}
+
+// Checkout Pro: cria a cobrança na conta da loja. external_reference = id do pedido (é por ele que o
+// webhook acha o pedido). Mesma chave de idempotência por pedido: repetir não cria outra cobrança.
+export async function createPreference(
+  cfg: MercadoPagoConfig,
+  storeId: string,
+  order: PreferenceOrder,
+) {
+  const items = order.items.map((item) => ({
+    title: item.title.slice(0, 250),
+    quantity: item.quantity,
+    unit_price: Number(item.unit_price.toFixed(2)),
+    currency_id: "BRL",
+  }));
+  if (order.shipping > 0) {
+    items.push({
+      title: "Frete",
+      quantity: 1,
+      unit_price: Number(order.shipping.toFixed(2)),
+      currency_id: "BRL",
+    });
+  }
+  const https = order.returnUrl.startsWith("https://");
+  const preference = (await mercadoPagoFetch(cfg, storeId, "/checkout/preferences", {
+    method: "POST",
+    idempotencyKey: `vynka-pref-${order.id}`,
+    body: {
+      items,
+      payer: {
+        ...(order.payer.name ? { name: order.payer.name } : {}),
+        ...(order.payer.email ? { email: order.payer.email } : {}),
+      },
+      external_reference: order.id,
+      metadata: { order_id: order.id, store_id: storeId },
+      statement_descriptor: order.storeName.replace(/[^A-Za-z0-9 ]/g, "").slice(0, 13) || undefined,
+      notification_url: `${publicOrigin(cfg)}/api/mercado-pago/webhook`,
+      back_urls: { success: order.returnUrl, pending: order.returnUrl, failure: order.returnUrl },
+      // Volta automática só com https (o Mercado Pago recusa auto_return para localhost).
+      ...(https ? { auto_return: "approved" } : {}),
+      expires: true,
+      expiration_date_to: brtTimestamp(order.expiresAt),
+      date_of_expiration: brtTimestamp(order.expiresAt),
+    },
+  })) as { id?: string; init_point?: string };
+  if (!preference?.id || !preference.init_point) throw new Error("mercado_pago_preference");
+  return { id: preference.id, url: preference.init_point };
+}
+
+export const checkoutUrl = (preferenceId: string) =>
+  `https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=${encodeURIComponent(preferenceId)}`;
+
+interface MpPayment {
+  id: number;
+  status: string;
+  status_detail?: string;
+  payment_type_id?: string;
+  payment_method_id?: string;
+  external_reference?: string | null;
+  date_last_updated?: string | null;
+  date_approved?: string | null;
+  date_created?: string | null;
+}
+
+// Forma de pagamento do Mercado Pago -> a do Vynka (orders.payment_method).
+function paymentMethod(payment: MpPayment): "pix" | "boleto" | "credit" | "debit" | null {
+  if (payment.payment_method_id === "pix") return "pix";
+  if (payment.payment_type_id === "ticket") return "boleto";
+  if (payment.payment_type_id === "credit_card") return "credit";
+  if (payment.payment_type_id === "debit_card" || payment.payment_type_id === "prepaid_card")
+    return "debit";
+  return null;
+}
+
+export async function fetchPayment(cfg: MercadoPagoConfig, storeId: string, paymentId: string) {
+  return (await mercadoPagoFetch(
+    cfg,
+    storeId,
+    `/v1/payments/${encodeURIComponent(paymentId)}`,
+  )) as MpPayment;
+}
+
+// Pagamentos de um pedido (o cliente pode ter tentado mais de uma vez), do mais novo ao mais antigo.
+export async function searchOrderPayments(
+  cfg: MercadoPagoConfig,
+  storeId: string,
+  orderId: string,
+) {
+  const params = new URLSearchParams({
+    external_reference: orderId,
+    sort: "date_created",
+    criteria: "desc",
+    limit: "20",
+  });
+  const result = (await mercadoPagoFetch(cfg, storeId, `/v1/payments/search?${params}`)) as {
+    results?: MpPayment[];
+  };
+  return result?.results ?? [];
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Grava no pedido o pagamento consultado na API (nunca o corpo do aviso) e aplica as regras do banco
+// (record_order_payment: pago, prazo de Pix/boleto, cartão em análise...).
+export async function applyPayment(storeId: string, payment: MpPayment) {
+  const orderId = String(payment.external_reference ?? "");
+  if (!UUID.test(orderId)) return { orderId: null, result: "no_reference" };
+  const { data, error } = await (supabaseAdmin as any).rpc("record_order_payment", {
+    _order_id: orderId,
+    _store_id: storeId,
+    _payment_id: String(payment.id),
+    _status: payment.status,
+    _status_detail: payment.status_detail ?? null,
+    _method: paymentMethod(payment),
+    _updated_at: payment.date_last_updated ?? payment.date_created ?? null,
+    _approved_at: payment.date_approved ?? null,
+  });
+  if (error) throw error;
+  return { orderId, result: String(data) };
+}
+
+// Se houver um aprovado, ele vale; senão, o mais recente.
+export function pickPayment(payments: MpPayment[]) {
+  return payments.find((p) => p.status === "approved") ?? payments[0] ?? null;
+}
+
+// Assinatura do webhook (x-signature: "ts=...,v1=..."): HMAC-SHA256 com a chave secreta do aplicativo
+// sobre "id:{data.id};request-id:{x-request-id};ts:{ts};" (partes ausentes saem do texto).
+export async function validWebhookSignature(
+  secret: string,
+  signature: string,
+  requestId: string | null,
+  dataId: string | null,
+) {
+  const parts = Object.fromEntries(
+    signature.split(",").map((part) => {
+      const [key, ...value] = part.split("=");
+      return [key.trim(), value.join("=").trim()];
+    }),
+  );
+  if (!parts.ts || !parts.v1) return false;
+  let manifest = "";
+  if (dataId) manifest += `id:${/^[a-z0-9]+$/i.test(dataId) ? dataId.toLowerCase() : dataId};`;
+  if (requestId) manifest += `request-id:${requestId};`;
+  manifest += `ts:${parts.ts};`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const mac = new Uint8Array(
+    await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(manifest)),
+  );
+  const hex = Array.from(mac, (b) => b.toString(16).padStart(2, "0")).join("");
+  if (hex.length !== parts.v1.length) return false;
+  let diff = 0;
+  for (let i = 0; i < hex.length; i++) diff |= hex.charCodeAt(i) ^ parts.v1.charCodeAt(i);
+  return diff === 0;
+}
+
+// Loja dona da conta que recebeu o pagamento (user_id do aviso).
+export async function storeByMpUser(mpUserId: string) {
+  if (!/^\d{1,20}$/.test(mpUserId)) return null;
+  const { data } = await (supabaseAdmin as any)
+    .from("store_payment_connections")
+    .select("store_id")
+    .eq("mp_user_id", mpUserId)
+    .maybeSingle();
+  return (data?.store_id as string | undefined) ?? null;
+}

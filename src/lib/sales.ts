@@ -1,7 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { OrderStatus } from "@/lib/orders";
 
-export type PaymentMethod = "cash" | "pix" | "debit" | "credit" | "payment_link";
+// "boleto": só em pedido do site, vindo do Mercado Pago (não aparece na venda manual).
+export type PaymentMethod = "cash" | "pix" | "debit" | "credit" | "payment_link" | "boleto";
 
 export const paymentMethodLabel: Record<PaymentMethod, string> = {
   cash: "Dinheiro",
@@ -9,6 +10,7 @@ export const paymentMethodLabel: Record<PaymentMethod, string> = {
   debit: "Cartão de débito",
   credit: "Cartão de crédito",
   payment_link: "Link de pagamento",
+  boleto: "Boleto",
 };
 
 export interface CartLine {
