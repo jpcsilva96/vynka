@@ -200,10 +200,20 @@ function PedidoDetalhe() {
     );
   }
 
-  const canChangeStatus = order.status === "pending";
-  const canConfirmOrder = order.status === "pending";
-  const canConcludeSale = order.status === "confirmed";
+  // Pedido do site: só o Mercado Pago confirma o pagamento (o banco também barra, lote E4). O
+  // lojista pode cancelar enquanto aguarda e conclui depois de pago.
+  const isWebsite = order.source === "website";
+  const awaitingPayment = isWebsite && order.status === "pending";
+  const canChangeStatus = order.status === "pending" && !isWebsite;
+  const canConfirmOrder = order.status === "pending" && !isWebsite;
+  const canConcludeSale =
+    order.status === "confirmed" ||
+    (isWebsite && ["paid", "in_production", "in_dispatch", "shipped"].includes(order.status));
   const canCancelSale = order.status !== "cancelled" && order.status !== "delivered";
+  const cancelWarning =
+    isWebsite && order.paid_at
+      ? "Cancelar este pedido? Ele já foi pago: o reembolso ao cliente é feito na sua conta do Mercado Pago."
+      : "Cancelar este pedido?";
   const statusChoices: { value: OrderStatus; label: string; icon: React.ReactNode }[] = [
     { value: "confirmed", label: "Confirmado", icon: <Check className="h-4 w-4" /> },
     { value: "cancelled", label: "Cancelado", icon: <XCircle className="h-4 w-4" /> },
@@ -442,7 +452,9 @@ function PedidoDetalhe() {
                   <button
                     type="button"
                     disabled={statusMutation.isPending}
-                    onClick={() => statusMutation.mutate("cancelled")}
+                    onClick={() =>
+                      window.confirm(cancelWarning) && statusMutation.mutate("cancelled")
+                    }
                     className="grid h-11 w-12 place-items-center rounded-md bg-muted text-foreground hover:bg-border disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label="Cancelar venda"
                     title="Cancelar venda"
@@ -483,6 +495,25 @@ function PedidoDetalhe() {
               </div>
             </div>
           </div>
+
+          {awaitingPayment && (
+            <div className="mt-3 rounded-md border border-border bg-surface px-4 py-3 text-[12.5px] text-foreground">
+              <span className="font-medium">Aguardando o pagamento pelo Mercado Pago.</span>{" "}
+              <span className="text-muted-foreground">
+                O pedido é confirmado sozinho quando o pagamento for aprovado
+                {order.payment_due_at
+                  ? `; sem pagamento até ${formatDate(order.payment_due_at)}, ele é cancelado e as peças voltam ao estoque.`
+                  : "."}
+              </span>
+            </div>
+          )}
+          {statusMutation.isError && (
+            <div className="mt-3 rounded-md bg-red-50 px-4 py-3 text-[12.5px] text-red-700">
+              {statusMutation.error instanceof Error
+                ? statusMutation.error.message
+                : "Não foi possível alterar o status."}
+            </div>
+          )}
 
           <div className="mt-0 rounded-b-lg bg-muted px-4 py-3 text-[12.5px] text-foreground">
             <Clock3
@@ -646,7 +677,10 @@ function PedidoDetalhe() {
 
             <aside className="space-y-4">
               <SummaryCard order={order} />
-              <PaymentCard order={order} onEdit={() => setModal("payment")} />
+              <PaymentCard
+                order={order}
+                onEdit={isWebsite ? undefined : () => setModal("payment")}
+              />
               <OrderReceiptCard order={order} storeId={storeId} />
             </aside>
           </div>
@@ -987,19 +1021,22 @@ function SummaryCard({ order }: { order: OrderRecord }) {
   );
 }
 
-function PaymentCard({ order, onEdit }: { order: OrderRecord; onEdit: () => void }) {
+// Pedido do site: sem "Editar" (a forma vem do Mercado Pago).
+function PaymentCard({ order, onEdit }: { order: OrderRecord; onEdit?: () => void }) {
   const method = order.payment_method as PaymentMethod | null;
   return (
     <InfoCard
       title="Meios de pagamento"
       action={
-        <button
-          type="button"
-          onClick={onEdit}
-          className="text-[12px] font-medium text-primary hover:text-foreground"
-        >
-          Editar
-        </button>
+        onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="text-[12px] font-medium text-primary hover:text-foreground"
+          >
+            Editar
+          </button>
+        )
       }
     >
       <div className="text-[13px] text-foreground">
