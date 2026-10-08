@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Check, CreditCard, Loader2, MapPin, Store, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { clearCart, useCart, useCartTotals } from "@/lib/cart";
+import { formatPhone, isValidPhone, onlyDigits } from "@/lib/br-documents";
 import { cepDigits, formatCep } from "@/lib/cep";
 import {
   getCheckoutOptions,
@@ -194,7 +195,7 @@ function CheckoutPage() {
   const identify = async () => {
     const showProfile = mode === "signup" || needsProfile;
     if (showProfile && !form.name.trim()) return setError("Informe seu nome.");
-    if (showProfile && !form.phone.trim()) return setError("Informe seu telefone.");
+    if (showProfile && !isValidPhone(form.phone)) return setError("Informe seu telefone com DDD.");
     if (!form.email.trim()) return setError("Informe seu e-mail.");
     if (!form.password) return setError("Informe sua senha.");
     setBusy(true);
@@ -437,8 +438,8 @@ function CheckoutPage() {
                           <Field
                             label="Telefone"
                             type="tel"
-                            value={form.phone}
-                            onChange={(v) => setForm((c) => ({ ...c, phone: v }))}
+                            value={formatPhone(form.phone)}
+                            onChange={(v) => setForm((c) => ({ ...c, phone: onlyDigits(v).slice(0, 11) }))}
                           />
                         </>
                       )}

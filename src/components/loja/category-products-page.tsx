@@ -24,7 +24,7 @@ export function CategoryProductsPage({ categorySlug, childSlug }: { categorySlug
         </div>
       ) : !data?.category ? (
         <div className="mt-10 border border-black/10 bg-white px-6 py-12 text-center">
-          <h1 className="text-2xl font-semibold text-black">Categoria nao encontrada</h1>
+          <h1 className="text-2xl font-semibold text-black">Categoria não encontrada</h1>
           <p className="mt-2 text-[13px] text-neutral-500">Ela pode estar inativa ou ter sido removida.</p>
         </div>
       ) : (

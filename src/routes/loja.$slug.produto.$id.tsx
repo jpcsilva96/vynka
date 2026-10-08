@@ -16,8 +16,8 @@ export const Route = createFileRoute("/loja/$slug/produto/$id")({
   component: ProductPage,
   notFoundComponent: () => (
     <div className="mx-auto max-w-md px-6 py-24 text-center">
-      <h1 className="text-2xl font-semibold text-black">Produto nao encontrado</h1>
-      <p className="mt-2 text-[13px] text-neutral-500">O produto pode estar indisponivel.</p>
+      <h1 className="text-2xl font-semibold text-black">Produto não encontrado</h1>
+      <p className="mt-2 text-[13px] text-neutral-500">O produto pode estar indisponível.</p>
     </div>
   ),
 });
@@ -101,7 +101,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
     await queryClient.invalidateQueries({ queryKey: ["customer-favorite-products", store.id] });
   };
 
-  const waText = `Ola! Tenho interesse em ${product.name}${variantLabel ? ` (${variantLabel})` : ""} - ${formatBRL(price)} x ${qty}`;
+  const waText = `Olá! Tenho interesse em ${product.name}${variantLabel ? ` (${variantLabel})` : ""} - ${formatBRL(price)} x ${qty}`;
 
   return (
     <div>
@@ -199,7 +199,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
                 </button>
               </div>
               <button type="button" onClick={handleAdd} disabled={!canBuy} className="flex-1 bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40">
-                {canBuy ? "Adicionar ao carrinho" : "Indisponivel"}
+                {canBuy ? "Adicionar ao carrinho" : "Indisponível"}
               </button>
             </div>
             {store.catalog_visual.show_whatsapp_button && (

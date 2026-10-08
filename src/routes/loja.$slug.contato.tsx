@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { ChevronRight, Instagram, Mail, MapPin } from "lucide-react";
 import type { ReactNode } from "react";
 import { WhatsAppIcon } from "@/components/loja/store-header";
+import { formatPhone } from "@/lib/br-documents";
 import { useStorefront } from "@/lib/storefront-context";
 
 export const Route = createFileRoute("/loja/$slug/contato")({
@@ -34,7 +35,7 @@ function ContactStorePage() {
       key: "whatsapp",
       title: "WhatsApp",
       description: "Fale conosco pelo WhatsApp",
-      value: store.whatsapp,
+      value: formatPhone(store.whatsapp),
       href: `https://wa.me/${whatsappDigits}`,
       icon: <WhatsAppIcon className="h-5 w-5" />,
       external: true,

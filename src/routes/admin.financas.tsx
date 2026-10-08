@@ -1209,7 +1209,6 @@ function AdjustDialog({
             <input
               className={inputClass}
               maxLength={200}
-              placeholder="Ajuste de saldo"
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />

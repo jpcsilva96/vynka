@@ -2,11 +2,11 @@ import type { ProductFormState } from "@/lib/products";
 
 type DimensionKey = "weight_kg" | "height_cm" | "width_cm" | "length_cm";
 
-const fields: { key: DimensionKey; label: string; unit: string; placeholder: string }[] = [
-  { key: "weight_kg", label: "Peso", unit: "kg", placeholder: "0,3" },
-  { key: "height_cm", label: "Altura", unit: "cm", placeholder: "4" },
-  { key: "width_cm", label: "Largura", unit: "cm", placeholder: "12" },
-  { key: "length_cm", label: "Comprimento", unit: "cm", placeholder: "17" },
+const fields: { key: DimensionKey; label: string; unit: string }[] = [
+  { key: "weight_kg", label: "Peso", unit: "kg" },
+  { key: "height_cm", label: "Altura", unit: "cm" },
+  { key: "width_cm", label: "Largura", unit: "cm" },
+  { key: "length_cm", label: "Comprimento", unit: "cm" },
 ];
 
 // Peso e medidas do produto já embalado, usados no cálculo do frete (Correios e transportadoras).
@@ -32,7 +32,6 @@ export function ShippingDimensions({
                 onChange={(event) =>
                   onChange({ [field.key]: event.target.value.replace(/[^\d.,]/g, "") })
                 }
-                placeholder={field.placeholder}
                 className="w-full min-w-0 bg-transparent px-3 py-2.5 text-[14px] outline-none placeholder:text-muted-foreground/60"
               />
               <span className="text-[12px] text-muted-foreground">{field.unit}</span>

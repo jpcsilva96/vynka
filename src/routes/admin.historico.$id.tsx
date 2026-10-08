@@ -16,6 +16,7 @@ import {
 import { PaymentMethodIcon } from "@/components/payment-method-icon";
 import { OrderReceiptCard } from "@/components/order-receipt";
 import { useStoreContext } from "@/lib/store-context";
+import { formatPhone } from "@/lib/br-documents";
 import { formatBRL } from "@/lib/products";
 import {
   cancelSale,
@@ -187,7 +188,7 @@ function VendaDetalhe() {
                   <div className="space-y-1 text-[13px]">
                     <div className="font-medium text-foreground">{order.customer.name}</div>
                     {order.customer.phone && (
-                      <div className="text-muted-foreground">{order.customer.phone}</div>
+                      <div className="text-muted-foreground">{formatPhone(order.customer.phone)}</div>
                     )}
                     {order.customer.email && (
                       <div className="text-muted-foreground">{order.customer.email}</div>

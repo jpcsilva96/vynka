@@ -142,7 +142,7 @@ export async function upsertStoreCustomer(
   } & Partial<CustomerAddressForm>,
 ) {
   const user = await getSessionUser();
-  if (!user) throw new Error("Cliente nao autenticado.");
+  if (!user) throw new Error("Cliente não autenticado.");
   const payload = {
     store_id: storeId,
     user_id: user.id,

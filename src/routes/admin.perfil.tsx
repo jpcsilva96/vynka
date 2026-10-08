@@ -152,7 +152,6 @@ function ProfilePage() {
               className={inputClass}
               inputMode="tel"
               autoComplete="tel"
-              placeholder="(00) 00000-0000"
             />
           </label>
           <label className="block">

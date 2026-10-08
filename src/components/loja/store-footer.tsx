@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Instagram, Mail, MapPin, Phone } from "lucide-react";
 import { buildWhatsAppLink } from "@/lib/cart";
+import { formatPhone } from "@/lib/br-documents";
 import { useStorefront } from "@/lib/storefront-context";
 import { WhatsAppIcon } from "./store-header";
 
@@ -33,7 +34,7 @@ export function StoreFooter() {
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-neutral-500">Navegue</div>
           <div className="mt-4 grid gap-2 text-[13px] text-neutral-700">
-            <Link to="/loja/$slug" params={{ slug }} className="hover:text-black">Inicio</Link>
+            <Link to="/loja/$slug" params={{ slug }} className="hover:text-black">Início</Link>
             <Link to="/loja/$slug" params={{ slug }} hash="produtos" className="hover:text-black">Produtos</Link>
             <Link to="/loja/$slug" params={{ slug }} hash="categorias" className="hover:text-black">Categorias</Link>
           </div>
@@ -48,12 +49,12 @@ export function StoreFooter() {
             )}
             {store.phone && (
               <a href={`tel:${digitsOnly(store.phone)}`} className="inline-flex items-center gap-2 hover:text-black">
-                <Phone className="h-4 w-4" /> {store.phone}
+                <Phone className="h-4 w-4" /> {formatPhone(store.phone)}
               </a>
             )}
             {store.whatsapp && (
-              <a href={buildWhatsAppLink(`Ola ${store.name}!`, store.whatsapp)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 hover:text-black">
-                <WhatsAppIcon className="h-4 w-4" /> {store.whatsapp}
+              <a href={buildWhatsAppLink(`Olá ${store.name}!`, store.whatsapp)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 hover:text-black">
+                <WhatsAppIcon className="h-4 w-4" /> {formatPhone(store.whatsapp)}
               </a>
             )}
             {instagram && (
@@ -73,7 +74,7 @@ export function StoreFooter() {
                 </a>
               )}
               {store.whatsapp && (
-                <a href={buildWhatsAppLink(`Ola ${store.name}!`, store.whatsapp)} target="_blank" rel="noreferrer" className="grid h-9 w-9 place-items-center rounded-full border border-black/10 hover:border-black">
+                <a href={buildWhatsAppLink(`Olá ${store.name}!`, store.whatsapp)} target="_blank" rel="noreferrer" className="grid h-9 w-9 place-items-center rounded-full border border-black/10 hover:border-black">
                   <WhatsAppIcon className="h-4 w-4" />
                 </a>
               )}

@@ -150,7 +150,6 @@ function NovoProduto() {
                 <input
                   value={form.name}
                   onChange={(e) => patch({ name: e.target.value })}
-                  placeholder="Ex: Camiseta essencial"
                   className="w-full rounded-md border border-border bg-surface px-3 py-2.5 text-[14px] outline-none transition-colors focus:border-foreground/40"
                 />
               </Field>

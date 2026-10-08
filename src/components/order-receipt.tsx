@@ -2,6 +2,7 @@ import { Link, Mail, Printer, ReceiptText, Send, UserRound, X } from "lucide-rea
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { formatBRL } from "@/lib/products";
+import { formatPhone } from "@/lib/br-documents";
 import { getGeneralSettings, getReceiptSettings, type ReceiptSettings } from "@/lib/store-settings";
 import type { OrderRecord } from "@/lib/orders";
 import { cn } from "@/lib/utils";
@@ -123,7 +124,7 @@ export function ReceiptPaper({
           <div className="mb-5 text-[13px] leading-relaxed">
             <div className="font-medium text-slate-800">{store?.name ?? "Loja"}</div>
             {store?.address && <div>{store.address}</div>}
-            {(store?.whatsapp || store?.phone) && <div>{store.whatsapp || store.phone}</div>}
+            {(store?.whatsapp || store?.phone) && <div>{formatPhone(store.whatsapp || store.phone)}</div>}
           </div>
         )}
 
