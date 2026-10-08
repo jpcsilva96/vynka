@@ -10,7 +10,6 @@ import {
   UserCog,
   Settings,
   LayoutDashboard,
-  LayoutTemplate,
   Tags,
 } from "lucide-react";
 
@@ -40,7 +39,6 @@ const primary = [
   { title: "Estatísticas", url: "/admin/estatisticas", icon: BarChart3 },
   { title: "Usuários", url: "/admin/usuarios", icon: UserCog },
   { title: "Loja e Catálogo", url: "/admin/configuracoes", icon: Settings },
-  { title: "Editor de Layout", url: "/admin/editor-layout", icon: LayoutTemplate },
 ];
 
 const workspace = [

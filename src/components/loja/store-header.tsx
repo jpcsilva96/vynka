@@ -21,14 +21,7 @@ export function StoreHeader() {
   });
 
   const visual = store.catalog_visual;
-  const headerBackground = colorWithOpacity(
-    visual.header_background_color,
-    visual.header_background_opacity,
-  );
-  const dropdownBackground = colorWithOpacity(
-    visual.header_background_color,
-    Math.max(95, visual.header_background_opacity),
-  );
+  const headerBackground = visual.header_background_color;
   const brand = (
     <Link
       to="/loja/$slug"
@@ -36,16 +29,12 @@ export function StoreHeader() {
       className="flex min-w-0 items-center gap-3 text-current"
     >
       {store.logo_url ? (
-        <span
-          className="flex h-14 shrink-0 items-center justify-center"
-          style={{ width: visual.header_logo_size }}
-        >
-          <img
-            src={store.logo_url}
-            alt={store.name}
-            className="h-full w-full rounded-sm object-contain"
-          />
-        </span>
+        // Espaço fixo do logo; o ajuste por arraste chega no lote 2c.
+        <img
+          src={store.logo_url}
+          alt={store.name}
+          className="h-12 w-auto max-w-[140px] shrink-0 object-contain md:h-14 md:max-w-[200px]"
+        />
       ) : (
         // Logo OU nome, nunca os dois (escopo do catálogo, §2).
         <div className="min-w-0">
@@ -72,7 +61,7 @@ export function StoreHeader() {
           hash="categorias"
           className="inline-flex items-center gap-1.5 py-2 text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-70 transition-opacity hover:opacity-100 focus:opacity-100"
         >
-          {visual.header_categories_label || "Categorias"}
+          Categorias
           <ChevronDown
             className="h-3.5 w-3.5 transition-transform group-hover:rotate-180 group-focus-within:rotate-180"
             strokeWidth={1.7}
@@ -80,7 +69,7 @@ export function StoreHeader() {
         </Link>
         <div
           className="invisible absolute left-1/2 top-full z-50 w-72 -translate-x-1/2 translate-y-2 border border-current/10 p-2 opacity-0 shadow-xl transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
-          style={{ backgroundColor: dropdownBackground }}
+          style={{ backgroundColor: headerBackground }}
         >
           {categories.length > 0 ? (
             categories.map((category) => (
@@ -121,7 +110,7 @@ export function StoreHeader() {
           params={{ slug }}
           className="text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-70 transition-opacity hover:opacity-100"
         >
-          {visual.about_menu_label || "Quem somos"}
+          Quem somos
         </Link>
       )}
       {visual.contact_enabled && (
@@ -180,25 +169,14 @@ export function StoreHeader() {
       className={cn("z-40 border-b border-black/10", visual.header_sticky && "sticky top-0")}
       style={{ backgroundColor: headerBackground, color: visual.header_text_color }}
     >
-      {visual.header_logo_centered ? (
-        <>
-          <div className="mx-auto grid h-20 max-w-[1280px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 md:px-8">
-            <div className="justify-self-start">{menuButton}</div>
-            <div className="min-w-0 max-w-[55vw] justify-self-center">{brand}</div>
-            {actions}
-          </div>
-          <div className="hidden border-t border-current/10 px-8 py-3 md:block">{desktopNav}</div>
-        </>
-      ) : (
-        <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between gap-5 px-4 md:px-8">
-          {brand}
-          {desktopNav}
-          <div className="flex items-center gap-2">
-            {actions}
-            {menuButton}
-          </div>
+      <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between gap-5 px-4 md:px-8">
+        {brand}
+        {desktopNav}
+        <div className="flex items-center gap-2">
+          {actions}
+          {menuButton}
         </div>
-      )}
+      </div>
 
       {open && (
         <div
@@ -217,7 +195,7 @@ export function StoreHeader() {
             {categories.length > 0 && (
               <div className="border-y border-current/10 py-3">
                 <div className="pb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-80">
-                  {visual.header_categories_label || "Categorias"}
+                  Categorias
                 </div>
                 {categories.map((category) => (
                   <div key={category.id}>
@@ -254,7 +232,7 @@ export function StoreHeader() {
                 onClick={() => setOpen(false)}
                 className="block py-3 text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-80"
               >
-                {visual.about_menu_label || "Quem somos"}
+                Quem somos
               </Link>
             )}
             {visual.contact_enabled && (
@@ -286,12 +264,6 @@ export function StoreHeader() {
   );
 }
 
-function colorWithOpacity(color: string, opacity: number) {
-  const alpha = Math.round((Math.min(100, Math.max(0, opacity)) / 100) * 255)
-    .toString(16)
-    .padStart(2, "0");
-  return `${color}${alpha}`;
-}
 
 export function WhatsAppIcon({ className }: { className?: string }) {
   return (

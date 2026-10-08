@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from "@/components/ui/carousel";
 import { ProductCard } from "@/components/loja/product-card";
 import { listActiveProducts, listPublicCategories } from "@/lib/public-shop";
@@ -33,38 +34,36 @@ function LojaIndex() {
   const visibleProducts = products.slice(0, 12);
   const visual = store.catalog_visual;
   const description = plainText(store.description);
-  const banners = visual.show_banner
-    ? store.banners.length > 0
-      ? store.banners
-      : [
-          {
-            id: "legacy",
-            store_id: store.id,
-            image_url: store.banner_url || products[0]?.primary_image || "",
-            title: store.banner_title || "",
-            subtitle:
-              store.banner_subtitle ||
-              description ||
-              "Veja os produtos disponíveis e finalize sua compra de forma simples.",
-            button_label: store.banner_cta || "Ver produtos",
-            link_type: "home" as const,
-            link_target: "",
-            sort_order: 0,
-            active: true,
-          },
-        ]
-    : [];
+  // Banner é só a arte (escopo do catálogo, §5). Sem banner: topo simples com a apresentação.
+  const banners: StoreBanner[] = !visual.show_banner
+    ? []
+    : store.banners.length > 0
+      ? store.banners.filter((banner) => banner.image_url)
+      : store.banner_url
+        ? [
+            {
+              id: "legacy",
+              store_id: store.id,
+              image_url: store.banner_url,
+              title: "",
+              subtitle: "",
+              button_label: "",
+              link_type: "none",
+              link_target: "",
+              sort_order: 0,
+              active: true,
+            },
+          ]
+        : [];
 
   return (
     <div>
-      {visual.show_banner && banners.length > 0 && (
-        <HeroBanners banners={banners} slug={slug} storeName={store.name} />
-      )}
+      <h1 className="sr-only">{store.name}</h1>
+      {banners.length > 0 && <HeroBanners banners={banners} slug={slug} storeName={store.name} />}
 
-      {!visual.show_banner && visual.show_description && description && (
+      {banners.length === 0 && visual.show_description && description && (
         <section className="border-b border-black/10 bg-white">
           <div className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
-            <h1 className="sr-only">{store.name}</h1>
             <p className="max-w-3xl text-[15px] leading-relaxed text-neutral-600">{description}</p>
           </div>
         </section>
@@ -131,13 +130,27 @@ function HeroBanners({
   slug: string;
   storeName: string;
 }) {
+  const [api, setApi] = useState<CarouselApi>();
+
+  // Passa sozinho a cada 5 s; para se o celular pedir "reduzir movimento".
+  useEffect(() => {
+    if (!api || banners.length < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => api.scrollNext(), 5000);
+    return () => window.clearInterval(timer);
+  }, [api, banners.length]);
+
   if (banners.length === 1) {
-    return <HeroBanner banner={banners[0]} slug={slug} storeName={storeName} />;
+    return (
+      <section className="border-b border-black/10">
+        <HeroBanner banner={banners[0]} slug={slug} storeName={storeName} />
+      </section>
+    );
   }
 
   return (
-    <section className="border-b border-black/10 bg-white">
-      <Carousel opts={{ loop: true }}>
+    <section className="border-b border-black/10">
+      <Carousel opts={{ loop: true }} setApi={setApi}>
         <CarouselContent className="ml-0">
           {banners.map((banner) => (
             <CarouselItem key={banner.id} className="pl-0">
@@ -161,71 +174,55 @@ function HeroBanner({
   slug: string;
   storeName: string;
 }) {
+  // A arte inteira aparece (12:5) até existir a versão de celular (lote 4.1).
+  const image = (
+    <img
+      src={banner.image_url}
+      alt={banner.title || storeName}
+      className="mx-auto block aspect-[12/5] w-full max-w-[1600px] object-cover"
+    />
+  );
   const target = bannerTargetHref(banner, slug);
+  if (!target) return image;
   return (
-    <section className="border-b border-black/10 bg-neutral-900">
-      <div className="relative mx-auto min-h-[420px] w-full max-w-[1600px] overflow-hidden md:min-h-[520px] lg:aspect-[12/5] lg:min-h-0">
-        <a
-          href={target.href}
-          target={target.external ? "_blank" : undefined}
-          rel={target.external ? "noreferrer" : undefined}
-          className="absolute inset-0 z-0 block bg-neutral-800"
-          aria-label={banner.button_label || banner.title || "Abrir destaque"}
-        >
-          {banner.image_url ? (
-            <img src={banner.image_url} alt={banner.title || storeName} className="h-full w-full object-cover" />
-          ) : (
-            <div className="h-full" />
-          )}
-        </a>
-        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-[72%] bg-gradient-to-r from-black/25 to-transparent md:w-[58%]" />
-
-        <div className="relative z-20 flex min-h-[420px] items-end px-5 py-9 sm:px-8 md:min-h-[520px] md:items-center md:px-14 md:py-14 lg:min-h-full lg:px-20">
-          <div className="max-w-2xl text-white">
-            <h1
-              className={
-                banner.title
-                  ? "text-4xl font-semibold leading-tight text-white drop-shadow-sm sm:text-5xl md:text-6xl"
-                  : "sr-only"
-              }
-            >
-              {banner.title || storeName}
-            </h1>
-            <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-white/90 drop-shadow-sm md:text-[16px]">
-              {banner.subtitle || "Veja os produtos disponíveis e finalize sua compra de forma simples."}
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <a
-                href={target.href}
-                target={target.external ? "_blank" : undefined}
-                rel={target.external ? "noreferrer" : undefined}
-                className="pointer-events-auto inline-flex items-center gap-2 bg-black px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition-colors hover:bg-neutral-800"
-              >
-                {banner.button_label || "Ver produtos"} <ArrowRight className="h-4 w-4" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+    <a
+      href={target.href}
+      target={target.external ? "_blank" : undefined}
+      rel={target.external ? "noreferrer" : undefined}
+      className="block"
+    >
+      {image}
+    </a>
   );
 }
 
 function bannerTargetHref(banner: StoreBanner, slug: string) {
-  if (banner.link_type === "store_home") {
-    return { href: `/loja/${slug}`, external: false };
+  const base = `/loja/${slug}`;
+  switch (banner.link_type) {
+    case "none":
+      return null;
+    case "store_home":
+      return { href: base, external: false };
+    case "product":
+      return banner.link_target
+        ? { href: `${base}/produto/${banner.link_target}`, external: false }
+        : null;
+    case "category":
+      return banner.link_target
+        ? { href: `${base}/categoria/${banner.link_target}`, external: false }
+        : null;
+    case "about":
+      return { href: `${base}/quem-somos`, external: false };
+    case "contact":
+      return { href: `${base}/contato`, external: false };
+    case "external":
+      return /^https?:\/\//i.test(banner.link_target)
+        ? { href: banner.link_target, external: true }
+        : null;
+    // Promoções e Novidades ganham página própria no lote 3; até lá, a lista de produtos.
+    default:
+      return { href: `${base}#produtos`, external: false };
   }
-  if (banner.link_type === "product" && banner.link_target) {
-    return { href: `/loja/${slug}/produto/${banner.link_target}`, external: false };
-  }
-  if (banner.link_type === "category" && banner.link_target) {
-    return { href: `/loja/${slug}/categoria/${banner.link_target}`, external: false };
-  }
-  if (banner.link_type === "external" && banner.link_target) {
-    return { href: banner.link_target, external: true };
-  }
-  return { href: `/loja/${slug}#produtos`, external: false };
 }
 
 function plainText(value: string | null) {

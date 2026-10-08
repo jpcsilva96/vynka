@@ -3,8 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Heart, Minus, Plus } from "lucide-react";
 import { ProductCard } from "@/components/loja/product-card";
-import { WhatsAppIcon } from "@/components/loja/store-header";
-import { addToCart, buildWhatsAppLink, openCart } from "@/lib/cart";
+import { addToCart, openCart } from "@/lib/cart";
 import { trackStoreView } from "@/lib/views";
 import { listFavoriteProductIds, toggleFavorite, useStoreCustomer } from "@/lib/customer-account";
 import { formatBRL, skuKey } from "@/lib/products";
@@ -101,8 +100,6 @@ function ProductView({ product }: { product: PublicProductDetail }) {
     await queryClient.invalidateQueries({ queryKey: ["customer-favorite-products", store.id] });
   };
 
-  const waText = `Olá! Tenho interesse em ${product.name}${variantLabel ? ` (${variantLabel})` : ""} - ${formatBRL(price)} x ${qty}`;
-
   return (
     <div>
       <div className="mx-auto max-w-[1280px] px-4 py-8 md:px-8">
@@ -143,12 +140,10 @@ function ProductView({ product }: { product: PublicProductDetail }) {
             <Heart className={favorite ? "h-4 w-4 fill-current" : "h-4 w-4"} />
             {favorite ? "Favorito" : "Favoritar"}
           </button>
-          {store.catalog_visual.show_price && (
-            <div className="mt-5 flex items-baseline gap-3">
-              <span className="text-xl font-semibold text-black">{formatBRL(price)}</span>
-              {sale && !currentVariant?.price && <span className="text-[14px] text-neutral-400 line-through">{formatBRL(product.price)}</span>}
-            </div>
-          )}
+          <div className="mt-5 flex items-baseline gap-3">
+            <span className="text-xl font-semibold text-black">{formatBRL(price)}</span>
+            {sale && !currentVariant?.price && <span className="text-[14px] text-neutral-400 line-through">{formatBRL(product.price)}</span>}
+          </div>
           {product.description && (
             <div className="mt-6 text-[14px] leading-relaxed text-neutral-600" dangerouslySetInnerHTML={{ __html: product.description }} />
           )}
@@ -202,11 +197,6 @@ function ProductView({ product }: { product: PublicProductDetail }) {
                 {canBuy ? "Adicionar ao carrinho" : "Indisponível"}
               </button>
             </div>
-            {store.catalog_visual.show_whatsapp_button && (
-              <a href={buildWhatsAppLink(waText, store.whatsapp)} target="_blank" rel="noreferrer" className="inline-flex w-full items-center justify-center gap-2 border border-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-black hover:bg-black hover:text-white">
-                <WhatsAppIcon className="h-4 w-4" /> Comprar pelo WhatsApp
-              </a>
-            )}
           </div>
         </aside>
       </section>

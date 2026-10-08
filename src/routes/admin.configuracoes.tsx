@@ -2,8 +2,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
-  ArrowDown,
-  ArrowUp,
   Eye,
   ExternalLink,
   HelpCircle,
@@ -11,17 +9,11 @@ import {
   Instagram,
   LayoutTemplate,
   Loader2,
-  MapPin,
-  Plus,
-  PackageCheck,
-  ShoppingCart,
   Store,
-  Trash2,
-  Truck,
   UploadCloud,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PageShell } from "@/components/page-shell";
 import {
   DeliverySettingsTab,
@@ -40,14 +32,8 @@ import {
   normalizeSlug,
   type GeneralSettingsForm,
   type ReceiptSettings,
-  type CatalogStyle,
-  type CatalogSection,
-  type CatalogVisualSettings,
-  type StoreBanner,
-  type StoreBannerLinkType,
   type StoreBrandingKind,
 } from "@/lib/store-settings";
-import type { Category, ProductRecord } from "@/lib/products";
 import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
 
@@ -63,7 +49,7 @@ export const Route = createFileRoute("/admin/configuracoes")({
 
 const tabs = [
   "Loja",
-  "Visual do Catálogo",
+  "Personalizar loja",
   "Pedidos e Vendas",
   "Recibo",
   "Pagamentos",
@@ -99,10 +85,6 @@ const emptyForm: GeneralSettingsForm = {
   accepts_site_orders: true,
 };
 
-const catalogStyleOptions: { value: CatalogStyle; title: string }[] = [
-  { value: "minimal", title: "Linda Moda Fitness" },
-];
-
 function Configuracoes() {
   const { currentStore, refresh } = useStoreContext();
   const storeId = currentStore?.id ?? "";
@@ -114,6 +96,7 @@ function Configuracoes() {
     const aba = new URLSearchParams(window.location.search).get("aba");
     if (aba === "entrega") setActiveTab("Entrega e Retirada");
     if (aba === "pagamentos") setActiveTab("Pagamentos");
+    if (aba === "personalizar") setActiveTab("Personalizar loja");
   }, []);
   const [form, setForm] = useState<GeneralSettingsForm>(emptyForm);
   const [receiptForm, setReceiptForm] = useState<ReceiptSettings>(defaultReceiptSettings);
@@ -498,22 +481,22 @@ function Configuracoes() {
               </div>
             </div>
           )
-        ) : activeTab === "Visual do Catálogo" ? (
+        ) : activeTab === "Personalizar loja" ? (
           <div className="grid min-h-[440px] place-items-center rounded-lg border border-border bg-surface px-6 py-12 text-center">
             <div className="max-w-md">
               <div className="mx-auto grid h-16 w-16 place-items-center rounded-md bg-muted text-primary">
                 <LayoutTemplate className="h-8 w-8" strokeWidth={1.4} />
               </div>
-              <h2 className="mt-5 text-[18px] font-semibold text-foreground">Editor de layout</h2>
+              <h2 className="mt-5 text-[18px] font-semibold text-foreground">Deixe a loja com a cara da sua marca</h2>
               <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-                As configurações de cores, fontes, banners, cabeçalho e exibição dos produtos ficam concentradas no editor de layout.
+                Escolha um tema pronto, troque cores e letras, coloque seu logo e os banners da página inicial. Você vê cada mudança na hora, no celular e no computador, e só vai para a loja quando publicar.
               </p>
               <a
                 href="/admin/editor-layout"
                 className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-3 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-graphite"
               >
                 <LayoutTemplate className="h-4 w-4" strokeWidth={1.6} />
-                Editar layout
+                Personalizar loja
               </a>
             </div>
           </div>
@@ -811,704 +794,6 @@ function ToggleRow({
       </button>
     </div>
   );
-}
-
-function BannerManager({
-  banners,
-  products,
-  categories,
-  uploadingBannerId,
-  isUploading,
-  onAdd,
-  onRemove,
-  onMove,
-  onPatch,
-  onUpload,
-}: {
-  banners: StoreBanner[];
-  products: ProductRecord[];
-  categories: Category[];
-  uploadingBannerId: string | null;
-  isUploading: boolean;
-  onAdd: () => void;
-  onRemove: (bannerId: string) => void;
-  onMove: (index: number, dir: -1 | 1) => void;
-  onPatch: <K extends keyof StoreBanner>(bannerId: string, key: K, value: StoreBanner[K]) => void;
-  onUpload: (bannerId: string, file: File) => void;
-}) {
-  return (
-    <SettingsCard title="Banners do Catálogo">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="max-w-2xl text-[13px] leading-relaxed text-muted-foreground">
-          Cadastre imagens de destaque e direcione cada banner para um produto,
-          categoria ou link externo.
-        </p>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-graphite"
-        >
-          <Plus className="h-4 w-4" strokeWidth={1.7} />
-          Adicionar banner
-        </button>
-      </div>
-
-      {banners.length === 0 ? (
-        <button
-          type="button"
-          onClick={onAdd}
-          className="grid min-h-36 place-items-center rounded-md border border-dashed border-border bg-muted/30 px-4 text-center text-[13px] font-medium text-muted-foreground hover:border-foreground/40 hover:text-foreground"
-        >
-          Criar primeiro banner
-        </button>
-      ) : (
-        <div className="space-y-4">
-          {banners.map((banner, index) => (
-            <div key={banner.id} className="rounded-lg border border-border bg-muted/25 p-4">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="text-[13px] font-semibold text-foreground">
-                    Banner {index + 1}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {banner.active ? "Ativo no catálogo" : "Oculto no catálogo"}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => onMove(index, -1)}
-                    disabled={index === 0}
-                    className="grid h-8 w-8 place-items-center rounded-md border border-border bg-surface text-foreground disabled:opacity-40"
-                    title="Subir banner"
-                  >
-                    <ArrowUp className="h-4 w-4" strokeWidth={1.6} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onMove(index, 1)}
-                    disabled={index === banners.length - 1}
-                    className="grid h-8 w-8 place-items-center rounded-md border border-border bg-surface text-foreground disabled:opacity-40"
-                    title="Descer banner"
-                  >
-                    <ArrowDown className="h-4 w-4" strokeWidth={1.6} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onPatch(banner.id, "active", !banner.active)}
-                    className={cn(
-                      "rounded-md px-3 py-2 text-[11px] font-semibold",
-                      banner.active
-                        ? "bg-primary text-primary-foreground"
-                        : "border border-border bg-surface text-muted-foreground",
-                    )}
-                  >
-                    {banner.active ? "Ativo" : "Inativo"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onRemove(banner.id)}
-                    className="grid h-8 w-8 place-items-center rounded-md border border-border bg-surface text-foreground hover:border-red-200 hover:text-red-600"
-                    title="Remover banner"
-                  >
-                    <Trash2 className="h-4 w-4" strokeWidth={1.6} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-                <ImageUploadField
-                  label="Imagem"
-                  description="Use uma imagem horizontal para melhor resultado."
-                  value={banner.image_url}
-                  kind="banner"
-                  uploading={isUploading && uploadingBannerId === banner.id}
-                  ratio="banner"
-                  onUpload={(_, file) => onUpload(banner.id, file)}
-                  onRemove={() => onPatch(banner.id, "image_url", "")}
-                />
-
-                <div className="space-y-3">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <LabeledField label="Título">
-                      <TextInput
-                        value={banner.title}
-                        onChange={(value) => onPatch(banner.id, "title", value)}
-                      />
-                    </LabeledField>
-                    <LabeledField label="Texto do botão">
-                      <TextInput
-                        value={banner.button_label}
-                        onChange={(value) => onPatch(banner.id, "button_label", value)}
-                      />
-                    </LabeledField>
-                  </div>
-
-                  <LabeledField label="Subtítulo">
-                    <textarea
-                      value={banner.subtitle}
-                      onChange={(event) => onPatch(banner.id, "subtitle", event.target.value)}
-                      placeholder="Escolha uma frase curta para apoiar a campanha."
-                      className="min-h-20 w-full resize-none rounded-md border border-border bg-surface px-3 py-3 text-[14px] outline-none focus:border-foreground/40"
-                    />
-                  </LabeledField>
-
-                  <div className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)]">
-                    <LabeledField label="Direcionamento">
-                      <select
-                        value={banner.link_type}
-                        onChange={(event) => {
-                          onPatch(banner.id, "link_type", event.target.value as StoreBannerLinkType);
-                          onPatch(banner.id, "link_target", "");
-                        }}
-                        className="h-11 w-full rounded-md border border-border bg-surface px-3 text-[14px] outline-none focus:border-foreground/40"
-                      >
-                        <option value="store_home">Página inicial da loja</option>
-                        <option value="home">Lista de produtos</option>
-                        <option value="product">Produto específico</option>
-                        <option value="category">Categoria</option>
-                        <option value="external">Link externo</option>
-                      </select>
-                    </LabeledField>
-                    <BannerTargetField
-                      banner={banner}
-                      products={products}
-                      categories={categories}
-                      onPatch={onPatch}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </SettingsCard>
-  );
-}
-
-function BannerTargetField({
-  banner,
-  products,
-  categories,
-  onPatch,
-}: {
-  banner: StoreBanner;
-  products: ProductRecord[];
-  categories: Category[];
-  onPatch: <K extends keyof StoreBanner>(bannerId: string, key: K, value: StoreBanner[K]) => void;
-}) {
-  if (banner.link_type === "store_home") {
-    return (
-      <LabeledField label="Destino">
-        <div className="rounded-md border border-border bg-muted px-3 py-3 text-[13px] text-muted-foreground">
-          Leva para o início da loja.
-        </div>
-      </LabeledField>
-    );
-  }
-
-  if (banner.link_type === "home") {
-    return (
-      <LabeledField label="Destino">
-        <div className="rounded-md border border-border bg-muted px-3 py-3 text-[13px] text-muted-foreground">
-          Leva para a lista de produtos do catálogo.
-        </div>
-      </LabeledField>
-    );
-  }
-
-  if (banner.link_type === "product") {
-    return (
-      <LabeledField label="Produto">
-        <select
-          value={banner.link_target}
-          onChange={(event) => onPatch(banner.id, "link_target", event.target.value)}
-          className="h-11 w-full rounded-md border border-border bg-surface px-3 text-[14px] outline-none focus:border-foreground/40"
-        >
-          <option value="">Selecione um produto</option>
-          {products.map((product) => (
-            <option key={product.id} value={product.id}>
-              {product.name}
-            </option>
-          ))}
-        </select>
-      </LabeledField>
-    );
-  }
-
-  if (banner.link_type === "category") {
-    return (
-      <LabeledField label="Categoria">
-        <select
-          value={banner.link_target}
-          onChange={(event) => onPatch(banner.id, "link_target", event.target.value)}
-          className="h-11 w-full rounded-md border border-border bg-surface px-3 text-[14px] outline-none focus:border-foreground/40"
-        >
-          <option value="">Selecione uma categoria</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.slug}>
-              {category.name}
-            </option>
-          ))}
-        </select>
-      </LabeledField>
-    );
-  }
-
-  return (
-    <LabeledField label="Link externo">
-      <TextInput
-        value={banner.link_target}
-        onChange={(value) => onPatch(banner.id, "link_target", value)}
-      />
-    </LabeledField>
-  );
-}
-
-function StyleMiniPreview({ style }: { style: CatalogStyle }) {
-  const commercial = style === "commercial";
-  const elegant = style === "elegant";
-  const editorial = style === "editorial";
-  return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-md border border-border bg-white",
-        elegant && "bg-[#faf7f2]",
-        commercial && "bg-[#fff7ed]",
-        editorial && "bg-[#f7f5f0]",
-      )}
-    >
-      <div
-        className={cn(
-          "h-12 bg-neutral-100",
-          elegant && "bg-stone-200",
-          commercial && "bg-orange-200",
-          editorial && "bg-zinc-200",
-        )}
-      />
-      <div className="space-y-2 p-3">
-        <div
-          className={cn(
-            "h-2 w-2/3 rounded bg-neutral-900",
-            commercial && "h-3 w-3/4 bg-orange-600",
-            editorial && "w-1/2",
-          )}
-        />
-        <div className="grid grid-cols-3 gap-2">
-          {[0, 1, 2].map((item) => (
-            <div
-              key={item}
-              className={cn("space-y-1", commercial && "rounded border border-orange-200 bg-white p-1")}
-            >
-              <div
-                className={cn(
-                  "aspect-[3/4] bg-neutral-100",
-                  elegant && "rounded",
-                  commercial && "aspect-square bg-orange-100",
-                  editorial && "aspect-[4/5]",
-                )}
-              />
-              <div className="h-1.5 w-4/5 rounded bg-neutral-200" />
-              {commercial && <div className="h-1.5 w-1/2 rounded bg-orange-500" />}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ColorInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2.5">
-      <input
-        type="color"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-9 w-10 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
-      />
-      <span className="min-w-0 flex-1">
-        <span className="block text-[12px] font-semibold text-foreground">{label}</span>
-        <span className="block text-[12px] uppercase text-muted-foreground">{value}</span>
-      </span>
-    </label>
-  );
-}
-
-function SegmentedControl({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: [string, string][];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div>
-      <div className="mb-2 text-[12px] font-semibold text-foreground">{label}</div>
-      <div className="grid grid-cols-2 overflow-hidden rounded-md border border-border bg-muted p-1">
-        {options.map(([optionValue, optionLabel]) => (
-          <button
-            key={optionValue}
-            type="button"
-            onClick={() => onChange(optionValue)}
-            className={cn(
-              "rounded px-3 py-2 text-[12px] font-semibold transition-colors",
-              value === optionValue ? "bg-surface text-foreground shadow-sm" : "text-muted-foreground",
-            )}
-          >
-            {optionLabel}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-const sectionLabels: Record<CatalogSection, string> = {
-  banner: "Banner",
-  description: "Descrição",
-  categories: "Categorias",
-  featured: "Destaques",
-  products: "Produtos",
-  promos: "Promoções",
-};
-
-function SectionOrderEditor({
-  order,
-  onChange,
-}: {
-  order: CatalogSection[];
-  onChange: (order: CatalogSection[]) => void;
-}) {
-  const move = (index: number, dir: -1 | 1) => {
-    const nextIndex = index + dir;
-    if (nextIndex < 0 || nextIndex >= order.length) return;
-    const next = order.slice();
-    [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
-    onChange(next);
-  };
-
-  return (
-    <div className="pt-2">
-      <div className="mb-2 text-[12px] font-semibold text-foreground">Ordem das seções</div>
-      <div className="space-y-2">
-        {order.map((section, index) => (
-          <div
-            key={section}
-            className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2"
-          >
-            <span className="text-[13px] font-medium text-foreground">{sectionLabels[section]}</span>
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={() => move(index, -1)}
-                disabled={index === 0}
-                className="rounded border border-border bg-surface px-2 py-1 text-[11px] disabled:opacity-40"
-              >
-                Subir
-              </button>
-              <button
-                type="button"
-                onClick={() => move(index, 1)}
-                disabled={index === order.length - 1}
-                className="rounded border border-border bg-surface px-2 py-1 text-[11px] disabled:opacity-40"
-              >
-                Descer
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CatalogVisualPreview({
-  store,
-  settings,
-  banners,
-}: {
-  store: GeneralSettingsForm;
-  settings: CatalogVisualSettings;
-  banners: StoreBanner[];
-}) {
-  const mockProducts = [
-    ["Vestido Linho", "R$ 189,90"],
-    ["Bolsa Mini", "R$ 129,90"],
-    ["Camisa Off", "R$ 99,90"],
-    ["Sandalia", "R$ 159,90"],
-  ];
-  const commercial = false;
-  const elegant = true;
-  const editorial = false;
-  const minimal = false;
-  const styleName =
-    catalogStyleOptions.find((style) => style.value === settings.catalog_style)?.title ??
-    "Minimalista";
-  const previewBackground = elegant ? "#f7f4ef" : settings.background_color;
-  const previewPrimary = elegant ? "#5b1022" : settings.primary_color;
-  const previewSecondary = elegant ? "#c59a36" : settings.secondary_color;
-  const previewButton = elegant ? "#5b1022" : settings.button_color;
-  const previewBanner = banners.find((banner) => banner.active) ?? banners[0] ?? null;
-  return (
-    <section className="overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div>
-          <div className="text-[13px] font-semibold text-foreground">Prévia</div>
-          <div className="text-[11px] text-muted-foreground">Simulação do catálogo público</div>
-        </div>
-        <div className="rounded-full bg-muted px-3 py-1 text-[11px] font-semibold capitalize text-foreground">
-          {styleName}
-        </div>
-      </div>
-      <div
-        className="p-4"
-        style={
-          {
-            backgroundColor: previewBackground,
-            "--preview-primary": previewPrimary,
-            "--preview-secondary": previewSecondary,
-            "--preview-button": previewButton,
-          } as CSSProperties
-        }
-      >
-        <div
-          className={cn(
-            "overflow-hidden border border-black/10 bg-white",
-            elegant && "rounded-xl border-[#5b1022]/20 bg-[#f7f4ef]",
-            commercial && "rounded-md bg-[#f6f7fb]",
-            editorial && "rounded-none bg-white",
-            minimal && "rounded-md",
-          )}
-        >
-          {commercial && (
-            <div className="bg-[var(--preview-button)] px-4 py-1.5 text-center text-[9px] font-black uppercase tracking-[0.16em] text-white">
-              Catalogo atualizado • Peça pelo WhatsApp
-            </div>
-          )}
-          {elegant && (
-            <div className="bg-[#c59a36] px-4 py-1.5 text-center text-[9px] font-black uppercase tracking-[0.18em] text-[#2b0b12]">
-              Conforto • Estilo • Confiança
-            </div>
-          )}
-          <div
-            className={cn(
-              "flex items-center justify-between border-b border-black/10 px-4 py-3",
-              elegant && "justify-center gap-4 border-[#c59a36]/30 bg-[#5b1022] py-4",
-              editorial && "border-b-0 py-4",
-            )}
-          >
-            <div className="flex items-center gap-2">
-              {store.logo_url ? (
-                <img src={store.logo_url} alt="" className="h-7 w-7 rounded object-contain" />
-              ) : (
-                <div className="h-7 w-7 rounded bg-neutral-100" />
-              )}
-              <span
-                className={cn(
-                  "text-[12px] font-semibold text-[var(--preview-primary)]",
-                  elegant && "font-serif text-[22px] font-semibold tracking-[0.08em] text-[#f7f4ef]",
-                  commercial && "font-black uppercase",
-                  editorial && "font-serif text-[20px] font-light",
-                )}
-              >
-                {store.name || "Minha loja"}
-              </span>
-            </div>
-            {!elegant && <div className={cn("h-2 w-14 rounded bg-neutral-100", commercial && "h-6 w-20 bg-[#25d366]", editorial && "h-px w-20 bg-black")} />}
-          </div>
-
-          {settings.show_banner && (
-            <div
-              className={cn(
-                "relative bg-neutral-100",
-                commercial ? "m-3 h-28 rounded-md" : editorial ? "grid h-48 grid-cols-[0.9fr_1.1fr] bg-white" : elegant ? "grid h-52 grid-cols-[0.9fr_1.1fr] bg-[#5b1022]" : "h-36",
-              )}
-            >
-              {previewBanner?.image_url ? (
-                <img
-                  src={previewBanner.image_url}
-                  alt=""
-                  className={cn(
-                    "h-full w-full object-cover",
-                    elegant && "col-start-2",
-                    editorial && "col-start-2",
-                  )}
-                />
-              ) : (
-                <div className={cn("h-full w-full bg-gradient-to-br from-neutral-100 to-neutral-300", elegant && "col-start-2 from-[#eadfce] to-[#f7f4ef]", editorial && "col-start-2")} />
-              )}
-              <div className={cn("absolute inset-0 bg-black/25", elegant && "left-auto right-0 w-[55%] bg-black/10", editorial && "left-auto right-0 w-[55%]")} />
-              {elegant && <div className="absolute left-4 top-4 h-[calc(100%-32px)] w-[42%] border-y border-[#c59a36]/35" />}
-              {editorial && <div className="absolute left-4 top-4 h-[calc(100%-32px)] w-[42%] border-y border-black" />}
-              <div className={cn("absolute bottom-4 left-4 right-4", elegant && "right-auto max-w-[42%] text-left", editorial && "bottom-6 left-6 right-auto max-w-[42%]")}>
-                <div
-                  className={cn(
-                    "leading-none text-white",
-                    commercial ? "text-[24px] font-black uppercase" : elegant ? "font-serif text-[34px] font-semibold text-[#f7f4ef]" : minimal ? "text-[24px] font-semibold" : "font-serif text-[30px] text-neutral-950",
-                  )}
-                >
-                  {previewBanner?.title || store.name || "Nova coleção"}
-                </div>
-                <button
-                  type="button"
-                  className={cn(
-                    "mt-3 px-4 py-2 text-[9px] font-semibold uppercase tracking-[0.18em]",
-                    elegant && "rounded-md bg-[#c59a36] font-bold text-[#2b0b12]",
-                    commercial && "rounded-md font-black",
-                    editorial && "bg-transparent px-0 text-neutral-950 underline underline-offset-4",
-                    !editorial && "text-white",
-                  )}
-                  style={!elegant && !editorial ? { backgroundColor: settings.button_color } : undefined}
-                >
-                  {previewBanner?.button_label || "Ver produtos"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className={cn("p-4", commercial ? "space-y-3" : elegant ? "space-y-7 p-6" : editorial ? "space-y-8 p-6" : "space-y-5")}>
-            {settings.show_description && (
-              <div
-                className={cn(
-                  "text-[11px] leading-relaxed text-neutral-600",
-                  minimal && "rounded border border-black/5 bg-neutral-50 p-3",
-                  elegant && "mx-auto max-w-[75%] text-center text-[12px]",
-                  commercial && "rounded-md border border-black/10 bg-white p-3 font-semibold shadow-sm",
-                  editorial && "border-y border-black py-4 font-serif text-[18px] leading-tight text-neutral-900",
-                )}
-              >
-                {stripHtml(store.description) || "Descrição curta da loja para apresentar a marca."}
-              </div>
-            )}
-
-            {settings.show_categories && (
-              <div>
-                <div className={cn("mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--preview-secondary)]", editorial && "font-serif text-[18px] normal-case tracking-[0] text-neutral-950")}>
-                  Categorias
-                </div>
-                <div
-                  className={cn(
-                    commercial ? "flex gap-2 overflow-hidden" : elegant ? "flex justify-center gap-5 border-y border-black/10 py-3" : editorial ? "grid grid-cols-2 gap-2" : "flex gap-2 overflow-hidden",
-                  )}
-                >
-                  {["Novidades", "Mais vendidos", "Promoções"].map((item) => (
-                    <div
-                      key={item}
-                      className={cn(
-                        "text-center text-[10px]",
-                        minimal && "rounded-full border border-black/10 px-3 py-2",
-                        elegant && "border-b border-black/20 px-1 pb-1 font-serif text-[13px]",
-                        commercial && "rounded-md border border-black/10 bg-white px-3 py-2 font-black uppercase shadow-sm",
-                        editorial && "border border-black px-3 py-4 font-serif text-[16px]",
-                      )}
-                    >
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div>
-              <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--preview-secondary)]">
-                Produtos
-              </div>
-              <div
-                className={cn(
-                  settings.product_layout === "list"
-                    ? "grid gap-2"
-                    : commercial || settings.product_card_style === "compact"
-                    ? "grid grid-cols-3 gap-2"
-                    : elegant
-                    ? "grid grid-cols-2 gap-4"
-                    : editorial
-                    ? "grid grid-cols-2 gap-3"
-                    : "grid grid-cols-2 gap-3",
-                )}
-              >
-                {mockProducts.map(([name, price], index) => (
-                  <div
-                    key={name}
-                    className={cn(
-                      "bg-white",
-                      settings.product_layout === "list" ? "flex gap-3 p-2" : "p-2",
-                      minimal && "rounded border border-black/10",
-                      elegant && "rounded-lg border border-black/5 bg-transparent p-0",
-                      commercial && "rounded-md border border-black/10 p-1 shadow-sm",
-                      editorial && "border-0 p-0",
-                      editorial && index === 0 && settings.product_layout !== "list" && "col-span-2",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "bg-neutral-100",
-                        settings.product_layout === "list"
-                          ? "h-14 w-14 shrink-0"
-                          : commercial || settings.product_card_style === "compact"
-                          ? "aspect-square"
-                          : elegant
-                          ? "aspect-[4/5] rounded-lg"
-                          : editorial
-                          ? index === 0
-                            ? "aspect-[16/8]"
-                            : "aspect-[4/5]"
-                          : "aspect-[3/4]",
-                      )}
-                    />
-                    <div className={settings.product_layout === "list" ? "flex-1" : elegant ? "mt-3" : "mt-2"}>
-                      <div
-                        className={cn(
-                          "truncate text-[10px] font-semibold text-[var(--preview-primary)]",
-                          elegant && "font-serif text-[13px] font-light",
-                          commercial && "font-black uppercase",
-                          editorial && "font-serif text-[15px] font-light",
-                        )}
-                      >
-                        {name}
-                      </div>
-                      {settings.show_price && (
-                        <div className={cn("mt-0.5 text-[10px] text-neutral-600", commercial && "text-[13px] font-black text-[var(--preview-button)]", elegant && "text-[11px]", editorial && "text-[11px]")}>{price}</div>
-                      )}
-                      {settings.show_whatsapp_button && (
-                        <div
-                          className={cn(
-                            "mt-2 h-5 w-full",
-                            minimal && "rounded-sm",
-                            elegant && "rounded-full border border-[var(--preview-button)] bg-transparent",
-                            commercial && "rounded-md",
-                            editorial && "h-px bg-neutral-900",
-                          )}
-                          style={!elegant && !editorial ? { backgroundColor: settings.button_color } : undefined}
-                        />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function stripHtml(value: string) {
-  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
 function ReceiptPreview({
