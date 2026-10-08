@@ -15,8 +15,18 @@ const KEY = "vynka:cart";
 let items: CartItem[] = [];
 const listeners = new Set<() => void>();
 
+// Na prévia do editor o carrinho funciona só na memória: não lê nem grava o carrinho real.
+let previewMode = false;
+export function setCartPreviewMode(enabled: boolean) {
+  if (previewMode === enabled) return;
+  previewMode = enabled;
+  items = [];
+  if (!enabled) load();
+  listeners.forEach((l) => l());
+}
+
 function load() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || previewMode) return;
   try {
     const raw = window.localStorage.getItem(KEY);
     items = raw ? (JSON.parse(raw) as CartItem[]) : [];
@@ -26,7 +36,7 @@ function load() {
 }
 function persist() {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, JSON.stringify(items));
+  if (!previewMode) window.localStorage.setItem(KEY, JSON.stringify(items));
   listeners.forEach((l) => l());
 }
 load();

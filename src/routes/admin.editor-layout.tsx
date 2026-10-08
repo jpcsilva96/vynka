@@ -25,7 +25,7 @@ import {
   Type,
   UploadCloud,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,7 @@ import {
 } from "@/lib/store-settings";
 import { matchingTheme, storeThemes, type StoreTheme } from "@/lib/store-themes";
 import { useStoreContext } from "@/lib/store-context";
+import { isFrameMessage, sendPreviewUpdate, type PreviewDevice, type PreviewOverrides } from "@/lib/storefront-preview";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/editor-layout")({
@@ -68,7 +69,6 @@ export const Route = createFileRoute("/admin/editor-layout")({
 // usado para o menos usado. Tamanhos e espaçamentos são fixos; o lojista mexe em cor, fonte,
 // imagem e texto.
 type EditorSection = "themes" | "brand" | "colors" | "typography" | "home" | "header" | "pages";
-type PreviewDevice = "mobile" | "desktop";
 
 const emptyStore: GeneralSettingsForm = {
   name: "",
@@ -381,14 +381,32 @@ function LayoutEditor() {
           </div>
         </aside>
 
-        <section className={cn("min-w-0 overflow-auto p-3 pb-24 sm:p-6 lg:block lg:p-8", mobileView === "edit" && "hidden")}>
+        <section className={cn("flex min-h-[calc(100svh-4rem)] min-w-0 flex-col p-3 pb-24 sm:p-6 lg:h-full lg:min-h-0 lg:p-8", mobileView === "edit" && "hidden lg:flex")}>
           <div className="mb-3 flex items-center justify-center gap-2 lg:hidden">
             <DeviceButton active={device === "mobile"} onClick={() => setDevice("mobile")} icon={Smartphone}>Celular</DeviceButton>
             <DeviceButton active={device === "desktop"} onClick={() => setDevice("desktop")} icon={Monitor}>Computador</DeviceButton>
           </div>
-          <div className={cn("mx-auto overflow-hidden border border-black/10 bg-white shadow-xl transition-[max-width] duration-300", device === "mobile" ? "max-w-[375px]" : "max-w-[1180px]")}>
-            <StorefrontPreview store={store} visual={visual} banners={banners} products={products} device={device} showAboutPage={activeSection === "pages" && visual.about_enabled} />
-          </div>
+          {store.slug ? (
+            <LivePreview
+              slug={store.slug}
+              device={device}
+              visible={mobileView === "preview"}
+              overrides={{
+                device,
+                name: store.name,
+                description: store.description,
+                logo_url: store.logo_url,
+                favicon_url: store.favicon_url,
+                visual,
+                banners,
+              }}
+              onLogoSize={(target, height) =>
+                patchVisual(target === "mobile" ? "header_logo_height_mobile" : "header_logo_height_desktop", height)
+              }
+            />
+          ) : (
+            <div className="grid flex-1 place-items-center text-[13px] text-muted-foreground">Defina o link da loja em Loja e Catálogo para ver a prévia.</div>
+          )}
         </section>
       </main>
 
@@ -441,7 +459,7 @@ function EditorControls(props: ControlsProps) {
 
         {section === "brand" && <>
           <Field label="Nome da loja" help="Aparece no topo quando a loja não tem logo, e na aba do navegador."><Input value={store.name} onChange={(event) => patchStore("name", event.target.value)} /></Field>
-          <Field label="Logo" help="Com logo, o topo da loja mostra só o logo. Sem logo, mostra o nome.">
+          <Field label="Logo" help="Com logo, o topo da loja mostra só o logo. Sem logo, mostra o nome. Para mudar o tamanho, clique no logo na prévia.">
             <ImageUpload value={store.logo_url} uploading={props.uploading === "logo"} onFile={(file) => props.upload("logo", "logo", file)} onRemove={() => patchStore("logo_url", "")} />
           </Field>
           <Field label="Ícone da aba do navegador" help="A imagem pequena que aparece na aba, ao lado do nome da loja.">
@@ -512,7 +530,15 @@ function EditorControls(props: ControlsProps) {
 
         {section === "header" && <>
           <Toggle label="Manter o cabeçalho visível ao rolar a página" help="O topo com logo e carrinho continua aparecendo enquanto o cliente desce a página." checked={visual.header_sticky} onChange={(checked) => patchVisual("header_sticky", checked)} />
-          <Help>A cor do cabeçalho fica em "Cores". O tamanho do logo e a faixa de aviso no topo chegam nas próximas versões.</Help>
+          <div className="space-y-2 rounded-md border border-border p-3">
+            <span className="block text-[12px] font-medium">Tamanho do logo</span>
+            <Help>{store.logo_url ? "Clique no logo na prévia e arraste as alças dos cantos. Ajuste com \"Celular\" e depois com \"Computador\": cada um guarda o seu tamanho. O logo nunca passa do espaço do topo." : "Envie o logo em \"Logo e apresentação\" para ajustar o tamanho."}</Help>
+            <div className="grid grid-cols-2 gap-2 text-[12px]">
+              <LogoSizeRow label="Celular" value={visual.header_logo_height_mobile} onReset={visual.header_logo_height_mobile === defaults.header_logo_height_mobile ? undefined : () => patchVisual("header_logo_height_mobile", defaults.header_logo_height_mobile)} />
+              <LogoSizeRow label="Computador" value={visual.header_logo_height_desktop} onReset={visual.header_logo_height_desktop === defaults.header_logo_height_desktop ? undefined : () => patchVisual("header_logo_height_desktop", defaults.header_logo_height_desktop)} />
+            </div>
+          </div>
+          <Help>A cor do cabeçalho fica em "Cores". A faixa de aviso no topo chega numa próxima versão.</Help>
         </>}
 
         {section === "pages" && <>
@@ -550,6 +576,15 @@ function Toggle({ label, help, checked, onChange }: { label: string; help?: stri
       </span>
       <Switch checked={checked} onCheckedChange={onChange} />
     </label>
+  );
+}
+
+function LogoSizeRow({ label, value, onReset }: { label: string; value: number; onReset?: () => void }) {
+  return (
+    <div className="rounded border border-border bg-neutral-50 px-2 py-2">
+      <div className="flex items-center justify-between gap-2"><span className="font-medium">{label}</span><ResetButton onClick={onReset} /></div>
+      <div className="mt-0.5 text-muted-foreground">{value} px de altura</div>
+    </div>
   );
 }
 
@@ -790,51 +825,59 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
   return next;
 }
 
-// Desenho simplificado da loja. A prévia fiel (a própria loja numa moldura) chega no lote 2c.
-function StorefrontPreview({ store, visual: rawVisual, banners, products, device, showAboutPage }: { store: GeneralSettingsForm; visual: CatalogVisualSettings; banners: StoreBanner[]; products: ProductRecord[]; device: PreviewDevice; showAboutPage: boolean }) {
-  const visual = normalizeCatalogVisualSettings(rawVisual);
-  const activeBanner = banners.find((banner) => banner.active && banner.image_url);
-  const shownProducts = products.filter((product) => product.status === "active").slice(0, device === "mobile" ? 4 : 8);
-  const fallbackProducts = shownProducts.length ? shownProducts : Array.from({ length: device === "mobile" ? 4 : 8 }, (_, index) => ({ id: String(index), name: ["Produto essencial", "Nova coleção", "Mais vendido", "Oferta especial"][index % 4], price: 89.9 + index * 20, promo_price: null, primary_image: null } as ProductRecord));
-  const desktop = device === "desktop";
-  const showTopDescription = (!visual.show_banner || !activeBanner) && visual.show_description && stripHtml(store.description);
-  const brand = store.logo_url
-    ? <img src={store.logo_url} alt="" className={cn("w-auto object-contain", desktop ? "h-14 max-w-[200px]" : "h-12 max-w-[140px]")} />
-    : <span className="truncate text-[15px] font-semibold uppercase tracking-[0.22em]">{store.name || "Minha loja"}</span>;
-  return <div style={{ backgroundColor: visual.background_color, color: visual.primary_color, "--shop-primary": visual.primary_color, "--shop-secondary": visual.secondary_color, "--shop-button": visual.button_color, "--shop-button-hover": visual.button_hover_color, "--shop-button-text": visual.button_text_color, "--store-heading-font": storeFontFamily(visual.heading_font), "--store-body-font": storeFontFamily(visual.body_font) } as CSSProperties} className="storefront-typography min-h-[760px]">
-    <header className={cn("z-20 border-b border-black/10", visual.header_sticky && "sticky top-0")} style={{ backgroundColor: visual.header_background_color, color: visual.header_text_color }}>
-      <div className={cn("flex h-20 items-center justify-between gap-5 px-5", desktop && "px-10")}>
-        <div className="min-w-0">{brand}</div>
-        {desktop && <nav className="flex items-center justify-center gap-8 text-[12px] uppercase tracking-[0.18em] opacity-75"><span>Início</span><span>Categorias</span>{visual.about_enabled && <span>Quem somos</span>}{visual.contact_enabled && <span>Contato</span>}</nav>}
-        <div className="flex justify-end gap-2"><div className="h-8 w-8 rounded-full border border-current/20" /><div className="h-8 w-8 rounded-full border border-current/20" /></div>
-      </div>
-    </header>
+// Prévia fiel (lote 2c): a própria loja numa moldura com a largura do aparelho, recebendo as
+// mudanças ainda não publicadas. No computador a loja abre com 1280 px e é reduzida para caber.
+const PREVIEW_WIDTH: Record<PreviewDevice, number> = { mobile: 375, desktop: 1280 };
 
-    {showAboutPage ? <main className={cn("mx-auto max-w-6xl px-5 py-12", desktop && "px-10 py-16")}>
-      <h1 className={cn("text-center text-[32px] font-semibold leading-tight", desktop && "text-[44px]")}>{visual.about_title || "Quem somos"}</h1>
-      <div className={cn("mt-10 items-center gap-10", visual.about_image_url && desktop ? "grid grid-cols-2" : "mx-auto max-w-2xl")}>
-        {visual.about_image_url && <div className="aspect-[4/3] overflow-hidden rounded-md bg-black/5"><img src={visual.about_image_url} alt="" className="h-full w-full object-cover" /></div>}
-        <p className={cn("whitespace-pre-line text-[14px] leading-7 text-[var(--shop-secondary)]", visual.about_image_url && !desktop ? "mt-7" : !visual.about_image_url && "text-center")}>{visual.about_description || `Conheça a história e o propósito da ${store.name || "nossa loja"}.`}</p>
-      </div>
-    </main> : <>
-      {visual.show_banner && activeBanner && <img src={activeBanner.image_url} alt="" className="block aspect-[3/1] w-full object-cover" />}
-      {showTopDescription && <section className={cn("border-b border-black/10 px-5 py-10", desktop && "px-10")}><p className="max-w-3xl text-[15px] leading-relaxed text-[var(--shop-secondary)]">{stripHtml(store.description)}</p></section>}
+function LivePreview({ slug, device, visible, overrides, onLogoSize }: { slug: string; device: PreviewDevice; visible: boolean; overrides: PreviewOverrides; onLogoSize: (device: PreviewDevice, height: number) => void }) {
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [box, setBox] = useState({ width: 0, height: 0 });
+  const latest = useRef(overrides);
+  latest.current = overrides;
+  const onLogoSizeRef = useRef(onLogoSize);
+  onLogoSizeRef.current = onLogoSize;
 
-      <main className={cn("mx-auto max-w-6xl space-y-10 px-5 py-8", desktop && "px-10 py-12")}>
-        {visual.show_categories && <section><SectionTitle>Explore por categoria</SectionTitle><div className={cn("grid gap-3", desktop ? "grid-cols-4" : "grid-cols-2")}>{["Novidades", "Mais vendidos", "Promoções", "Coleções"].map((name) => <div key={name} className="border border-black/10 px-4 py-5 text-[12px] font-medium">{name}</div>)}</div></section>}
-        <section><SectionTitle>{visual.show_featured ? "Produtos em destaque" : "Catálogo"}</SectionTitle><div className={cn("grid gap-4", desktop ? "grid-cols-4" : "grid-cols-2")}>{fallbackProducts.map((product) => <div key={product.id}><div className="aspect-[4/5] overflow-hidden bg-neutral-100">{product.primary_image ? <img src={product.primary_image} alt="" className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center"><ImageIcon className="h-6 w-6 text-neutral-300" /></div>}</div><div className="py-3"><div className="truncate text-[13px] font-medium" style={{ fontFamily: "var(--store-heading-font)" }}>{product.name}</div><div className="mt-1 text-[13px] font-semibold">{formatCurrency(product.promo_price ?? product.price)}</div></div></div>)}</div></section>
-        <div><span className="inline-block bg-[var(--shop-button)] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--shop-button-text)]">Adicionar ao carrinho</span></div>
-      </main>
-    </>}
-    <footer className="border-t border-black/10 px-5 py-8 text-[12px]" style={{ backgroundColor: visual.header_background_color, color: visual.header_text_color }}>
-      <div className={cn("mx-auto flex max-w-6xl gap-3", desktop ? "items-center justify-between" : "flex-col")}>
-        <strong className="uppercase tracking-[0.2em]">{store.name || "Minha loja"}</strong>
-        <span className="opacity-75">{stripHtml(store.description).slice(0, 90) || "Apresentação da loja"}</span>
+  useEffect(() => {
+    const element = boxRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => setBox({ width: entry.contentRect.width, height: entry.contentRect.height }));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  // Mede também ao trocar de aparelho ou ao abrir a prévia no celular (o aviso de tamanho pode atrasar).
+  useLayoutEffect(() => {
+    const element = boxRef.current;
+    if (element) setBox({ width: element.clientWidth, height: element.clientHeight });
+  }, [device, visible]);
+
+  // A loja avisa quando carrega (inclusive ao navegar dentro dela) e quando o logo muda de tamanho.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (!isFrameMessage(event, frameRef.current)) return;
+      if (event.data.type === "vynka-preview:ready") sendPreviewUpdate(frameRef.current, latest.current);
+      if (event.data.type === "vynka-preview:logo-size") onLogoSizeRef.current(event.data.device, event.data.height);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  useEffect(() => {
+    sendPreviewUpdate(frameRef.current, overrides);
+  }, [overrides]);
+
+  const frameWidth = PREVIEW_WIDTH[device];
+  const scale = box.width ? Math.min(1, box.width / frameWidth) : 1;
+  const frameHeight = Math.max(560, box.height / scale);
+
+  return (
+    <div ref={boxRef} className="relative min-h-[560px] flex-1 overflow-hidden">
+      <div
+        className="absolute left-1/2 top-0 origin-top overflow-hidden border border-black/10 bg-white shadow-xl"
+        style={{ width: frameWidth, height: frameHeight, transform: `translateX(-50%) scale(${scale})` }}
+      >
+        <iframe ref={frameRef} key={slug} src={`/loja/${slug}`} title="Prévia da loja" className="h-full w-full border-0" />
       </div>
-    </footer>
-  </div>;
+    </div>
+  );
 }
-
-function SectionTitle({ children }: { children: ReactNode }) { return <h2 className="mb-4 text-[18px] font-semibold">{children}</h2>; }
-function stripHtml(value: string) { return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); }
-function formatCurrency(value: number) { return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value); }

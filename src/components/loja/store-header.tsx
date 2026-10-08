@@ -5,11 +5,13 @@ import { useState } from "react";
 import { openCart, useCartTotals } from "@/lib/cart";
 import { useStoreCustomer } from "@/lib/customer-account";
 import { listPublicCategories } from "@/lib/public-shop";
-import { useStorefront } from "@/lib/storefront-context";
+import { useStorefront, useStorefrontPreview } from "@/lib/storefront-context";
+import { StoreLogo } from "./store-logo";
 import { cn } from "@/lib/utils";
 
 export function StoreHeader() {
   const store = useStorefront();
+  const preview = useStorefrontPreview();
   const slug = store.slug;
   const { count } = useCartTotals();
   const { data: customer } = useStoreCustomer(store.id);
@@ -29,12 +31,7 @@ export function StoreHeader() {
       className="flex min-w-0 items-center gap-3 text-current"
     >
       {store.logo_url ? (
-        // Espaço fixo do logo; o ajuste por arraste chega no lote 2c.
-        <img
-          src={store.logo_url}
-          alt={store.name}
-          className="h-12 w-auto max-w-[140px] shrink-0 object-contain md:h-14 md:max-w-[200px]"
-        />
+        <StoreLogo src={store.logo_url} alt={store.name} visual={visual} previewDevice={preview} />
       ) : (
         // Logo OU nome, nunca os dois (escopo do catálogo, §2).
         <div className="min-w-0">

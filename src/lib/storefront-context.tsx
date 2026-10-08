@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type { CatalogVisualSettings, StoreBanner } from "@/lib/store-settings";
+import type { PreviewDevice } from "@/lib/storefront-preview";
 
 export interface StorefrontStore {
   id: string;
@@ -31,15 +32,27 @@ export interface StorefrontStore {
 }
 
 const Ctx = createContext<StorefrontStore | null>(null);
+// Aparelho da prévia quando a loja está aberta no editor de personalização; null fora dele.
+const PreviewCtx = createContext<PreviewDevice | null>(null);
 
 export function StorefrontProvider({
   store,
+  preview = null,
   children,
 }: {
   store: StorefrontStore;
+  preview?: PreviewDevice | null;
   children: ReactNode;
 }) {
-  return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={store}>
+      <PreviewCtx.Provider value={preview}>{children}</PreviewCtx.Provider>
+    </Ctx.Provider>
+  );
+}
+
+export function useStorefrontPreview() {
+  return useContext(PreviewCtx);
 }
 
 export function useStorefront(): StorefrontStore {

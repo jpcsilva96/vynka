@@ -1,15 +1,16 @@
 import { createFileRoute, Link, notFound, Outlet } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { trackStoreView } from "@/lib/views";
 import { CartDrawer } from "@/components/loja/cart-drawer";
 import { StoreFooter } from "@/components/loja/store-footer";
 import { StoreHeader } from "@/components/loja/store-header";
-import { useCartHydration } from "@/lib/cart";
+import { setCartPreviewMode, useCartHydration } from "@/lib/cart";
 import { getStoreBySlug } from "@/lib/public-shop";
 import { StorefrontProvider } from "@/lib/storefront-context";
-import { storeFontFamily } from "@/lib/store-settings";
+import { normalizeCatalogVisualSettings, storeFontFamily } from "@/lib/store-settings";
+import { isPreviewFrame, usePreviewOverrides } from "@/lib/storefront-preview";
 import type { CSSProperties } from "react";
 
 export const Route = createFileRoute("/loja/$slug")({
@@ -37,10 +38,30 @@ function LojaLayout() {
   const { slug } = Route.useParams();
   useCartHydration();
 
-  const { data: store, isLoading, isError } = useQuery({
+  const { data: savedStore, isLoading, isError } = useQuery({
     queryKey: ["storefront-store", slug],
     queryFn: () => getStoreBySlug(slug),
   });
+
+  // Prévia do editor: decide no navegador (o servidor não sabe se está numa moldura).
+  const [preview, setPreview] = useState(false);
+  useEffect(() => setPreview(isPreviewFrame()), []);
+  useEffect(() => {
+    setCartPreviewMode(preview);
+  }, [preview]);
+  const overrides = usePreviewOverrides(preview);
+  const store = useMemo(() => {
+    if (!savedStore || !overrides) return savedStore;
+    return {
+      ...savedStore,
+      name: overrides.name || savedStore.name,
+      description: overrides.description || null,
+      logo_url: overrides.logo_url || null,
+      favicon_url: overrides.favicon_url || null,
+      catalog_visual: normalizeCatalogVisualSettings(overrides.visual),
+      banners: overrides.banners.filter((banner) => banner.active && banner.image_url),
+    };
+  }, [savedStore, overrides]);
 
   useEffect(() => {
     if (!store?.favicon_url) return;
@@ -63,7 +84,7 @@ function LojaLayout() {
     store.status !== "cancelled" &&
     store.publication_status === "published";
   useEffect(() => {
-    if (storeOpen && store) trackStoreView(store.id);
+    if (storeOpen && store && !isPreviewFrame()) trackStoreView(store.id);
   }, [storeOpen, store?.id]);
 
   if (isLoading) {
@@ -78,12 +99,12 @@ function LojaLayout() {
   if (store.status === "suspended" || store.status === "cancelled") {
     return <StoreMessage title="Loja indisponível" message="Esta loja não está aceitando pedidos no momento." />;
   }
-  if (store.publication_status !== "published") {
+  if (store.publication_status !== "published" && !preview) {
     return <StoreMessage title="Loja indisponível" message="Este catálogo ainda não está publicado." />;
   }
 
   return (
-    <StorefrontProvider store={store}>
+    <StorefrontProvider store={store} preview={preview ? (overrides?.device ?? "mobile") : null}>
       <div
         className="storefront-theme storefront-typography min-h-svh antialiased"
         style={{

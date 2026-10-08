@@ -26,11 +26,33 @@ import {
 } from "@/lib/customer-account";
 import { deliveryDaysLabel, formatDeliveryAddress } from "@/lib/orders";
 import { formatBRL } from "@/lib/products";
-import { useStorefront } from "@/lib/storefront-context";
+import { useStorefront, useStorefrontPreview } from "@/lib/storefront-context";
 
 export const Route = createFileRoute("/loja/$slug/checkout")({
-  component: CheckoutPage,
+  component: CheckoutRoute,
 });
+
+// Na prévia do editor a compra fica desligada: o checkout criaria um pedido de verdade.
+function CheckoutRoute() {
+  const store = useStorefront();
+  const preview = useStorefrontPreview();
+  if (!preview) return <CheckoutPage />;
+  return (
+    <div className="mx-auto max-w-xl px-4 py-16 text-center">
+      <h1 className="text-2xl font-semibold text-black">Na prévia a compra fica desligada</h1>
+      <p className="mt-3 text-[14px] leading-relaxed text-neutral-600">
+        Aqui você confere a aparência da loja. Para testar uma compra, abra a loja publicada.
+      </p>
+      <Link
+        to="/loja/$slug"
+        params={{ slug: store.slug }}
+        className="mt-6 inline-flex bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800"
+      >
+        Voltar para a loja
+      </Link>
+    </div>
+  );
+}
 
 const STEPS = ["Identificação", "Entrega", "Pagamento", "Revisão"] as const;
 type Step = 1 | 2 | 3 | 4;

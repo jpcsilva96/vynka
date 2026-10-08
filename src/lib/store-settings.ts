@@ -117,6 +117,8 @@ export interface CatalogVisualSettings {
   header_text_color: string;
   header_background_opacity: number;
   header_logo_size: number;
+  header_logo_height_mobile: number;
+  header_logo_height_desktop: number;
   header_show_store_name: boolean;
   header_categories_label: string;
   about_enabled: boolean;
@@ -161,6 +163,13 @@ export const defaultDeliverySettings: DeliverySettings = {
   delivery_notes: "",
 };
 
+// Espaço fixo do logo no cabeçalho de 80 px (João 09/10). O logo cresce até caber, sem sair dele.
+export const logoSlot = {
+  minHeight: 24,
+  mobile: { width: 160, height: 56 },
+  desktop: { width: 260, height: 64 },
+} as const;
+
 export const defaultCatalogVisualSettings: CatalogVisualSettings = {
   catalog_style: "minimal",
   primary_color: "#111111",
@@ -173,6 +182,8 @@ export const defaultCatalogVisualSettings: CatalogVisualSettings = {
   header_text_color: "#111111",
   header_background_opacity: 100,
   header_logo_size: 36,
+  header_logo_height_mobile: 40,
+  header_logo_height_desktop: 48,
   header_show_store_name: true,
   header_categories_label: "Categorias",
   about_enabled: false,
@@ -599,6 +610,8 @@ export function normalizeCatalogVisualSettings(value: unknown): CatalogVisualSet
     heading_font: pickString(raw.heading_font, storeFonts, fixed.heading_font),
     body_font: pickString(raw.body_font, storeFonts, fixed.body_font),
     header_logo_size: pickScale(raw.header_logo_size, fixed.header_logo_size, 24, 160),
+    header_logo_height_mobile: pickScale(raw.header_logo_height_mobile, fixed.header_logo_height_mobile, logoSlot.minHeight, logoSlot.mobile.height),
+    header_logo_height_desktop: pickScale(raw.header_logo_height_desktop, fixed.header_logo_height_desktop, logoSlot.minHeight, logoSlot.desktop.height),
     header_sticky: bool("header_sticky"),
     about_enabled: bool("about_enabled"),
     about_title:
