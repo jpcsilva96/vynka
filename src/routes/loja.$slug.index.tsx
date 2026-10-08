@@ -174,12 +174,12 @@ function HeroBanner({
   slug: string;
   storeName: string;
 }) {
-  // A arte inteira aparece (12:5) até existir a versão de celular (lote 4.1).
+  // A arte inteira aparece em 3:1 (João 09/10: mais baixa que 12:5) até existir a versão de celular (lote 4.1).
   const image = (
     <img
       src={banner.image_url}
       alt={banner.title || storeName}
-      className="mx-auto block aspect-[12/5] w-full max-w-[1600px] object-cover"
+      className="mx-auto block aspect-[3/1] w-full max-w-[1600px] object-cover"
     />
   );
   const target = bannerTargetHref(banner, slug);

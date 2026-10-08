@@ -654,14 +654,14 @@ function ImageUpload({ value, uploading, onFile, onRemove, variant = "logo" }: {
       try {
         const dimensions = await readImageDimensions(file);
         const minimumWidth = variant === "banner" ? 1920 : 1200;
-        const minimumHeight = variant === "banner" ? 800 : 900;
+        const minimumHeight = variant === "banner" ? 640 : 900;
         if (dimensions.width < minimumWidth || dimensions.height < minimumHeight) {
           setDimensionWarning(
             `Sua imagem tem ${dimensions.width} x ${dimensions.height} px. Recomendamos pelo menos ${minimumWidth} x ${minimumHeight} px para não perder qualidade.`,
           );
         }
       } catch {
-        setDimensionWarning(variant === "banner" ? "Não foi possível conferir o tamanho da imagem. Verifique se ela tem pelo menos 1920 x 800 px." : "Não foi possível conferir o tamanho da imagem. Verifique se ela tem pelo menos 1200 x 900 px.");
+        setDimensionWarning(variant === "banner" ? "Não foi possível conferir o tamanho da imagem. Verifique se ela tem pelo menos 1920 x 640 px." : "Não foi possível conferir o tamanho da imagem. Verifique se ela tem pelo menos 1200 x 900 px.");
       }
     }
     onFile(file);
@@ -670,7 +670,7 @@ function ImageUpload({ value, uploading, onFile, onRemove, variant = "logo" }: {
   return (
     <div>
       <div className="overflow-hidden rounded-md border border-border">
-        <div className={cn("grid place-items-center bg-neutral-50", variant === "banner" ? "aspect-[12/5]" : variant === "about" ? "aspect-[4/3]" : "h-28")}>
+        <div className={cn("grid place-items-center bg-neutral-50", variant === "banner" ? "aspect-[3/1]" : variant === "about" ? "aspect-[4/3]" : "h-28")}>
           {value ? <img src={value} alt="" className={cn(variant === "about" || variant === "banner" ? "object-cover" : "object-contain", variant === "favicon" ? "h-16 w-16" : "h-full w-full")} /> : <ImageIcon className="h-7 w-7 text-muted-foreground" />}
         </div>
         <div className="flex items-center gap-2 border-t border-border p-2">
@@ -684,7 +684,7 @@ function ImageUpload({ value, uploading, onFile, onRemove, variant = "logo" }: {
       </div>
       {variant === "banner" && (
         <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-          Tamanho ideal: 1920 x 800 px (imagem deitada). A imagem aparece inteira, também no celular.
+          Tamanho ideal: 1920 x 640 px (imagem deitada, 3 vezes mais larga que alta). A imagem aparece inteira, também no celular.
         </p>
       )}
       {variant === "favicon" && <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">Use uma imagem quadrada, de pelo menos 130 x 130 px.</p>}
@@ -817,7 +817,7 @@ function StorefrontPreview({ store, visual: rawVisual, banners, products, device
         <p className={cn("whitespace-pre-line text-[14px] leading-7 text-[var(--shop-secondary)]", visual.about_image_url && !desktop ? "mt-7" : !visual.about_image_url && "text-center")}>{visual.about_description || `Conheça a história e o propósito da ${store.name || "nossa loja"}.`}</p>
       </div>
     </main> : <>
-      {visual.show_banner && activeBanner && <img src={activeBanner.image_url} alt="" className="block aspect-[12/5] w-full object-cover" />}
+      {visual.show_banner && activeBanner && <img src={activeBanner.image_url} alt="" className="block aspect-[3/1] w-full object-cover" />}
       {showTopDescription && <section className={cn("border-b border-black/10 px-5 py-10", desktop && "px-10")}><p className="max-w-3xl text-[15px] leading-relaxed text-[var(--shop-secondary)]">{stripHtml(store.description)}</p></section>}
 
       <main className={cn("mx-auto max-w-6xl space-y-10 px-5 py-8", desktop && "px-10 py-12")}>
