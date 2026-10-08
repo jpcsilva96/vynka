@@ -107,7 +107,7 @@ function CustomerAccountPage() {
 
       <section className="grid gap-8 py-10 lg:grid-cols-[0.85fr_1.15fr]">
         <div className="border border-black/10 bg-white p-5">
-          <h2 className="text-xl font-semibold text-black">Endereco de entrega</h2>
+          <h2 className="text-xl font-semibold text-black">Endereço de entrega</h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Field
               label="CEP"
@@ -120,7 +120,7 @@ function CustomerAccountPage() {
               onChange={(value) => setAddress((current) => ({ ...current, street: value }))}
             />
             <Field
-              label="Numero"
+              label="Número"
               value={address.address_number}
               onChange={(value) => setAddress((current) => ({ ...current, address_number: value }))}
             />
@@ -150,7 +150,7 @@ function CustomerAccountPage() {
             disabled={saving}
             className="mt-5 bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800 disabled:opacity-50"
           >
-            {saving ? "Salvando..." : "Salvar endereco"}
+            {saving ? "Salvando..." : "Salvar endereço"}
           </button>
         </div>
 
@@ -209,7 +209,7 @@ function CustomerAccountPage() {
                     typeof order.payment_details?.delivery_address === "object" &&
                     order.payment_details.delivery_address && (
                       <div className="mt-3 text-[12px] text-neutral-500">
-                        Endereco salvo no pedido.
+                        Endereço salvo no pedido.
                       </div>
                     )
                   )}
@@ -232,7 +232,7 @@ function CustomerAccountPage() {
             hash="produtos"
             className="text-[12px] font-medium uppercase tracking-[0.16em] text-neutral-500 hover:text-black"
           >
-            Ver catalogo
+            Ver catálogo
           </Link>
         </div>
         {favorites.length === 0 ? (

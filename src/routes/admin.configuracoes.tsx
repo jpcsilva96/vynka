@@ -29,6 +29,7 @@ import {
   PaymentSettingsTab,
 } from "@/components/admin/checkout-settings";
 import { isProvisionalSlug } from "@/lib/provisional-store";
+import { formatPhone } from "@/lib/br-documents";
 import {
   getGeneralSettings,
   getReceiptSettings,
@@ -284,16 +285,14 @@ function Configuracoes() {
                           patch("slug", value);
                         }
                       }}
-                      placeholder="Linda Fitness"
                     />
                   </LabeledField>
-                  <LabeledField label="Link publico do catalogo">
+                  <LabeledField label="Link público do catálogo">
                     <div className="rounded-md border border-border bg-surface focus-within:border-foreground/40">
                       <div className="flex items-center px-3 py-2.5">
                         <input
                           value={form.slug}
                           onChange={(event) => patch("slug", event.target.value)}
-                          placeholder="linda-fitness"
                           className="min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted-foreground"
                         />
                         <span className="shrink-0 text-[13px] text-muted-foreground">.vynka.com.br</span>
@@ -314,18 +313,16 @@ function Configuracoes() {
                       )}
                     </div>
                   </LabeledField>
-                  <LabeledField label="Nome do responsavel">
+                  <LabeledField label="Nome do responsável">
                     <TextInput
                       value={form.responsible_name}
                       onChange={(value) => patch("responsible_name", value)}
-                      placeholder="Joao Pedro Carmo Silva"
                     />
                   </LabeledField>
                   <LabeledField label="CPF ou CNPJ">
                     <TextInput
                       value={form.tax_document}
                       onChange={(value) => patch("tax_document", value)}
-                      placeholder="000.000.000-00"
                     />
                   </LabeledField>
                 </SettingsCard>
@@ -336,17 +333,17 @@ function Configuracoes() {
                   </p>
                   <LabeledField label="Telefone da loja">
                     <TextInput
+                      type="tel"
                       value={formatPhone(form.phone)}
                       onChange={(value) => patchPhone("phone", value)}
-                      placeholder="(11)99999-9999"
                       help
                     />
                   </LabeledField>
                   <LabeledField label="WhatsApp da loja">
                     <TextInput
+                      type="tel"
                       value={formatPhone(form.whatsapp)}
                       onChange={(value) => patchPhone("whatsapp", value)}
-                      placeholder="(11)99999-9999"
                       help
                     />
                   </LabeledField>
@@ -354,21 +351,19 @@ function Configuracoes() {
                     <TextInput
                       value={form.instagram ? `@${form.instagram.replace(/^@/, "")}` : ""}
                       onChange={(value) => patch("instagram", value.replace(/^@/, ""))}
-                      placeholder="@sualoja"
                     />
                   </LabeledField>
                   <LabeledField label="E-mail da loja">
                     <TextInput
+                      type="email"
                       value={form.email}
                       onChange={(value) => patch("email", value)}
-                      placeholder="E-mail"
                     />
                   </LabeledField>
                   <LabeledField label="CEP">
                     <TextInput
                       value={formatCep(form.zip_code)}
                       onChange={patchCep}
-                      placeholder="00000-000"
                       trailing={cepLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" strokeWidth={1.5} /> : null}
                     />
                   </LabeledField>
@@ -376,7 +371,6 @@ function Configuracoes() {
                     <TextInput
                       value={form.address}
                       onChange={(value) => patch("address", value)}
-                      placeholder="Rua"
                     />
                   </LabeledField>
                   <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
@@ -384,14 +378,12 @@ function Configuracoes() {
                       <TextInput
                         value={form.address_number}
                         onChange={(value) => patch("address_number", value)}
-                        placeholder="Número"
                       />
                     </LabeledField>
                     <LabeledField label="Complemento">
                       <TextInput
                         value={form.complement}
                         onChange={(value) => patch("complement", value)}
-                        placeholder="Sala, bloco, referência"
                       />
                     </LabeledField>
                   </div>
@@ -400,14 +392,12 @@ function Configuracoes() {
                       <TextInput
                         value={form.city}
                         onChange={(value) => patch("city", value)}
-                        placeholder="Cidade"
                       />
                     </LabeledField>
                     <LabeledField label="UF">
                       <TextInput
                         value={form.state}
                         onChange={(value) => patch("state", value.toUpperCase())}
-                        placeholder="UF"
                       />
                     </LabeledField>
                   </div>
@@ -736,18 +726,21 @@ function TextInput({
   value,
   onChange,
   placeholder,
+  type = "text",
   help = false,
   trailing = null,
 }: {
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
+  placeholder?: string;
+  type?: "text" | "tel" | "email";
   help?: boolean;
   trailing?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center rounded-md border border-border bg-surface px-3 focus-within:border-foreground/40">
       <input
+        type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
@@ -767,13 +760,6 @@ function formatStoreAddress(store: GeneralSettingsForm) {
 
 function digitsOnly(value: string) {
   return value.replace(/\D/g, "");
-}
-
-function formatPhone(value: string) {
-  const digits = digitsOnly(value).slice(0, 11);
-  if (digits.length <= 2) return digits ? `(${digits}` : "";
-  if (digits.length <= 7) return `(${digits.slice(0, 2)})${digits.slice(2)}`;
-  return `(${digits.slice(0, 2)})${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
 function formatCep(value: string) {
@@ -948,14 +934,12 @@ function BannerManager({
                       <TextInput
                         value={banner.title}
                         onChange={(value) => onPatch(banner.id, "title", value)}
-                        placeholder="Promoção de verão"
                       />
                     </LabeledField>
                     <LabeledField label="Texto do botão">
                       <TextInput
                         value={banner.button_label}
                         onChange={(value) => onPatch(banner.id, "button_label", value)}
-                        placeholder="Ver oferta"
                       />
                     </LabeledField>
                   </div>
@@ -1077,7 +1061,6 @@ function BannerTargetField({
       <TextInput
         value={banner.link_target}
         onChange={(value) => onPatch(banner.id, "link_target", value)}
-        placeholder="https://exemplo.com/promocao"
       />
     </LabeledField>
   );
@@ -1549,7 +1532,7 @@ function ReceiptPreview({
       <div className="mt-6 text-[13px] leading-relaxed">
         <div className="font-medium text-slate-800">{store.name || "Nome da loja"}</div>
         <div>{store.address || "Endereço da loja"}</div>
-        {store.whatsapp && <div>{store.whatsapp}</div>}
+        {store.whatsapp && <div>{formatPhone(store.whatsapp)}</div>}
       </div>
 
       {settings.include_customer && (

@@ -33,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { listCategories, listProducts, type Category, type ProductRecord } from "@/lib/products";
+import { formatPhone, onlyDigits } from "@/lib/br-documents";
 import {
   defaultCatalogVisualSettings,
   getCatalogVisualSettings,
@@ -481,8 +482,8 @@ function EditorControls(props: ControlsProps) {
         </>}
 
         {section === "footer" && <>
-          <Field label="WhatsApp"><Input value={store.whatsapp} onChange={(event) => patchStore("whatsapp", event.target.value)} placeholder="(11) 99999-9999" /></Field>
-          <Field label="Instagram"><Input value={store.instagram} onChange={(event) => patchStore("instagram", event.target.value)} placeholder="@sualoja" /></Field>
+          <Field label="WhatsApp"><Input type="tel" value={formatPhone(store.whatsapp)} onChange={(event) => patchStore("whatsapp", onlyDigits(event.target.value).slice(0, 11))} /></Field>
+          <Field label="Instagram"><Input value={store.instagram} onChange={(event) => patchStore("instagram", event.target.value)} /></Field>
           <Field label="E-mail"><Input type="email" value={store.email} onChange={(event) => patchStore("email", event.target.value)} /></Field>
         </>}
 
@@ -663,7 +664,7 @@ function BannerEditor({ banner, index, total, products, categories, uploading, p
             </Field>
             {banner.link_type === "product" && <Field label="Escolha o produto"><select value={banner.link_target} onChange={(event) => patch(banner.id, "link_target", event.target.value)} className="h-9 w-full rounded-md border border-input bg-white px-3 text-[12px]"><option value="">Selecione um produto</option>{products.map((product) => <option key={product.id} value={product.id}>{product.name}</option>)}</select></Field>}
             {banner.link_type === "category" && <Field label="Escolha a categoria"><select value={banner.link_target} onChange={(event) => patch(banner.id, "link_target", event.target.value)} className="h-9 w-full rounded-md border border-input bg-white px-3 text-[12px]"><option value="">Selecione uma categoria</option>{categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}</select></Field>}
-            {banner.link_type === "external" && <Field label="Link externo"><Input value={banner.link_target} onChange={(event) => patch(banner.id, "link_target", event.target.value)} placeholder="https://" /></Field>}
+            {banner.link_type === "external" && <Field label="Link externo"><Input value={banner.link_target} onChange={(event) => patch(banner.id, "link_target", event.target.value)} /></Field>}
             <Toggle label="Banner ativo" checked={banner.active} onChange={(checked) => patch(banner.id, "active", checked)} />
             <Button type="button" className="w-full" onClick={() => setEditing(false)}><Check /> Concluir edição</Button>
           </div>

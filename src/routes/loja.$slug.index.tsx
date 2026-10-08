@@ -41,11 +41,11 @@ function LojaIndex() {
             id: "legacy",
             store_id: store.id,
             image_url: store.banner_url || products[0]?.primary_image || "",
-            title: store.banner_title || store.name,
+            title: store.banner_title || "",
             subtitle:
               store.banner_subtitle ||
               description ||
-              "Veja os produtos disponiveis e finalize sua compra de forma simples.",
+              "Veja os produtos disponíveis e finalize sua compra de forma simples.",
             button_label: store.banner_cta || "Ver produtos",
             link_type: "home" as const,
             link_target: "",
@@ -64,8 +64,8 @@ function LojaIndex() {
       {!visual.show_banner && visual.show_description && description && (
         <section className="border-b border-black/10 bg-white">
           <div className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
-            <h1 className="text-3xl font-semibold tracking-tight text-black md:text-5xl">{store.name}</h1>
-            <p className="mt-4 max-w-3xl text-[15px] leading-relaxed text-neutral-600">{description}</p>
+            <h1 className="sr-only">{store.name}</h1>
+            <p className="max-w-3xl text-[15px] leading-relaxed text-neutral-600">{description}</p>
           </div>
         </section>
       )}
@@ -105,7 +105,7 @@ function LojaIndex() {
 
       <section id="produtos" className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
         <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">Produtos</div>
-        <h2 className="mt-2 text-2xl font-semibold text-black">Catalogo</h2>
+        <h2 className="mt-2 text-2xl font-semibold text-black">Catálogo</h2>
         {visibleProducts.length > 0 ? (
           <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-4">
             {visibleProducts.map((product) => (
@@ -175,9 +175,7 @@ function HeroBanner({
           {banner.image_url ? (
             <img src={banner.image_url} alt={banner.title || storeName} className="h-full w-full object-cover" />
           ) : (
-            <div className="grid h-full place-items-center text-[12px] uppercase tracking-[0.2em] text-neutral-400">
-              {storeName}
-            </div>
+            <div className="h-full" />
           )}
         </a>
         <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-r from-black/60 via-black/20 to-transparent" />
@@ -185,7 +183,13 @@ function HeroBanner({
 
         <div className="relative z-20 flex min-h-[420px] items-end px-5 py-9 sm:px-8 md:min-h-[520px] md:items-center md:px-14 md:py-14 lg:min-h-full lg:px-20">
           <div className="max-w-2xl text-white">
-            <h1 className="text-4xl font-semibold leading-tight text-white drop-shadow-sm sm:text-5xl md:text-6xl">
+            <h1
+              className={
+                banner.title
+                  ? "text-4xl font-semibold leading-tight text-white drop-shadow-sm sm:text-5xl md:text-6xl"
+                  : "sr-only"
+              }
+            >
               {banner.title || storeName}
             </h1>
             <p className="mt-4 max-w-xl text-[14px] leading-relaxed text-white/90 drop-shadow-sm md:text-[16px]">

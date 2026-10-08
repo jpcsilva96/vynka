@@ -15,7 +15,7 @@ import type { CSSProperties } from "react";
 export const Route = createFileRoute("/loja/$slug")({
   component: LojaLayout,
   notFoundComponent: () => (
-    <StoreMessage title="Loja nao encontrada" message="Verifique o endereco ou volte ao inicio." />
+    <StoreMessage title="Loja não encontrada" message="Verifique o endereço ou volte ao início." />
   ),
 });
 
@@ -26,7 +26,7 @@ function StoreMessage({ title, message }: { title: string; message: string }) {
         <h1 className="text-3xl font-semibold text-neutral-900">{title}</h1>
         <p className="mt-2 text-[13px] text-neutral-600">{message}</p>
         <Link to="/" className="mt-6 inline-block text-[12px] uppercase tracking-[0.2em] underline">
-          Ir ao inicio
+          Ir ao início
         </Link>
       </div>
     </div>
@@ -76,10 +76,10 @@ function LojaLayout() {
   if (isError || !store) throw notFound();
 
   if (store.status === "suspended" || store.status === "cancelled") {
-    return <StoreMessage title="Loja indisponivel" message="Esta loja nao esta aceitando pedidos no momento." />;
+    return <StoreMessage title="Loja indisponível" message="Esta loja não está aceitando pedidos no momento." />;
   }
   if (store.publication_status !== "published") {
-    return <StoreMessage title="Loja indisponivel" message="Este catalogo ainda nao esta publicado." />;
+    return <StoreMessage title="Loja indisponível" message="Este catálogo ainda não está publicado." />;
   }
 
   return (

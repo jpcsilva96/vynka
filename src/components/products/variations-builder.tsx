@@ -126,7 +126,7 @@ export function VariationsBuilder({
                         <input
                           value={value.value}
                           onChange={(event) => updateValue(fixed.name, index, event.target.value)}
-                          placeholder={fixed.name === "Tamanho" ? "P, M, G" : "Amarelo"}
+                          placeholder="Nova opção"
                           className="w-24 bg-transparent py-1.5 text-[13px] outline-none"
                         />
                         <button

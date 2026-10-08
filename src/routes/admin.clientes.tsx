@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/app-header";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useStoreContext } from "@/lib/store-context";
+import { formatPhone, onlyDigits } from "@/lib/br-documents";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/clientes")({
@@ -441,7 +442,7 @@ function Clientes() {
                       <span className="truncate font-medium text-foreground">{customer.name}</span>
                     </div>
                     <div className="truncate font-medium text-primary">
-                      {customer.mobile || customer.phone || "—"}
+                      {formatPhone(customer.mobile || customer.phone) || "—"}
                     </div>
                     <div className="truncate text-foreground/80">{customer.email || "—"}</div>
                     <div>
@@ -528,13 +529,15 @@ function Clientes() {
                   />
                   <TextField
                     label="Celular"
-                    value={form.mobile}
-                    onChange={(value) => updateForm("mobile", value)}
+                    type="tel"
+                    value={formatPhone(form.mobile)}
+                    onChange={(value) => updateForm("mobile", onlyDigits(value).slice(0, 11))}
                   />
                   <TextField
                     label="Telefone"
-                    value={form.telephone}
-                    onChange={(value) => updateForm("telephone", value)}
+                    type="tel"
+                    value={formatPhone(form.telephone)}
+                    onChange={(value) => updateForm("telephone", onlyDigits(value).slice(0, 11))}
                   />
                 </FormSection>
 

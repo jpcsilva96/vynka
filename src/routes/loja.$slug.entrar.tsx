@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { EmailConfirmationRequiredError, signInCustomer, signUpCustomer, upsertStoreCustomer } from "@/lib/customer-account";
+import { formatPhone, isValidPhone, onlyDigits } from "@/lib/br-documents";
 import { useStorefront } from "@/lib/storefront-context";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,9 +28,13 @@ function CustomerLoginPage() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    setLoading(true);
     setError("");
     setSuccess("");
+    if (mode === "signup" && !isValidPhone(form.phone)) {
+      setError("Informe seu telefone com DDD.");
+      return;
+    }
+    setLoading(true);
     try {
       if (mode === "signup") {
         await signUpCustomer({
@@ -56,7 +61,7 @@ function CustomerLoginPage() {
         setMode("login");
         return;
       }
-      setError(err instanceof Error ? err.message : "Nao foi possivel entrar.");
+      setError(err instanceof Error ? err.message : "Não foi possível entrar.");
     } finally {
       setLoading(false);
     }
@@ -73,14 +78,14 @@ function CustomerLoginPage() {
           {mode === "login" ? "Entrar" : "Criar conta"}
         </h1>
         <p className="mt-2 text-[13px] text-neutral-500">
-          Acompanhe suas compras, salve endereco e favorite produtos.
+          Acompanhe suas compras, salve endereços e favorite produtos.
         </p>
 
         <form onSubmit={submit} className="mt-6 grid gap-4">
           {mode === "signup" && (
             <>
               <Field label="Nome" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} required />
-              <Field label="Telefone" value={form.phone} onChange={(value) => setForm((current) => ({ ...current, phone: value }))} required />
+              <Field label="Telefone" type="tel" value={formatPhone(form.phone)} onChange={(value) => setForm((current) => ({ ...current, phone: onlyDigits(value).slice(0, 11) }))} required />
             </>
           )}
           <Field label="E-mail" type="email" value={form.email} onChange={(value) => setForm((current) => ({ ...current, email: value }))} required />
@@ -97,7 +102,7 @@ function CustomerLoginPage() {
           onClick={() => setMode((current) => (current === "login" ? "signup" : "login"))}
           className="mt-5 text-[13px] text-neutral-600 underline underline-offset-4 hover:text-black"
         >
-          {mode === "login" ? "Ainda nao tenho conta" : "Ja tenho conta"}
+          {mode === "login" ? "Ainda não tenho conta" : "Já tenho conta"}
         </button>
       </div>
     </div>

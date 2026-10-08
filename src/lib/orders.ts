@@ -15,7 +15,7 @@ export const orderStatuses: { value: OrderStatus; label: string }[] = [
   { value: "paid", label: "Pago" },
   { value: "in_production", label: "Em separação" },
   { value: "in_dispatch", label: "Em expedicao" },
-  { value: "delivered", label: "Concluido" },
+  { value: "delivered", label: "Concluído" },
   { value: "cancelled", label: "Cancelado" },
 ];
 

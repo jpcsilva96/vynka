@@ -307,7 +307,6 @@ function WelcomePage() {
                       inputMode="numeric"
                       value={form.cpf}
                       onChange={(e) => patch("cpf", maskCpf(e.target.value))}
-                      placeholder="000.000.000-00"
                       className={inputClass}
                     />
                   </Field>
@@ -317,7 +316,6 @@ function WelcomePage() {
                       inputMode="tel"
                       value={form.phone}
                       onChange={(e) => patch("phone", maskPhone(e.target.value))}
-                      placeholder="(00) 00000-0000"
                       autoComplete="tel"
                       className={inputClass}
                     />
@@ -353,7 +351,6 @@ function WelcomePage() {
                       setSlugTouched(true);
                       patch("slug", typingSlug(e.target.value));
                     }}
-                    placeholder="nome-da-loja"
                     className={inputClass}
                   />
                   <span className="mt-1.5 block truncate text-[11px] text-muted-foreground">

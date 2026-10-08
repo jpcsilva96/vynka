@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { PaymentMethodIcon } from "@/components/payment-method-icon";
 import { OrderReceiptCard } from "@/components/order-receipt";
 import { useStoreContext } from "@/lib/store-context";
+import { formatPhone, onlyDigits } from "@/lib/br-documents";
 import { formatBRL, listProducts, type ProductRecord } from "@/lib/products";
 import {
   createCustomerDetailed,
@@ -584,7 +585,7 @@ function PedidoDetalhe() {
                   <div className="space-y-1 text-[13px]">
                     <div className="font-medium text-foreground">{order.customer.name}</div>
                     {order.customer.phone && (
-                      <div className="text-muted-foreground">{order.customer.phone}</div>
+                      <div className="text-muted-foreground">{formatPhone(order.customer.phone)}</div>
                     )}
                     {order.customer.email && (
                       <div className="text-muted-foreground">{order.customer.email}</div>
@@ -736,7 +737,7 @@ function PedidoDetalhe() {
                 {customers.map((customer: CustomerLite) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name}
-                    {customer.phone ? ` - ${customer.phone}` : ""}
+                    {customer.phone ? ` - ${formatPhone(customer.phone)}` : ""}
                   </option>
                 ))}
               </select>
@@ -794,13 +795,15 @@ function PedidoDetalhe() {
                     />
                     <TextField
                       label="Celular"
-                      value={newCustomer.mobile}
-                      onChange={(value) => updateNewCustomer("mobile", value)}
+                      type="tel"
+                      value={formatPhone(newCustomer.mobile)}
+                      onChange={(value) => updateNewCustomer("mobile", onlyDigits(value).slice(0, 11))}
                     />
                     <TextField
                       label="Telefone"
-                      value={newCustomer.telephone}
-                      onChange={(value) => updateNewCustomer("telephone", value)}
+                      type="tel"
+                      value={formatPhone(newCustomer.telephone)}
+                      onChange={(value) => updateNewCustomer("telephone", onlyDigits(value).slice(0, 11))}
                     />
                   </FormSection>
 

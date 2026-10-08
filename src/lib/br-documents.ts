@@ -35,3 +35,9 @@ export function maskPhone(value: string) {
   if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
 }
+
+/** Telefone gravado (com ou sem o 55 do país) mostrado como (00) 00000-0000. */
+export function formatPhone(value: string | null | undefined) {
+  const d = onlyDigits(value ?? "");
+  return maskPhone(d.length > 11 && d.startsWith("55") ? d.slice(2) : d);
+}

@@ -47,16 +47,7 @@ export function StoreHeader() {
           />
         </span>
       ) : (
-        <div
-          className="grid h-14 shrink-0 place-items-center"
-          style={{ width: visual.header_logo_size }}
-        >
-          <span className="grid aspect-square w-full max-w-14 place-items-center border border-current text-[10px] font-semibold tracking-[0.18em]">
-            V
-          </span>
-        </div>
-      )}
-      {visual.header_show_store_name && (
+        // Logo OU nome, nunca os dois (escopo do catálogo, §2).
         <div className="min-w-0">
           <div className="truncate text-[15px] font-semibold uppercase tracking-[0.22em] text-current">
             {store.name}
@@ -72,7 +63,7 @@ export function StoreHeader() {
         params={{ slug }}
         className="text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-70 transition-opacity hover:opacity-100"
       >
-        Inicio
+        Início
       </Link>
       <div className="group relative">
         <Link
@@ -221,7 +212,7 @@ export function StoreHeader() {
               onClick={() => setOpen(false)}
               className="block py-3 text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-80"
             >
-              Inicio
+              Início
             </Link>
             {categories.length > 0 && (
               <div className="border-y border-current/10 py-3">

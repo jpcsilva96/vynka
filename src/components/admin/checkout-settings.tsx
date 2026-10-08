@@ -341,7 +341,6 @@ export function DeliverySettingsTab({
             value={form.pickup_instructions}
             onChange={(event) => patch("pickup_instructions", event.target.value)}
             maxLength={500}
-            placeholder="Ex.: Seg a Sex, 10h às 18h. Traga o número do pedido."
             className={cn(inputClass, "min-h-20 resize-none")}
           />
         </Field>
@@ -1073,7 +1072,6 @@ function MelhorEnvioConnection({
             value={testZip}
             onChange={(event) => setTestZip(event.target.value.replace(/[^\d-]/g, "").slice(0, 9))}
             inputMode="numeric"
-            placeholder="00000-000"
             className={cn(inputClass, "w-36")}
           />
         </Field>

@@ -46,7 +46,7 @@ export function CartDrawer() {
             <div className="grid h-14 w-14 place-items-center rounded-full bg-neutral-100">
               <ShoppingBag className="h-5 w-5 text-neutral-500" />
             </div>
-            <div className="mt-5 text-[18px] font-semibold text-black">Seu carrinho esta vazio</div>
+            <div className="mt-5 text-[18px] font-semibold text-black">Seu carrinho está vazio</div>
             <p className="mt-2 text-[13px] text-neutral-500">Adicione produtos para finalizar a compra.</p>
             <button onClick={closeCart} className="mt-6 border border-black bg-black px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-white hover:text-black">
               Continuar comprando

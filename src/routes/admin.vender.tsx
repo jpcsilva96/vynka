@@ -22,6 +22,7 @@ import {
 import { PaymentMethodIcon } from "@/components/payment-method-icon";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useStoreContext } from "@/lib/store-context";
+import { formatPhone, onlyDigits } from "@/lib/br-documents";
 import { listProducts, listCategories, formatBRL, type ProductRecord } from "@/lib/products";
 import {
   createCustomer,
@@ -591,7 +592,7 @@ function CartHeader({
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13px] font-medium text-foreground">{customer.name}</div>
             {customer.phone && (
-              <div className="truncate text-[11.5px] text-muted-foreground">{customer.phone}</div>
+              <div className="truncate text-[11.5px] text-muted-foreground">{formatPhone(customer.phone)}</div>
             )}
           </div>
           <button
@@ -1044,15 +1045,14 @@ function CustomerModal({
             <input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Nome completo"
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
             />
           </Field>
           <Field label="Telefone">
             <input
-              value={newPhone}
-              onChange={(e) => setNewPhone(e.target.value)}
-              placeholder="(11) 99999-9999"
+              type="tel"
+              value={formatPhone(newPhone)}
+              onChange={(e) => setNewPhone(onlyDigits(e.target.value).slice(0, 11))}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
             />
           </Field>
@@ -1060,7 +1060,6 @@ function CustomerModal({
             <input
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="cliente@email.com"
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
             />
           </Field>
@@ -1614,7 +1613,7 @@ function ReceiptModal({
               <span className="text-muted-foreground">Cliente: </span>
               <span className="text-foreground">{s.customer.name}</span>
               {s.customer.phone && (
-                <span className="text-muted-foreground"> · {s.customer.phone}</span>
+                <span className="text-muted-foreground"> · {formatPhone(s.customer.phone)}</span>
               )}
             </div>
           )}
