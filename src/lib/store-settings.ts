@@ -67,7 +67,30 @@ export type StoreFont =
   | "libre-baskerville"
   | "oswald"
   | "dancing-script";
-export type StoreBannerLinkType = "home" | "store_home" | "product" | "category" | "external";
+export type StoreBannerLinkType =
+  | "home"
+  | "store_home"
+  | "product"
+  | "category"
+  | "external"
+  | "promotions"
+  | "new_arrivals"
+  | "about"
+  | "contact"
+  | "none";
+
+export const storeBannerLinkTypes: readonly StoreBannerLinkType[] = [
+  "home",
+  "store_home",
+  "product",
+  "category",
+  "external",
+  "promotions",
+  "new_arrivals",
+  "about",
+  "contact",
+  "none",
+];
 
 export interface StoreBanner {
   id: string;
@@ -141,14 +164,14 @@ export const defaultDeliverySettings: DeliverySettings = {
 export const defaultCatalogVisualSettings: CatalogVisualSettings = {
   catalog_style: "minimal",
   primary_color: "#111111",
-  secondary_color: "#737373",
+  secondary_color: "#525252",
   background_color: "#ffffff",
   button_color: "#111111",
   button_hover_color: "#333333",
   button_text_color: "#ffffff",
   header_background_color: "#ffffff",
   header_text_color: "#111111",
-  header_background_opacity: 95,
+  header_background_opacity: 100,
   header_logo_size: 36,
   header_show_store_name: true,
   header_categories_label: "Categorias",
@@ -167,7 +190,7 @@ export const defaultCatalogVisualSettings: CatalogVisualSettings = {
   product_card_style: "large",
   product_layout: "grid",
   show_price: true,
-  show_whatsapp_button: true,
+  show_whatsapp_button: false,
   show_banner: true,
   show_description: true,
   show_featured: true,
@@ -543,101 +566,99 @@ export function storeFontFamily(font: StoreFont) {
 
 export function normalizeCatalogVisualSettings(value: unknown): CatalogVisualSettings {
   const raw = value && typeof value === "object" ? (value as Partial<CatalogVisualSettings>) : {};
-  const rawWithLegacy = raw as Partial<CatalogVisualSettings> & { theme?: string };
-  const catalogStyle = legacyThemeToCatalogStyle(rawWithLegacy.catalog_style ?? rawWithLegacy.theme);
-  const sectionOrder = Array.isArray(raw.section_order)
-    ? raw.section_order.filter((item): item is CatalogSection =>
-        ["banner", "description", "categories", "featured", "products", "promos"].includes(
-          String(item),
-        ),
-      )
-    : defaultCatalogVisualSettings.section_order;
-  const mergedOrder = [
-    ...sectionOrder,
-    ...defaultCatalogVisualSettings.section_order.filter((item) => !sectionOrder.includes(item)),
-  ];
+  const fixed = defaultCatalogVisualSettings;
+  const bool = (key: keyof CatalogVisualSettings) =>
+    typeof raw[key] === "boolean" ? (raw[key] as boolean) : (fixed[key] as boolean);
+  const headerBackground = pickColor(raw.header_background_color, fixed.header_background_color);
+  const buttonColor = pickColor(raw.button_color, fixed.button_color);
   return {
-    catalog_style: catalogStyle,
-    primary_color: pickColor(raw.primary_color, defaultCatalogVisualSettings.primary_color),
-    secondary_color: pickColor(raw.secondary_color, defaultCatalogVisualSettings.secondary_color),
-    background_color: pickColor(raw.background_color, defaultCatalogVisualSettings.background_color),
-    button_color: pickColor(raw.button_color, defaultCatalogVisualSettings.button_color),
-    button_hover_color: pickColor(raw.button_hover_color, defaultCatalogVisualSettings.button_hover_color),
-    button_text_color: pickColor(raw.button_text_color, defaultCatalogVisualSettings.button_text_color),
-    header_background_color: pickColor(raw.header_background_color, defaultCatalogVisualSettings.header_background_color),
-    header_text_color: pickColor(raw.header_text_color, defaultCatalogVisualSettings.header_text_color),
-    header_background_opacity: pickScale(raw.header_background_opacity, defaultCatalogVisualSettings.header_background_opacity, 0, 100),
-    header_logo_size: pickScale(raw.header_logo_size, defaultCatalogVisualSettings.header_logo_size, 24, 160),
-    header_show_store_name:
-      typeof raw.header_show_store_name === "boolean"
-        ? raw.header_show_store_name
-        : defaultCatalogVisualSettings.header_show_store_name,
-    header_categories_label:
-      typeof raw.header_categories_label === "string" && raw.header_categories_label.trim()
-        ? raw.header_categories_label.trim().slice(0, 30)
-        : defaultCatalogVisualSettings.header_categories_label,
-    about_enabled:
-      typeof raw.about_enabled === "boolean"
-        ? raw.about_enabled
-        : defaultCatalogVisualSettings.about_enabled,
-    about_menu_label:
-      typeof raw.about_menu_label === "string" && raw.about_menu_label.trim()
-        ? raw.about_menu_label.trim().slice(0, 30)
-        : defaultCatalogVisualSettings.about_menu_label,
+    // Saíram da personalização (escopo do catálogo, §3): ficam fixos mesmo se gravados antes.
+    catalog_style: fixed.catalog_style,
+    header_background_opacity: fixed.header_background_opacity,
+    header_logo_centered: fixed.header_logo_centered,
+    header_show_store_name: fixed.header_show_store_name,
+    header_categories_label: fixed.header_categories_label,
+    about_menu_label: fixed.about_menu_label,
+    heading_scale: fixed.heading_scale,
+    body_scale: fixed.body_scale,
+    product_card_style: fixed.product_card_style,
+    product_layout: fixed.product_layout,
+    show_price: fixed.show_price,
+    show_whatsapp_button: fixed.show_whatsapp_button,
+    section_order: fixed.section_order,
+    // Calculadas: letra do cabeçalho pelo fundo dele; botão com o mouse a partir do botão.
+    header_text_color: readableTextColor(headerBackground),
+    button_hover_color: hoverColor(buttonColor),
+    // As 6 cores e as 2 fontes do lojista.
+    header_background_color: headerBackground,
+    background_color: pickColor(raw.background_color, fixed.background_color),
+    primary_color: pickColor(raw.primary_color, fixed.primary_color),
+    secondary_color: pickColor(raw.secondary_color, fixed.secondary_color),
+    button_color: buttonColor,
+    button_text_color: pickColor(raw.button_text_color, fixed.button_text_color),
+    heading_font: pickString(raw.heading_font, storeFonts, fixed.heading_font),
+    body_font: pickString(raw.body_font, storeFonts, fixed.body_font),
+    header_logo_size: pickScale(raw.header_logo_size, fixed.header_logo_size, 24, 160),
+    header_sticky: bool("header_sticky"),
+    about_enabled: bool("about_enabled"),
     about_title:
       typeof raw.about_title === "string" && raw.about_title.trim()
         ? raw.about_title.trim().slice(0, 100)
-        : defaultCatalogVisualSettings.about_title,
+        : fixed.about_title,
     about_description:
       typeof raw.about_description === "string"
         ? raw.about_description.slice(0, 5000)
-        : defaultCatalogVisualSettings.about_description,
-    about_image_url:
-      typeof raw.about_image_url === "string"
-        ? raw.about_image_url
-        : defaultCatalogVisualSettings.about_image_url,
-    contact_enabled:
-      typeof raw.contact_enabled === "boolean"
-        ? raw.contact_enabled
-        : defaultCatalogVisualSettings.contact_enabled,
-    header_logo_centered:
-      typeof raw.header_logo_centered === "boolean"
-        ? raw.header_logo_centered
-        : defaultCatalogVisualSettings.header_logo_centered,
-    header_sticky:
-      typeof raw.header_sticky === "boolean"
-        ? raw.header_sticky
-        : defaultCatalogVisualSettings.header_sticky,
-    heading_font: pickString(raw.heading_font, ["inter", "montserrat", "playfair", "cormorant", "georgia", "roboto", "open-sans", "lato", "poppins", "raleway", "nunito", "merriweather", "libre-baskerville", "oswald", "dancing-script"], "inter"),
-    body_font: pickString(raw.body_font, ["inter", "montserrat", "playfair", "cormorant", "georgia", "roboto", "open-sans", "lato", "poppins", "raleway", "nunito", "merriweather", "libre-baskerville", "oswald", "dancing-script"], "inter"),
-    heading_scale: pickScale(raw.heading_scale, defaultCatalogVisualSettings.heading_scale, 80, 140),
-    body_scale: pickScale(raw.body_scale, defaultCatalogVisualSettings.body_scale, 85, 125),
-    product_card_style: pickString(raw.product_card_style, ["large", "compact"], "large"),
-    product_layout: pickString(raw.product_layout, ["grid", "list"], "grid"),
-    show_price:
-      typeof raw.show_price === "boolean" ? raw.show_price : defaultCatalogVisualSettings.show_price,
-    show_whatsapp_button:
-      typeof raw.show_whatsapp_button === "boolean"
-        ? raw.show_whatsapp_button
-        : defaultCatalogVisualSettings.show_whatsapp_button,
-    show_banner:
-      typeof raw.show_banner === "boolean"
-        ? raw.show_banner
-        : defaultCatalogVisualSettings.show_banner,
-    show_description:
-      typeof raw.show_description === "boolean"
-        ? raw.show_description
-        : defaultCatalogVisualSettings.show_description,
-    show_featured:
-      typeof raw.show_featured === "boolean"
-        ? raw.show_featured
-        : defaultCatalogVisualSettings.show_featured,
-    show_categories:
-      typeof raw.show_categories === "boolean"
-        ? raw.show_categories
-        : defaultCatalogVisualSettings.show_categories,
-    section_order: mergedOrder,
+        : fixed.about_description,
+    about_image_url: typeof raw.about_image_url === "string" ? raw.about_image_url : fixed.about_image_url,
+    contact_enabled: bool("contact_enabled"),
+    show_banner: bool("show_banner"),
+    show_description: bool("show_description"),
+    show_featured: bool("show_featured"),
+    show_categories: bool("show_categories"),
   };
+}
+
+const storeFonts: readonly StoreFont[] = [
+  "inter",
+  "montserrat",
+  "playfair",
+  "cormorant",
+  "georgia",
+  "roboto",
+  "open-sans",
+  "lato",
+  "poppins",
+  "raleway",
+  "nunito",
+  "merriweather",
+  "libre-baskerville",
+  "oswald",
+  "dancing-script",
+];
+
+function relativeLuminance(hex: string) {
+  const [r, g, b] = [1, 3, 5]
+    .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Letra escura em fundo claro e branca em fundo escuro. */
+export function readableTextColor(background: string) {
+  return relativeLuminance(background) > 0.4 ? "#111111" : "#ffffff";
+}
+
+/** Botão com o mouse: um pouco mais escuro (botão claro) ou mais claro (botão escuro). */
+export function hoverColor(color: string) {
+  const target = relativeLuminance(color) > 0.4 ? 0 : 255;
+  const amount = target === 0 ? 0.12 : 0.18;
+  return (
+    "#" +
+    [1, 3, 5]
+      .map((i) => parseInt(color.slice(i, i + 2), 16))
+      .map((v) => Math.round(v + (target - v) * amount).toString(16).padStart(2, "0"))
+      .join("")
+  );
 }
 
 function normalizeStoreBanner(row: {
@@ -652,14 +673,7 @@ function normalizeStoreBanner(row: {
   sort_order: number | null;
   active: boolean | null;
 }): StoreBanner {
-  const linkType: StoreBannerLinkType =
-    row.link_type === "product" ||
-    row.link_type === "category" ||
-    row.link_type === "external" ||
-    row.link_type === "store_home" ||
-    row.link_type === "home"
-      ? row.link_type
-      : "home";
+  const linkType = pickString(row.link_type, storeBannerLinkTypes, "home");
   return {
     id: row.id,
     store_id: row.store_id,
@@ -698,15 +712,6 @@ function isMissingStoreBannersTable(error: { code?: string; message?: string } |
   );
 }
 
-function legacyThemeToCatalogStyle(value: unknown): CatalogStyle {
-  if (value === "minimal" || value === "elegant" || value === "commercial" || value === "editorial") {
-    return value;
-  }
-  if (value === "modern") return "elegant";
-  if (value === "compact") return "commercial";
-  if (value === "vitrine") return "editorial";
-  return "minimal";
-}
 
 export function normalizeReceiptSettings(value: unknown): ReceiptSettings {
   const raw = value && typeof value === "object" ? (value as Partial<ReceiptSettings>) : {};

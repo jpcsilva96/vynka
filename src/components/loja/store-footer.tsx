@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import type { CSSProperties } from "react";
 import { Instagram, Mail, MapPin, Phone } from "lucide-react";
 import { buildWhatsAppLink } from "@/lib/cart";
 import { formatPhone } from "@/lib/br-documents";
@@ -8,6 +9,7 @@ import { WhatsAppIcon } from "./store-header";
 export function StoreFooter() {
   const store = useStorefront();
   const slug = store.slug;
+  const visual = store.catalog_visual;
   const location = [store.city, store.state].filter(Boolean).join(" / ");
   const streetAddress = [
     store.address,
@@ -23,7 +25,19 @@ export function StoreFooter() {
     : null;
 
   return (
-    <footer id="contato" className="border-t border-black/10 bg-white">
+    // Rodapé usa a cor "Cabeçalho e rodapé"; títulos e textos seguem a letra calculada para ela.
+    <footer
+      id="contato"
+      className="border-t border-black/10 bg-white"
+      style={
+        {
+          color: visual.header_text_color,
+          "--shop-background": visual.header_background_color,
+          "--shop-primary": visual.header_text_color,
+          "--shop-secondary": `color-mix(in srgb, ${visual.header_text_color} 72%, transparent)`,
+        } as CSSProperties
+      }
+    >
       <div className="mx-auto grid max-w-[1280px] gap-10 px-4 py-12 md:grid-cols-[1.5fr_1fr_1fr] md:px-8 md:py-16">
         <div>
           <div className="text-[16px] font-semibold uppercase tracking-[0.22em] text-black">{store.name}</div>

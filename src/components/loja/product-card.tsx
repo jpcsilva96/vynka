@@ -76,12 +76,10 @@ export function ProductCard({ product }: { product: PublicProduct }) {
         >
           {product.name}
         </Link>
-        {store.catalog_visual.show_price && (
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-[14px] font-semibold text-black">{formatBRL(price)}</span>
-            {sale && <span className="text-[12px] text-neutral-400 line-through">{formatBRL(product.price)}</span>}
-          </div>
-        )}
+        <div className="mt-1 flex items-baseline gap-2">
+          <span className="text-[14px] font-semibold text-black">{formatBRL(price)}</span>
+          {sale && <span className="text-[12px] text-neutral-400 line-through">{formatBRL(product.price)}</span>}
+        </div>
       </div>
     </article>
   );

@@ -1,7 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Category, ProductStatus } from "@/lib/products";
 import type { StorefrontStore } from "@/lib/storefront-context";
-import { normalizeCatalogVisualSettings, normalizeStoragePublicUrl, type StoreBanner, type StoreBannerLinkType } from "@/lib/store-settings";
+import {
+  normalizeCatalogVisualSettings,
+  normalizeStoragePublicUrl,
+  storeBannerLinkTypes,
+  type StoreBanner,
+  type StoreBannerLinkType,
+} from "@/lib/store-settings";
 
 export interface PublicProduct {
   id: string;
@@ -179,7 +185,7 @@ function normalizePublicBannerValue(storeId: string, value: unknown, index: numb
 }
 
 function isBannerLinkType(value: string | null): value is StoreBannerLinkType {
-  return value === "home" || value === "store_home" || value === "product" || value === "category" || value === "external";
+  return storeBannerLinkTypes.includes(value as StoreBannerLinkType);
 }
 
 function isMissingStoreBannersTable(error: { code?: string; message?: string } | null) {
