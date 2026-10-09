@@ -2,6 +2,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
+  CheckCircle2,
+  Circle,
   Eye,
   ExternalLink,
   HelpCircle,
@@ -21,6 +23,7 @@ import {
   PaymentSettingsTab,
 } from "@/components/admin/checkout-settings";
 import { isProvisionalSlug } from "@/lib/provisional-store";
+import { canPublish, computeChecklist, getStoreFull, publishStore } from "@/lib/onboarding";
 import { formatPhone } from "@/lib/br-documents";
 import {
   getGeneralSettings,
@@ -128,6 +131,7 @@ function Configuracoes() {
       setSaved(true);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["general-settings", storeId] }),
+        queryClient.invalidateQueries({ queryKey: ["store-publication", storeId] }),
         refresh(),
       ]);
       window.setTimeout(() => setSaved(false), 2200);
@@ -255,6 +259,8 @@ function Configuracoes() {
                   Edite os dados exibidos no catálogo público e nos canais de atendimento.
                 </p>
               </div>
+
+              <PublicationCard storeId={storeId} hasUnsavedChanges={form !== data} />
 
               <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
                 <SettingsCard title="Dados da loja">
@@ -610,6 +616,141 @@ function SettingsCard({ title, children }: { title: string; children: React.Reac
     <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
       <h3 className="mb-4 text-[16px] font-semibold text-foreground">{title}</h3>
       <div className="space-y-3">{children}</div>
+    </section>
+  );
+}
+
+// Publicar o catálogo daqui (antes só existia no último passo de /admin/onboarding).
+// Mesma regra e mesma gravação do onboarding: computeChecklist/canPublish/publishStore, que leem
+// a loja do banco; por isso pede para salvar antes se houver alteração na tela.
+function PublicationCard({
+  storeId,
+  hasUnsavedChanges,
+}: {
+  storeId: string;
+  hasUnsavedChanges: boolean;
+}) {
+  const { refresh } = useStoreContext();
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["store-publication", storeId],
+    queryFn: async () => {
+      const store = await getStoreFull(storeId);
+      if (!store) return null;
+      return { store, checklist: await computeChecklist(store) };
+    },
+    enabled: !!storeId,
+  });
+  const publishMutation = useMutation({
+    mutationFn: () => publishStore(storeId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["store-publication", storeId] }),
+        refresh(),
+      ]);
+    },
+  });
+
+  if (isLoading || !data) return null;
+  const { store, checklist } = data;
+  const published = store.publication_status === "published";
+  const publicPath = `/loja/${store.slug}`;
+  const required = [
+    ["Nome da loja", checklist.hasName],
+    ["Link do catálogo", checklist.hasSlug],
+    ["WhatsApp ou venda pelo site", checklist.hasWhatsAppOrSite],
+    ["Pelo menos um produto ativo", checklist.hasActiveProduct],
+  ] as const;
+  const ready = canPublish(checklist);
+
+  return (
+    <section
+      className={cn(
+        "rounded-lg border p-6 shadow-sm",
+        published ? "border-border bg-surface" : "border-foreground/30 bg-surface",
+      )}
+    >
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span
+              className={cn(
+                "h-2 w-2 shrink-0 rounded-full",
+                published ? "bg-emerald-500" : "bg-amber-500",
+              )}
+            />
+            <h3 className="text-[16px] font-semibold text-foreground">
+              {published ? "Seu catálogo está no ar" : "Seu catálogo ainda não está no ar"}
+            </h3>
+          </div>
+          <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+            {published
+              ? "Clientes já podem ver a loja e comprar pelo link abaixo."
+              : "Enquanto não publicar, quem abrir o link vê que o catálogo ainda não está publicado."}
+          </p>
+          {published && (
+            <a
+              href={publicPath}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-foreground hover:underline"
+            >
+              {publicPath}
+              <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
+            </a>
+          )}
+        </div>
+        {!published && (
+          <button
+            type="button"
+            disabled={!ready || hasUnsavedChanges || publishMutation.isPending}
+            onClick={() => publishMutation.mutate()}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-5 py-3 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-graphite disabled:opacity-50"
+          >
+            {publishMutation.isPending && (
+              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
+            )}
+            Publicar catálogo
+          </button>
+        )}
+      </div>
+
+      {!published && (
+        <div className="mt-4 border-t border-border pt-4">
+          {ready ? (
+            <p className="text-[12px] text-muted-foreground">
+              {hasUnsavedChanges
+                ? "Salve as alterações desta página antes de publicar."
+                : "Tudo pronto para publicar."}
+            </p>
+          ) : (
+            <>
+              <p className="mb-2 text-[12px] text-muted-foreground">Para publicar, falta:</p>
+              <ul className="grid gap-1.5 text-[13px] sm:grid-cols-2">
+                {required.map(([label, ok]) => (
+                  <li key={label} className="flex items-center gap-2">
+                    {ok ? (
+                      <CheckCircle2 className="h-4 w-4 text-foreground" strokeWidth={1.5} />
+                    ) : (
+                      <Circle className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                    )}
+                    <span className={ok ? "text-foreground" : "text-muted-foreground"}>
+                      {label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {publishMutation.error && (
+            <p className="mt-3 text-[12px] text-red-700">
+              {publishMutation.error instanceof Error
+                ? publishMutation.error.message
+                : "Não foi possível publicar."}
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }
