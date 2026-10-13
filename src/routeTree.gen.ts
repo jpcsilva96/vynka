@@ -47,6 +47,7 @@ import { Route as AdminProdutosIdRouteImport } from './routes/admin.produtos.$id
 import { Route as AdminProdutosNovoRouteImport } from './routes/admin.produtos.novo'
 import { Route as ApiMercadoPagoWebhookRouteImport } from './routes/api.mercado-pago.webhook'
 import { Route as LojaSlugIndexRouteImport } from './routes/loja.$slug.index'
+import { Route as LojaSlugBuscaRouteImport } from './routes/loja.$slug.busca'
 import { Route as LojaSlugCheckoutRouteImport } from './routes/loja.$slug.checkout'
 import { Route as LojaSlugContatoRouteImport } from './routes/loja.$slug.contato'
 import { Route as LojaSlugEntrarRouteImport } from './routes/loja.$slug.entrar'
@@ -249,6 +250,11 @@ const LojaSlugIndexRoute = LojaSlugIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LojaSlugRoute,
 } as any)
+const LojaSlugBuscaRoute = LojaSlugBuscaRouteImport.update({
+  id: '/busca',
+  path: '/busca',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
 const LojaSlugCheckoutRoute = LojaSlugCheckoutRouteImport.update({
   id: '/checkout',
   path: '/checkout',
@@ -344,6 +350,7 @@ export interface FileRoutesByFullPath {
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
   '/api/mercado-pago/webhook': typeof ApiMercadoPagoWebhookRoute
+  '/loja/$slug/busca': typeof LojaSlugBuscaRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
@@ -389,6 +396,7 @@ export interface FileRoutesByTo {
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
   '/api/mercado-pago/webhook': typeof ApiMercadoPagoWebhookRoute
+  '/loja/$slug/busca': typeof LojaSlugBuscaRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
@@ -441,6 +449,7 @@ export interface FileRoutesById {
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
   '/api/mercado-pago/webhook': typeof ApiMercadoPagoWebhookRoute
+  '/loja/$slug/busca': typeof LojaSlugBuscaRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
@@ -494,6 +503,7 @@ export interface FileRouteTypes {
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/api/mercado-pago/webhook'
+    | '/loja/$slug/busca'
     | '/loja/$slug/checkout'
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
@@ -539,6 +549,7 @@ export interface FileRouteTypes {
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/api/mercado-pago/webhook'
+    | '/loja/$slug/busca'
     | '/loja/$slug/checkout'
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
@@ -590,6 +601,7 @@ export interface FileRouteTypes {
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/api/mercado-pago/webhook'
+    | '/loja/$slug/busca'
     | '/loja/$slug/checkout'
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
@@ -886,6 +898,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugIndexRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/loja/$slug/busca': {
+      id: '/loja/$slug/busca'
+      path: '/busca'
+      fullPath: '/loja/$slug/busca'
+      preLoaderRoute: typeof LojaSlugBuscaRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
     '/loja/$slug/checkout': {
       id: '/loja/$slug/checkout'
       path: '/checkout'
@@ -1093,6 +1112,7 @@ const LojaSlugCategoriaCategorySlugRouteWithChildren =
   )
 
 interface LojaSlugRouteChildren {
+  LojaSlugBuscaRoute: typeof LojaSlugBuscaRoute
   LojaSlugCheckoutRoute: typeof LojaSlugCheckoutRoute
   LojaSlugContatoRoute: typeof LojaSlugContatoRoute
   LojaSlugEntrarRoute: typeof LojaSlugEntrarRoute
@@ -1105,6 +1125,7 @@ interface LojaSlugRouteChildren {
 }
 
 const LojaSlugRouteChildren: LojaSlugRouteChildren = {
+  LojaSlugBuscaRoute: LojaSlugBuscaRoute,
   LojaSlugCheckoutRoute: LojaSlugCheckoutRoute,
   LojaSlugContatoRoute: LojaSlugContatoRoute,
   LojaSlugEntrarRoute: LojaSlugEntrarRoute,

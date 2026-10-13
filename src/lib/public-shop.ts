@@ -397,3 +397,29 @@ function descendantCategoryIds(categoryId: string, categories: PublicCategory[])
   walk(categoryId);
   return result;
 }
+
+// Busca da loja (escopo do catálogo, §4): sem acento e sem maiúscula; todas as palavras digitadas
+// precisam aparecer no nome, na categoria ou na descrição do produto.
+export function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function filterProductsBySearch(products: PublicProduct[], query: string) {
+  const terms = normalizeSearchText(query).split(" ").filter(Boolean);
+  if (terms.length === 0) return products;
+  return products.filter((product) => {
+    const haystack = normalizeSearchText(
+      [
+        product.name,
+        product.category?.name ?? "",
+        (product.description ?? "").replace(/<[^>]*>/g, " "),
+      ].join(" "),
+    );
+    return terms.every((term) => haystack.includes(term));
+  });
+}

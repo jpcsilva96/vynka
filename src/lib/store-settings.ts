@@ -129,6 +129,7 @@ export interface CatalogVisualSettings {
   contact_enabled: boolean;
   header_logo_centered: boolean;
   header_sticky: boolean;
+  announcement_text: string;
   heading_font: StoreFont;
   body_font: StoreFont;
   heading_scale: number;
@@ -194,6 +195,7 @@ export const defaultCatalogVisualSettings: CatalogVisualSettings = {
   contact_enabled: true,
   header_logo_centered: false,
   header_sticky: true,
+  announcement_text: "",
   heading_font: "inter",
   body_font: "inter",
   heading_scale: 100,
@@ -575,6 +577,8 @@ export function storeFontFamily(font: StoreFont) {
   return families[font];
 }
 
+export const ANNOUNCEMENT_MAX = 90;
+
 export function normalizeCatalogVisualSettings(value: unknown): CatalogVisualSettings {
   const raw = value && typeof value === "object" ? (value as Partial<CatalogVisualSettings>) : {};
   const fixed = defaultCatalogVisualSettings;
@@ -613,6 +617,11 @@ export function normalizeCatalogVisualSettings(value: unknown): CatalogVisualSet
     header_logo_height_mobile: pickScale(raw.header_logo_height_mobile, fixed.header_logo_height_mobile, logoSlot.minHeight, logoSlot.mobile.height),
     header_logo_height_desktop: pickScale(raw.header_logo_height_desktop, fixed.header_logo_height_desktop, logoSlot.minHeight, logoSlot.desktop.height),
     header_sticky: bool("header_sticky"),
+    // Aviso da faixa fina do topo (escopo do catálogo, §4); vazio = a faixa mostra só "Entrar".
+    announcement_text:
+      typeof raw.announcement_text === "string"
+        ? raw.announcement_text.replace(/\s+/g, " ").trim().slice(0, ANNOUNCEMENT_MAX)
+        : fixed.announcement_text,
     about_enabled: bool("about_enabled"),
     about_title:
       typeof raw.about_title === "string" && raw.about_title.trim()
