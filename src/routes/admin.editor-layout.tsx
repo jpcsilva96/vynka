@@ -148,7 +148,7 @@ function LayoutEditor() {
   const { currentStore, refresh } = useStoreContext();
   const storeId = currentStore?.id ?? "";
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<EditorSection | null>("themes");
+  const [activeSection, setActiveSection] = useState<EditorSection | null>(null);
   // Abre a seção clicada (fechando a outra) ou recolhe se já estava aberta. Ao abrir, o título pode
   // subir junto com a seção que fechou acima; a lista rola até ele.
   const toggleSection = (id: EditorSection) => {
