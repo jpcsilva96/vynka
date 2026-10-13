@@ -47,22 +47,24 @@ export function sortProducts(
   salesRank: Record<string, number>,
 ) {
   const newest = (a: PublicProduct, b: PublicProduct) => b.created_at.localeCompare(a.created_at);
-  const list = products.slice();
-  switch (sort) {
-    case "menor-preco":
-      return list.sort((a, b) => effectivePrice(a) - effectivePrice(b) || newest(a, b));
-    case "maior-preco":
-      return list.sort((a, b) => effectivePrice(b) - effectivePrice(a) || newest(a, b));
-    case "novidades":
-      return list.sort(newest);
-    default:
-      // Quem vendeu vem primeiro, pela posição; quem ainda não vendeu, depois, dos mais novos.
-      return list.sort((a, b) => {
+  const compare = (a: PublicProduct, b: PublicProduct) => {
+    switch (sort) {
+      case "menor-preco":
+        return effectivePrice(a) - effectivePrice(b) || newest(a, b);
+      case "maior-preco":
+        return effectivePrice(b) - effectivePrice(a) || newest(a, b);
+      case "novidades":
+        return newest(a, b);
+      default: {
+        // Quem vendeu vem primeiro, pela posição; quem ainda não vendeu, depois, dos mais novos.
         const ra = salesRank[a.id] ?? Number.POSITIVE_INFINITY;
         const rb = salesRank[b.id] ?? Number.POSITIVE_INFINITY;
         return ra === rb ? newest(a, b) : ra - rb;
-      });
-  }
+      }
+    }
+  };
+  // Esgotados sempre no fim, em qualquer ordem escolhida.
+  return products.slice().sort((a, b) => Number(a.sold_out) - Number(b.sold_out) || compare(a, b));
 }
 
 const optionKey = (name: string, value: string) => `${name}:${value}`;

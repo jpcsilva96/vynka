@@ -23,6 +23,8 @@ export interface PublicProduct {
   primary_image: string | null;
   // Opções do produto (tamanho, cor...) com os valores cadastrados, na ordem do cadastro; base dos filtros.
   filter_options: { name: string; values: string[] }[];
+  // Nada para comprar: mesma regra do botão da página do produto (estoque só conta se o produto controla).
+  sold_out: boolean;
 }
 
 export type PublicCategory = Category & {
@@ -63,7 +65,7 @@ export const isNew = (created_at: string) =>
 export const isOnSale = (p: Pick<PublicProduct, "price" | "promo_price">) =>
   p.promo_price != null && p.promo_price < p.price;
 
-function mapProduct(p: any): PublicProduct {
+export function mapProduct(p: any): PublicProduct {
   const images = (p.product_images ?? [])
     .slice()
     .sort((a: any, b: any) => a.position - b.position);
@@ -89,7 +91,27 @@ function mapProduct(p: any): PublicProduct {
     images,
     primary_image: images[0]?.url ?? null,
     filter_options: mapFilterOptions(p.product_options),
+    sold_out: isSoldOut(p),
   };
+}
+
+type RawStock = {
+  manage_stock?: boolean | null;
+  stock_quantity?: number | null;
+  product_options?: unknown[] | null;
+  product_variants?: { available: boolean | null; stock_quantity: number | null }[] | null;
+};
+
+// Sem opções: esgota quando controla estoque e não tem saldo. Com opções: quando nenhuma variação
+// está disponível com saldo. Consulta sem as colunas de estoque nunca marca esgotado.
+function isSoldOut(p: RawStock) {
+  if (p.manage_stock == null) return false;
+  if ((p.product_options ?? []).length === 0) {
+    return !!p.manage_stock && Number(p.stock_quantity ?? 0) <= 0;
+  }
+  return !(p.product_variants ?? []).some(
+    (variant) => variant.available && (!p.manage_stock || Number(variant.stock_quantity ?? 0) > 0),
+  );
 }
 
 type RawOption = {
@@ -114,11 +136,13 @@ function mapFilterOptions(options: RawOption[] | null | undefined) {
     .filter((option) => option.name && option.values.length > 0);
 }
 
-// Colunas da lista de produtos (cards, busca, categorias e filtros).
-const PRODUCT_LIST_COLUMNS = `id, name, description, price, promo_price, featured, status, created_at,
+// Colunas da lista de produtos (cards, busca, categorias, filtros e selo Esgotado).
+export const PRODUCT_LIST_COLUMNS = `id, name, description, price, promo_price, featured, status, created_at,
+       manage_stock, stock_quantity,
        category:categories(id,name,slug,display_order,parent_id,active),
        product_images(url,position),
-       product_options(name,position,product_option_values(value,position))`;
+       product_options(name,position,product_option_values(value,position)),
+       product_variants(available,stock_quantity)`;
 
 // Posição de cada produto em "Mais vendidos" (função do banco, só pedidos concluídos; 1 = mais vendido).
 // Sem a função ou com erro, devolve vazio e a ordem cai em Novidades.
@@ -374,13 +398,9 @@ export async function listRelatedProducts(
   excludeId: string,
   limit = 4,
 ): Promise<PublicProduct[]> {
-  let q = supabase
+  let q = (supabase as any)
     .from("products")
-    .select(
-      `id, name, description, price, promo_price, featured, status, created_at,
-       category:categories(id,name,slug,display_order,parent_id,active),
-       product_images(url,position)`,
-    )
+    .select(PRODUCT_LIST_COLUMNS)
     .eq("store_id", storeId)
     .eq("status", "active")
     .neq("id", excludeId)

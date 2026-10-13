@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { DeliveryAddress, DeliveryMethod, OrderStatus } from "@/lib/orders";
-import { type PublicProduct, isOnSale } from "@/lib/public-shop";
+import { PRODUCT_LIST_COLUMNS, type PublicProduct, isOnSale, mapProduct } from "@/lib/public-shop";
 
 type Db = typeof supabase;
 const db = supabase as unknown as Db & { from: (table: string) => any };
@@ -284,15 +284,7 @@ export async function listFavoriteProducts(storeId: string): Promise<PublicProdu
   if (!customer?.user_id) return [];
   const { data, error } = await db
     .from("customer_favorites")
-    .select(
-      `
-      product:products(
-        id,name,description,price,promo_price,featured,status,created_at,
-        category:categories(id,name,slug,display_order,parent_id,active),
-        product_images(url,position)
-      )
-    `,
-    )
+    .select(`product:products(${PRODUCT_LIST_COLUMNS})`)
     .eq("store_id", storeId)
     .eq("user_id", customer.user_id)
     .order("created_at", { ascending: false });
@@ -300,34 +292,7 @@ export async function listFavoriteProducts(storeId: string): Promise<PublicProdu
   return (data ?? [])
     .map((row: any) => row.product)
     .filter(Boolean)
-    .map(mapFavoriteProduct);
-}
-
-function mapFavoriteProduct(p: any): PublicProduct {
-  const images = (p.product_images ?? []).slice().sort((a: any, b: any) => a.position - b.position);
-  return {
-    id: p.id,
-    name: p.name,
-    description: p.description,
-    price: p.price,
-    promo_price: p.promo_price,
-    featured: p.featured,
-    status: p.status,
-    created_at: p.created_at,
-    category: p.category
-      ? {
-          id: p.category.id,
-          name: p.category.name,
-          slug: p.category.slug,
-          position: p.category.display_order ?? p.category.position ?? 0,
-          parent_id: p.category.parent_id ?? null,
-          active: p.category.active ?? true,
-        }
-      : null,
-    images,
-    primary_image: images[0]?.url ?? null,
-    filter_options: [],
-  };
+    .map(mapProduct);
 }
 
 export function productDisplayPrice(product: PublicProduct) {
