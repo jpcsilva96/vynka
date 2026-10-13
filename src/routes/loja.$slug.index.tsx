@@ -116,6 +116,18 @@ function LojaIndex() {
             Nenhum produto ativo cadastrado.
           </div>
         )}
+        {products.length > visibleProducts.length && (
+          <div className="mt-10 text-center">
+            <Link
+              to="/loja/$slug/busca"
+              params={{ slug }}
+              search={{ q: "" }}
+              className="inline-flex min-h-11 items-center border border-black px-6 text-[12px] font-semibold uppercase tracking-[0.16em] text-black hover:bg-black hover:text-white"
+            >
+              Ver todos os produtos
+            </Link>
+          </div>
+        )}
       </section>
     </div>
   );
@@ -203,6 +215,12 @@ function bannerTargetHref(banner: StoreBanner, slug: string) {
       return null;
     case "store_home":
       return { href: base, external: false };
+    case "home":
+      return { href: `${base}/busca`, external: false };
+    case "promotions":
+      return { href: `${base}/promocoes`, external: false };
+    case "new_arrivals":
+      return { href: `${base}/novidades`, external: false };
     case "product":
       return banner.link_target
         ? { href: `${base}/produto/${banner.link_target}`, external: false }
@@ -219,9 +237,8 @@ function bannerTargetHref(banner: StoreBanner, slug: string) {
       return /^https?:\/\//i.test(banner.link_target)
         ? { href: banner.link_target, external: true }
         : null;
-    // Promoções e Novidades ganham página própria no lote 3; até lá, a lista de produtos.
     default:
-      return { href: `${base}#produtos`, external: false };
+      return { href: `${base}/busca`, external: false };
   }
 }
 

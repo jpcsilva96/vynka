@@ -733,14 +733,15 @@ function ImageUpload({ value, uploading, onFile, onRemove, variant = "logo" }: {
   );
 }
 
-// "Quando o cliente clicar, ir para:" (escopo do catálogo, §5). Promoções e Novidades entram
-// quando essas páginas existirem (lote 3); o banco já aceita os dois.
+// "Quando o cliente clicar, ir para:" (escopo do catálogo, §5).
 function bannerDestinations(visual: CatalogVisualSettings): { value: StoreBannerLinkType; label: string }[] {
   return [
     { value: "store_home", label: "Página inicial" },
     { value: "home", label: "Todos os produtos" },
     { value: "category", label: "Uma categoria" },
     { value: "product", label: "Um produto" },
+    { value: "promotions", label: "Promoções" },
+    { value: "new_arrivals", label: "Novidades (últimos 14 dias)" },
     ...(visual.about_enabled ? [{ value: "about" as const, label: "Quem somos" }] : []),
     ...(visual.contact_enabled ? [{ value: "contact" as const, label: "Contato" }] : []),
     { value: "none", label: "Sem link" },

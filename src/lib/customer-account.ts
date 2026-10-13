@@ -326,6 +326,7 @@ function mapFavoriteProduct(p: any): PublicProduct {
       : null,
     images,
     primary_image: images[0]?.url ?? null,
+    filter_options: [],
   };
 }
 
