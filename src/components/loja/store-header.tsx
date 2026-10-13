@@ -1,21 +1,30 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, Menu, ShoppingBag, User, X } from "lucide-react";
-import { useState } from "react";
-import { openCart, useCartTotals } from "@/lib/cart";
+import { ChevronDown, Instagram, Menu, Search, ShoppingBag, User, X } from "lucide-react";
+import { useCallback, useEffect, useState, type FormEvent, type ReactElement } from "react";
+import { buildWhatsAppLink, openCart, useCartTotals } from "@/lib/cart";
 import { useStoreCustomer } from "@/lib/customer-account";
-import { listPublicCategories } from "@/lib/public-shop";
-import { useStorefront, useStorefrontPreview } from "@/lib/storefront-context";
+import { formatBRL } from "@/lib/products";
+import { listPublicCategories, type PublicCategory } from "@/lib/public-shop";
+import {
+  useStorefront,
+  useStorefrontPreview,
+  type StorefrontStore,
+} from "@/lib/storefront-context";
 import { StoreLogo } from "./store-logo";
 import { cn } from "@/lib/utils";
 
+// Cabeçalho da loja (escopo do catálogo, §4): faixa fina (aviso + Entrar/Olá + redes), linha principal
+// (busca · logo · carrinho) e linha do menu com as categorias principais na ordem da aba Categorias.
+// No celular: a faixa mostra só aviso + Entrar/Olá, a busca fica logo abaixo e o menu vai para a gaveta.
 export function StoreHeader() {
   const store = useStorefront();
   const preview = useStorefrontPreview();
   const slug = store.slug;
-  const { count } = useCartTotals();
+  const { count, subtotal } = useCartTotals();
   const { data: customer } = useStoreCustomer(store.id);
   const [open, setOpen] = useState(false);
+  const closeMenu = useCallback(() => setOpen(false), []);
   const currentPath = useRouterState({ select: (state) => state.location.pathname });
   const { data: categories = [] } = useQuery({
     queryKey: ["public-header-categories", store.id],
@@ -24,141 +33,124 @@ export function StoreHeader() {
 
   const visual = store.catalog_visual;
   const headerBackground = visual.header_background_color;
+  const firstName = customer?.name?.trim().split(/\s+/)[0] ?? "";
+  const accountLabel = customer ? (firstName ? `Olá, ${firstName}` : "Minha conta") : "Entrar";
+  const accountLink: AccountLink = (className, onClick) => (
+    <Link
+      to={customer ? "/loja/$slug/minha-conta" : "/loja/$slug/entrar"}
+      params={{ slug }}
+      onClick={onClick}
+      className={className}
+    >
+      <User className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+      <span className="truncate">{accountLabel}</span>
+    </Link>
+  );
+  const social = socialLinks(store);
+  const contactActive = currentPath.endsWith("/contato");
+  const aboutActive = currentPath.endsWith("/quem-somos");
+
+  const topBar = (
+    <div className="border-b border-current/10">
+      <div className="mx-auto flex h-8 max-w-[1280px] items-center justify-between gap-4 px-4 text-[11px] md:px-8">
+        <p className="min-w-0 truncate opacity-80">{visual.announcement_text}</p>
+        <div className="flex shrink-0 items-center gap-3">
+          {social.length > 0 && (
+            <div className="hidden items-center gap-1 md:flex">
+              {social.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={item.label}
+                  className="grid h-7 w-7 place-items-center rounded-full opacity-70 transition-opacity hover:opacity-100"
+                >
+                  <item.Icon className="h-3.5 w-3.5" />
+                </a>
+              ))}
+            </div>
+          )}
+          {accountLink(
+            "inline-flex h-8 max-w-[160px] items-center gap-1.5 font-medium opacity-80 transition-opacity hover:opacity-100",
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   const brand = (
     <Link
       to="/loja/$slug"
       params={{ slug }}
-      className="flex min-w-0 items-center gap-3 text-current"
+      className="flex min-w-0 items-center justify-center text-current"
     >
       {store.logo_url ? (
         <StoreLogo src={store.logo_url} alt={store.name} visual={visual} previewDevice={preview} />
       ) : (
         // Logo OU nome, nunca os dois (escopo do catálogo, §2).
-        <div className="min-w-0">
-          <div className="truncate text-[15px] font-semibold uppercase tracking-[0.22em] text-current">
-            {store.name}
-          </div>
-        </div>
+        <span className="truncate text-[15px] font-semibold uppercase tracking-[0.22em] text-current">
+          {store.name}
+        </span>
       )}
     </Link>
   );
-  const desktopNav = (
-    <nav className="hidden items-center justify-center gap-7 md:flex">
-      <Link
-        to="/loja/$slug"
-        params={{ slug }}
-        className="text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-70 transition-opacity hover:opacity-100"
-      >
-        Início
-      </Link>
-      <div className="group relative">
-        <Link
-          to="/loja/$slug"
-          params={{ slug }}
-          hash="categorias"
-          className="inline-flex items-center gap-1.5 py-2 text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-70 transition-opacity hover:opacity-100 focus:opacity-100"
-        >
-          Categorias
-          <ChevronDown
-            className="h-3.5 w-3.5 transition-transform group-hover:rotate-180 group-focus-within:rotate-180"
-            strokeWidth={1.7}
-          />
-        </Link>
-        <div
-          className="invisible absolute left-1/2 top-full z-50 w-72 -translate-x-1/2 translate-y-2 border border-current/10 p-2 opacity-0 shadow-xl transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
-          style={{ backgroundColor: headerBackground }}
-        >
-          {categories.length > 0 ? (
-            categories.map((category) => (
-              <div key={category.id} className="border-b border-current/10 last:border-b-0">
-                <Link
-                  to="/loja/$slug/categoria/$categorySlug"
-                  params={{ slug, categorySlug: category.slug }}
-                  className="block px-3 py-2.5 text-[13px] font-semibold text-current transition-colors hover:bg-black/5"
-                >
-                  {category.name}
-                </Link>
-                {category.children.length > 0 && (
-                  <div className="pb-2">
-                    {category.children.map((child) => (
-                      <Link
-                        key={child.id}
-                        to="/loja/$slug/categoria/$categorySlug/$childSlug"
-                        params={{ slug, categorySlug: category.slug, childSlug: child.slug }}
-                        className="block px-5 py-1.5 text-[12px] text-current opacity-70 transition-all hover:bg-black/5 hover:opacity-100"
-                      >
-                        {child.name}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            <div className="px-3 py-3 text-[12px] text-current opacity-60">
-              Nenhuma categoria cadastrada.
-            </div>
-          )}
-        </div>
-      </div>
-      {visual.about_enabled && (
-        <Link
-          to="/loja/$slug/quem-somos"
-          params={{ slug }}
-          className="text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-70 transition-opacity hover:opacity-100"
-        >
-          Quem somos
-        </Link>
-      )}
-      {visual.contact_enabled && (
-        <Link
-          to="/loja/$slug/contato"
-          params={{ slug }}
-          aria-current={currentPath.endsWith("/contato") ? "page" : undefined}
-          className={cn(
-            "border-b-2 border-transparent pb-1 text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-70 transition-all hover:opacity-100",
-            currentPath.endsWith("/contato") && "border-current opacity-100",
-          )}
-        >
-          Contato
-        </Link>
-      )}
-    </nav>
-  );
-  const actions = (
-    <div className="flex items-center justify-end gap-2">
-      <button
-        type="button"
-        onClick={openCart}
-        className="relative grid h-10 w-10 place-items-center rounded-full text-current transition-colors hover:bg-black/5"
-        aria-label="Abrir carrinho"
-      >
+
+  const cartButton = (
+    <button
+      type="button"
+      onClick={openCart}
+      className="relative inline-flex h-11 items-center gap-2 rounded-full px-2.5 text-current transition-colors hover:bg-black/5"
+      aria-label={`Abrir carrinho, ${count} ${count === 1 ? "item" : "itens"}`}
+    >
+      <span className="relative">
         <ShoppingBag className="h-5 w-5" strokeWidth={1.7} />
         {count > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-black px-1 text-[10px] font-semibold text-white">
+          <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-black px-1 text-[10px] font-semibold text-white">
             {count}
           </span>
         )}
-      </button>
-      <Link
-        to={customer ? "/loja/$slug/minha-conta" : "/loja/$slug/entrar"}
-        params={{ slug }}
-        className="hidden h-10 items-center gap-2 rounded-full px-3 text-[12px] font-medium uppercase tracking-[0.14em] text-current transition-colors hover:bg-black/5 sm:inline-flex"
-      >
-        <User className="h-4 w-4" strokeWidth={1.7} />
-        {customer ? "Minha conta" : "Entrar"}
-      </Link>
-    </div>
-  );
-  const menuButton = (
-    <button
-      type="button"
-      onClick={() => setOpen((value) => !value)}
-      className="grid h-10 w-10 place-items-center rounded-full text-current transition-colors hover:bg-black/5 md:hidden"
-      aria-label="Menu"
-    >
-      {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </span>
+      <span className="hidden text-[13px] font-semibold tabular-nums md:inline">
+        {formatBRL(subtotal)}
+      </span>
     </button>
+  );
+
+  const desktopNav = (
+    <nav aria-label="Categorias" className="hidden border-t border-current/10 md:block">
+      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-center gap-x-7 px-8">
+        {categories.map((category) => (
+          <DesktopCategory
+            key={category.id}
+            category={category}
+            slug={slug}
+            background={headerBackground}
+            active={currentPath.includes(`/categoria/${category.slug}`)}
+          />
+        ))}
+        {visual.about_enabled && (
+          <Link
+            to="/loja/$slug/quem-somos"
+            params={{ slug }}
+            aria-current={aboutActive ? "page" : undefined}
+            className={navLinkClass(aboutActive)}
+          >
+            Quem somos
+          </Link>
+        )}
+        {visual.contact_enabled && (
+          <Link
+            to="/loja/$slug/contato"
+            params={{ slug }}
+            aria-current={contactActive ? "page" : undefined}
+            className={navLinkClass(contactActive)}
+          >
+            Contato
+          </Link>
+        )}
+      </div>
+    </nav>
   );
 
   return (
@@ -166,101 +158,329 @@ export function StoreHeader() {
       className={cn("z-40 border-b border-black/10", visual.header_sticky && "sticky top-0")}
       style={{ backgroundColor: headerBackground, color: visual.header_text_color }}
     >
-      <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between gap-5 px-4 md:px-8">
+      {topBar}
+      <div className="mx-auto grid h-16 max-w-[1280px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 md:h-20 md:gap-6 md:px-8">
+        <div className="flex min-w-0 items-center">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="-ml-2 grid h-11 w-11 place-items-center rounded-full text-current transition-colors hover:bg-black/5 md:hidden"
+            aria-label="Abrir menu"
+            aria-expanded={open}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="hidden w-full max-w-[320px] md:block">
+            <SearchForm />
+          </div>
+        </div>
         {brand}
-        {desktopNav}
-        <div className="flex items-center gap-2">
-          {actions}
-          {menuButton}
-        </div>
+        <div className="flex justify-end">{cartButton}</div>
       </div>
+      <div className="px-4 pb-2 md:hidden">
+        <SearchForm />
+      </div>
+      {desktopNav}
 
-      {open && (
-        <div
-          className="border-t border-current/10 md:hidden"
-          style={{ backgroundColor: headerBackground }}
-        >
-          <nav className="mx-auto max-w-[1280px] px-4 py-4">
-            <Link
-              to="/loja/$slug"
-              params={{ slug }}
-              onClick={() => setOpen(false)}
-              className="block py-3 text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-80"
-            >
-              Início
-            </Link>
-            {categories.length > 0 && (
-              <div className="border-y border-current/10 py-3">
-                <div className="pb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-80">
-                  Categorias
-                </div>
-                {categories.map((category) => (
-                  <div key={category.id}>
-                    <Link
-                      to="/loja/$slug/categoria/$categorySlug"
-                      params={{ slug, categorySlug: category.slug }}
-                      onClick={() => setOpen(false)}
-                      className={cn(
-                        "block py-2 text-[13px] font-semibold text-current opacity-75",
-                        category.count === 0 && "opacity-50",
-                      )}
-                    >
-                      {category.name}
-                    </Link>
-                    {category.children.map((child) => (
-                      <Link
-                        key={child.id}
-                        to="/loja/$slug/categoria/$categorySlug/$childSlug"
-                        params={{ slug, categorySlug: category.slug, childSlug: child.slug }}
-                        onClick={() => setOpen(false)}
-                        className="block py-1.5 pl-4 text-[12px] text-current opacity-65"
-                      >
-                        {child.name}
-                      </Link>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
-            {visual.about_enabled && (
-              <Link
-                to="/loja/$slug/quem-somos"
-                params={{ slug }}
-                onClick={() => setOpen(false)}
-                className="block py-3 text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-80"
-              >
-                Quem somos
-              </Link>
-            )}
-            {visual.contact_enabled && (
-              <Link
-                to="/loja/$slug/contato"
-                params={{ slug }}
-                onClick={() => setOpen(false)}
-                aria-current={currentPath.endsWith("/contato") ? "page" : undefined}
-                className={cn(
-                  "block border-l-2 border-transparent py-3 pl-3 text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-80",
-                  currentPath.endsWith("/contato") && "border-current opacity-100",
-                )}
-              >
-                Contato
-              </Link>
-            )}
-            <Link
-              to={customer ? "/loja/$slug/minha-conta" : "/loja/$slug/entrar"}
-              params={{ slug }}
-              onClick={() => setOpen(false)}
-              className="mt-2 block border-t border-current/10 pt-4 text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-80"
-            >
-              {customer ? "Minha conta" : "Entrar"}
-            </Link>
-          </nav>
-        </div>
-      )}
+      <MenuDrawer
+        open={open}
+        onClose={closeMenu}
+        store={store}
+        categories={categories}
+        accountLink={accountLink}
+        social={social}
+        currentPath={currentPath}
+      />
     </header>
   );
 }
 
+type AccountLink = (className: string, onClick?: () => void) => ReactElement;
+
+function navLinkClass(active: boolean) {
+  return cn(
+    "inline-flex h-11 items-center border-b-2 border-transparent text-[12px] font-medium uppercase tracking-[0.18em] text-current opacity-70 transition-opacity hover:opacity-100",
+    active && "border-current opacity-100",
+  );
+}
+
+function DesktopCategory({
+  category,
+  slug,
+  background,
+  active,
+}: {
+  category: PublicCategory;
+  slug: string;
+  background: string;
+  active: boolean;
+}) {
+  if (category.children.length === 0) {
+    return (
+      <Link
+        to="/loja/$slug/categoria/$categorySlug"
+        params={{ slug, categorySlug: category.slug }}
+        className={navLinkClass(active)}
+      >
+        {category.name}
+      </Link>
+    );
+  }
+  return (
+    <div className="group relative">
+      <Link
+        to="/loja/$slug/categoria/$categorySlug"
+        params={{ slug, categorySlug: category.slug }}
+        className={cn(navLinkClass(active), "gap-1.5")}
+      >
+        {category.name}
+        <ChevronDown
+          className="h-3.5 w-3.5 transition-transform group-hover:rotate-180 group-focus-within:rotate-180"
+          strokeWidth={1.7}
+        />
+      </Link>
+      <div
+        className="invisible absolute left-1/2 top-full z-50 w-60 -translate-x-1/2 translate-y-2 border border-current/10 p-2 opacity-0 shadow-xl transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100"
+        style={{ backgroundColor: background }}
+      >
+        <Link
+          to="/loja/$slug/categoria/$categorySlug"
+          params={{ slug, categorySlug: category.slug }}
+          className="block px-3 py-2 text-[13px] font-semibold text-current transition-colors hover:bg-black/5"
+        >
+          Ver tudo em {category.name}
+        </Link>
+        {category.children.map((child) => (
+          <Link
+            key={child.id}
+            to="/loja/$slug/categoria/$categorySlug/$childSlug"
+            params={{ slug, categorySlug: category.slug, childSlug: child.slug }}
+            className="block px-3 py-2 text-[13px] text-current opacity-75 transition-all hover:bg-black/5 hover:opacity-100"
+          >
+            {child.name}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SearchForm() {
+  const store = useStorefront();
+  const navigate = useNavigate();
+  const location = useRouterState({ select: (state) => state.location });
+  const onSearchPage = location.pathname.endsWith("/busca");
+  const currentQuery = onSearchPage ? String((location.search as { q?: unknown }).q ?? "") : "";
+  const [value, setValue] = useState(currentQuery);
+  // Fora da página de busca o campo volta vazio; nela, mostra o que foi buscado.
+  useEffect(() => setValue(currentQuery), [currentQuery]);
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    navigate({
+      to: "/loja/$slug/busca",
+      params: { slug: store.slug },
+      search: { q: value.trim() },
+    });
+  };
+
+  return (
+    <form role="search" onSubmit={submit} className="relative">
+      <input
+        type="search"
+        enterKeyHint="search"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="O que você procura?"
+        aria-label="Buscar produtos"
+        className="h-11 w-full rounded-full border border-current/20 bg-transparent pl-4 pr-11 text-[14px] text-current outline-none placeholder:text-current placeholder:opacity-50 focus:border-current/50"
+      />
+      <button
+        type="submit"
+        aria-label="Buscar"
+        className="absolute right-0 top-0 grid h-11 w-11 place-items-center rounded-full text-current opacity-70 hover:opacity-100"
+      >
+        <Search className="h-4 w-4" strokeWidth={1.8} />
+      </button>
+    </form>
+  );
+}
+
+type SocialLink = {
+  label: string;
+  href: string;
+  Icon: (props: { className?: string }) => ReactElement;
+};
+
+function socialLinks(store: StorefrontStore): SocialLink[] {
+  const links: SocialLink[] = [];
+  if (store.instagram) {
+    const href = store.instagram.startsWith("http")
+      ? store.instagram
+      : `https://instagram.com/${store.instagram.replace(/^@/, "")}`;
+    links.push({ label: "Instagram", href, Icon: (props) => <Instagram {...props} /> });
+  }
+  if (store.whatsapp) {
+    links.push({
+      label: "WhatsApp",
+      href: buildWhatsAppLink(`Olá ${store.name}!`, store.whatsapp),
+      Icon: WhatsAppIcon,
+    });
+  }
+  return links;
+}
+
+function MenuDrawer({
+  open,
+  onClose,
+  store,
+  categories,
+  accountLink,
+  social,
+  currentPath,
+}: {
+  open: boolean;
+  onClose: () => void;
+  store: StorefrontStore;
+  categories: PublicCategory[];
+  accountLink: AccountLink;
+  social: SocialLink[];
+  currentPath: string;
+}) {
+  const slug = store.slug;
+  const visual = store.catalog_visual;
+
+  // Esc fecha; a página por trás não rola com a gaveta aberta.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [open, onClose]);
+
+  const itemClass =
+    "flex min-h-11 items-center text-[13px] font-medium uppercase tracking-[0.16em] text-current";
+
+  return (
+    <div className="md:hidden">
+      <div
+        onClick={onClose}
+        className={cn(
+          "fixed inset-0 z-50 bg-black/30 transition-opacity",
+          open ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu da loja"
+        aria-hidden={!open}
+        inert={!open}
+        className={cn(
+          "fixed left-0 top-0 z-50 flex h-svh w-[86%] max-w-[360px] flex-col shadow-2xl transition-transform duration-300",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
+        style={{ backgroundColor: visual.header_background_color, color: visual.header_text_color }}
+      >
+        <div className="flex items-center justify-between border-b border-current/10 px-5 py-3">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.2em]">Menu</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-11 w-11 place-items-center rounded-full hover:bg-black/5"
+            aria-label="Fechar menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <nav className="flex-1 overflow-y-auto px-5 py-3">
+          <Link to="/loja/$slug" params={{ slug }} onClick={onClose} className={itemClass}>
+            Início
+          </Link>
+          {categories.length > 0 && (
+            <div className="border-y border-current/10 py-2">
+              {categories.map((category) => (
+                <div key={category.id}>
+                  <Link
+                    to="/loja/$slug/categoria/$categorySlug"
+                    params={{ slug, categorySlug: category.slug }}
+                    onClick={onClose}
+                    className={cn(
+                      "flex min-h-11 items-center text-[14px] font-semibold text-current",
+                      currentPath.includes(`/categoria/${category.slug}`) &&
+                        "underline underline-offset-4",
+                    )}
+                  >
+                    {category.name}
+                  </Link>
+                  {category.children.map((child) => (
+                    <Link
+                      key={child.id}
+                      to="/loja/$slug/categoria/$categorySlug/$childSlug"
+                      params={{ slug, categorySlug: category.slug, childSlug: child.slug }}
+                      onClick={onClose}
+                      className="flex min-h-11 items-center pl-4 text-[13px] text-current opacity-75"
+                    >
+                      {child.name}
+                    </Link>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+          {visual.about_enabled && (
+            <Link
+              to="/loja/$slug/quem-somos"
+              params={{ slug }}
+              onClick={onClose}
+              className={itemClass}
+            >
+              Quem somos
+            </Link>
+          )}
+          {visual.contact_enabled && (
+            <Link
+              to="/loja/$slug/contato"
+              params={{ slug }}
+              onClick={onClose}
+              className={itemClass}
+            >
+              Contato
+            </Link>
+          )}
+          <div className="mt-2 border-t border-current/10 pt-2">
+            {accountLink(
+              "flex min-h-11 items-center gap-2 text-[13px] font-medium text-current",
+              onClose,
+            )}
+          </div>
+        </nav>
+        {social.length > 0 && (
+          <div className="flex items-center gap-2 border-t border-current/10 px-5 py-3">
+            {social.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={item.label}
+                className="grid h-11 w-11 place-items-center rounded-full border border-current/15"
+              >
+                <item.Icon className="h-4 w-4" />
+              </a>
+            ))}
+          </div>
+        )}
+      </aside>
+    </div>
+  );
+}
 
 export function WhatsAppIcon({ className }: { className?: string }) {
   return (

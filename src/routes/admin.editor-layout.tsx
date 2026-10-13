@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { listCategories, listProducts, type Category, type ProductRecord } from "@/lib/products";
 import {
+  ANNOUNCEMENT_MAX,
   defaultCatalogVisualSettings,
   getCatalogVisualSettings,
   getGeneralSettings,
@@ -529,6 +530,9 @@ function EditorControls(props: ControlsProps) {
         </>}
 
         {section === "header" && <>
+          <Field label="Aviso no topo da loja" help={`Uma frase curta na faixa fina acima do logo, como "Frete grátis acima de R$ 200". Deixe vazio para não mostrar aviso. Até ${ANNOUNCEMENT_MAX} letras.`}>
+            <Input value={visual.announcement_text} maxLength={ANNOUNCEMENT_MAX} placeholder="Ex.: Frete grátis acima de R$ 200" onChange={(event) => patchVisual("announcement_text", event.target.value)} />
+          </Field>
           <Toggle label="Manter o cabeçalho visível ao rolar a página" help="O topo com logo e carrinho continua aparecendo enquanto o cliente desce a página." checked={visual.header_sticky} onChange={(checked) => patchVisual("header_sticky", checked)} />
           <div className="space-y-2 rounded-md border border-border p-3">
             <span className="block text-[12px] font-medium">Tamanho do logo</span>
@@ -538,7 +542,7 @@ function EditorControls(props: ControlsProps) {
               <LogoSizeRow label="Computador" value={visual.header_logo_height_desktop} onReset={visual.header_logo_height_desktop === defaults.header_logo_height_desktop ? undefined : () => patchVisual("header_logo_height_desktop", defaults.header_logo_height_desktop)} />
             </div>
           </div>
-          <Help>A cor do cabeçalho fica em "Cores". A faixa de aviso no topo chega numa próxima versão.</Help>
+          <Help>A cor do cabeçalho fica em "Cores". As categorias do menu seguem a ordem da aba Categorias.</Help>
         </>}
 
         {section === "pages" && <>
