@@ -6,6 +6,7 @@ import { listFavoriteProductIds, toggleFavorite, useStoreCustomer } from "@/lib/
 import { formatBRL } from "@/lib/products";
 import { isOnSale, type PublicProduct } from "@/lib/public-shop";
 import { useStorefront } from "@/lib/storefront-context";
+import { cn } from "@/lib/utils";
 
 export function ProductCard({ product }: { product: PublicProduct }) {
   const store = useStorefront();
@@ -20,6 +21,7 @@ export function ProductCard({ product }: { product: PublicProduct }) {
   const sale = isOnSale(product);
   const price = sale ? product.promo_price! : product.price;
   const favorite = favoriteIds.includes(product.id);
+  const soldOut = product.sold_out;
 
   const handleFavorite = async (event: MouseEvent) => {
     event.preventDefault();
@@ -40,7 +42,8 @@ export function ProductCard({ product }: { product: PublicProduct }) {
         params={{ slug: store.slug, id: product.id }}
         className="relative block overflow-hidden bg-neutral-100"
       >
-        <div className="aspect-[4/5]">
+        {/* Foto sempre em 4:5 para a grade ficar alinhada (escopo do catálogo, §6). */}
+        <div className={cn("aspect-[4/5]", soldOut && "opacity-55")}>
           {product.primary_image ? (
             <img
               src={product.primary_image}
@@ -54,18 +57,29 @@ export function ProductCard({ product }: { product: PublicProduct }) {
             </div>
           )}
         </div>
-        {sale && (
-          <span className="absolute left-3 top-3 bg-black px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
-            Oferta
+        {/* Esgotado vale mais que Promoção: não mostra os dois. */}
+        {soldOut ? (
+          <span className="absolute left-2 top-2 bg-white px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-700">
+            Esgotado
           </span>
+        ) : (
+          sale && (
+            <span className="absolute left-2 top-2 bg-black px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
+              Promoção
+            </span>
+          )
         )}
+        {/* Favoritar discreto: ícone pequeno, área de toque de 44 px. */}
         <button
           type="button"
           onClick={handleFavorite}
-          className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-black shadow-sm transition-colors hover:bg-black hover:text-white"
+          className="absolute right-0 top-0 grid h-11 w-11 place-items-center text-black"
           aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          aria-pressed={favorite}
         >
-          <Heart className={favorite ? "h-4 w-4 fill-current" : "h-4 w-4"} strokeWidth={1.8} />
+          <span className="grid h-7 w-7 place-items-center rounded-full bg-white/75 transition-colors hover:bg-white">
+            <Heart className={cn("h-3.5 w-3.5", favorite && "fill-current")} strokeWidth={1.8} />
+          </span>
         </button>
       </Link>
       <div className="mt-3">
@@ -76,9 +90,17 @@ export function ProductCard({ product }: { product: PublicProduct }) {
         >
           {product.name}
         </Link>
-        <div className="mt-1 flex items-baseline gap-2">
-          <span className="text-[14px] font-semibold text-black">{formatBRL(price)}</span>
-          {sale && <span className="text-[12px] text-neutral-400 line-through">{formatBRL(product.price)}</span>}
+        <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+          <span
+            className={cn("text-[14px] font-semibold text-black", soldOut && "text-neutral-500")}
+          >
+            {formatBRL(price)}
+          </span>
+          {sale && (
+            <span className="text-[12px] text-neutral-400 line-through">
+              {formatBRL(product.price)}
+            </span>
+          )}
         </div>
       </div>
     </article>
