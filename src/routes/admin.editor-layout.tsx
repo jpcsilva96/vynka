@@ -5,7 +5,7 @@ import {
   ArrowLeft,
   ArrowUp,
   Check,
-  ChevronRight,
+  ChevronDown,
   ExternalLink,
   Eye,
   FileText,
@@ -148,7 +148,18 @@ function LayoutEditor() {
   const { currentStore, refresh } = useStoreContext();
   const storeId = currentStore?.id ?? "";
   const queryClient = useQueryClient();
-  const [activeSection, setActiveSection] = useState<EditorSection>("themes");
+  const [activeSection, setActiveSection] = useState<EditorSection | null>("themes");
+  // Abre a seção clicada (fechando a outra) ou recolhe se já estava aberta. Ao abrir, o título pode
+  // subir junto com a seção que fechou acima; a lista rola até ele.
+  const toggleSection = (id: EditorSection) => {
+    const opening = activeSection !== id;
+    setActiveSection(opening ? id : null);
+    if (opening) {
+      requestAnimationFrame(() =>
+        document.getElementById(`secao-${id}`)?.scrollIntoView({ block: "nearest" }),
+      );
+    }
+  };
   const [device, setDevice] = useState<PreviewDevice>("mobile");
   // No celular, controles e prévia não cabem lado a lado: um botão alterna entre os dois.
   const [mobileView, setMobileView] = useState<"edit" | "preview">("edit");
@@ -337,49 +348,56 @@ function LayoutEditor() {
 
       <main className="grid min-h-[calc(100svh-4rem)] lg:h-[calc(100svh-4rem)] lg:grid-cols-[380px_minmax(0,1fr)]">
         <aside className={cn("border-r border-border bg-white pb-24 lg:block lg:overflow-y-auto lg:pb-0", mobileView === "preview" && "hidden")}>
-          <nav className="border-b border-border p-3">
+          {saveError && <div className="m-3 rounded-md border border-red-200 bg-red-50 p-3 text-[12px] text-red-700">{saveError}</div>}
+          {/* Cada seção abre logo abaixo do próprio título e fecha com outro clique (João 13/10). */}
+          <nav className="p-3">
             {editorSections.map((section) => {
               const Icon = section.icon;
+              const open = activeSection === section.id;
               return (
-                <button
-                  key={section.id}
-                  type="button"
-                  onClick={() => setActiveSection(section.id)}
-                  className={cn("flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors", activeSection === section.id ? "bg-neutral-100 text-foreground" : "text-muted-foreground hover:bg-neutral-50 hover:text-foreground")}
-                >
-                  <Icon className="h-4 w-4 shrink-0" strokeWidth={1.6} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-medium">{section.title}</span>
-                    <span className="block truncate text-[11px] text-muted-foreground">{section.description}</span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 shrink-0" />
-                </button>
+                <div key={section.id} className={cn("border-b border-border last:border-b-0", open && "pb-4")}>
+                  <button
+                    id={`secao-${section.id}`}
+                    type="button"
+                    onClick={() => toggleSection(section.id)}
+                    aria-expanded={open}
+                    aria-controls={`secao-${section.id}-opcoes`}
+                    className={cn("flex min-h-11 w-full scroll-mt-3 items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors", open ? "text-foreground" : "text-muted-foreground hover:bg-neutral-50 hover:text-foreground")}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" strokeWidth={1.6} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-medium">{section.title}</span>
+                      <span className="block truncate text-[11px] text-muted-foreground">{section.description}</span>
+                    </span>
+                    <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
+                  </button>
+                  {open && (
+                    <div id={`secao-${section.id}-opcoes`} className="px-3 pt-2">
+                      <EditorControls
+                        section={section.id}
+                        store={store}
+                        visual={visual}
+                        banners={banners}
+                        products={products}
+                        categories={categories}
+                        uploading={uploading}
+                        patchStore={patchStore}
+                        patchVisual={patchVisual}
+                        patchBanner={patchBanner}
+                        applyTheme={applyTheme}
+                        setBanners={setBanners}
+                        addBanner={addBanner}
+                        upload={(targetId, kind, file) => {
+                          setUploading(targetId);
+                          uploadMutation.mutate({ targetId, kind, file });
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               );
             })}
           </nav>
-
-          <div className="p-5">
-            <EditorControls
-              section={activeSection}
-              store={store}
-              visual={visual}
-              banners={banners}
-              products={products}
-              categories={categories}
-              uploading={uploading}
-              patchStore={patchStore}
-              patchVisual={patchVisual}
-              patchBanner={patchBanner}
-              applyTheme={applyTheme}
-              setBanners={setBanners}
-              addBanner={addBanner}
-              upload={(targetId, kind, file) => {
-                setUploading(targetId);
-                uploadMutation.mutate({ targetId, kind, file });
-              }}
-            />
-            {saveError && <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-[12px] text-red-700">{saveError}</div>}
-          </div>
         </aside>
 
         <section className={cn("flex min-h-[calc(100svh-4rem)] min-w-0 flex-col p-3 pb-24 sm:p-6 lg:h-full lg:min-h-0 lg:p-8", mobileView === "edit" && "hidden lg:flex")}>
@@ -443,13 +461,11 @@ type ControlsProps = {
 
 function EditorControls(props: ControlsProps) {
   const { section, store, visual, banners, products, categories, patchStore, patchVisual } = props;
-  const current = editorSections.find((item) => item.id === section);
   const defaults = defaultCatalogVisualSettings;
   const currentTheme = matchingTheme(visual);
   return (
     <div>
-      <h2 className="text-[15px] font-semibold">{current?.title}</h2>
-      <div className="mt-5 space-y-5">
+      <div className="space-y-5">
         {section === "themes" && <>
           <Help>Escolha uma combinação pronta de cores e letras. Depois dá para ajustar qualquer cor em "Cores" e as letras em "Letras".</Help>
           <div className="grid grid-cols-2 gap-3">
