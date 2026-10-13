@@ -52,6 +52,8 @@ import { Route as LojaSlugCheckoutRouteImport } from './routes/loja.$slug.checko
 import { Route as LojaSlugContatoRouteImport } from './routes/loja.$slug.contato'
 import { Route as LojaSlugEntrarRouteImport } from './routes/loja.$slug.entrar'
 import { Route as LojaSlugMinhaContaRouteImport } from './routes/loja.$slug.minha-conta'
+import { Route as LojaSlugNovidadesRouteImport } from './routes/loja.$slug.novidades'
+import { Route as LojaSlugPromocoesRouteImport } from './routes/loja.$slug.promocoes'
 import { Route as LojaSlugQuemSomosRouteImport } from './routes/loja.$slug.quem-somos'
 import { Route as AdminIntegracoesMelhorEnvioRetornoRouteImport } from './routes/admin.integracoes.melhor-envio.retorno'
 import { Route as AdminIntegracoesMercadoPagoRetornoRouteImport } from './routes/admin.integracoes.mercado-pago.retorno'
@@ -275,6 +277,16 @@ const LojaSlugMinhaContaRoute = LojaSlugMinhaContaRouteImport.update({
   path: '/minha-conta',
   getParentRoute: () => LojaSlugRoute,
 } as any)
+const LojaSlugNovidadesRoute = LojaSlugNovidadesRouteImport.update({
+  id: '/novidades',
+  path: '/novidades',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
+const LojaSlugPromocoesRoute = LojaSlugPromocoesRouteImport.update({
+  id: '/promocoes',
+  path: '/promocoes',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
 const LojaSlugQuemSomosRoute = LojaSlugQuemSomosRouteImport.update({
   id: '/quem-somos',
   path: '/quem-somos',
@@ -355,6 +367,8 @@ export interface FileRoutesByFullPath {
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
   '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
+  '/loja/$slug/novidades': typeof LojaSlugNovidadesRoute
+  '/loja/$slug/promocoes': typeof LojaSlugPromocoesRoute
   '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
   '/admin/historico/': typeof AdminHistoricoIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -401,6 +415,8 @@ export interface FileRoutesByTo {
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
   '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
+  '/loja/$slug/novidades': typeof LojaSlugNovidadesRoute
+  '/loja/$slug/promocoes': typeof LojaSlugPromocoesRoute
   '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
   '/admin/historico': typeof AdminHistoricoIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
@@ -454,6 +470,8 @@ export interface FileRoutesById {
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
   '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
+  '/loja/$slug/novidades': typeof LojaSlugNovidadesRoute
+  '/loja/$slug/promocoes': typeof LojaSlugPromocoesRoute
   '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
   '/admin/historico/': typeof AdminHistoricoIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
@@ -508,6 +526,8 @@ export interface FileRouteTypes {
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
     | '/loja/$slug/minha-conta'
+    | '/loja/$slug/novidades'
+    | '/loja/$slug/promocoes'
     | '/loja/$slug/quem-somos'
     | '/admin/historico/'
     | '/admin/pedidos/'
@@ -554,6 +574,8 @@ export interface FileRouteTypes {
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
     | '/loja/$slug/minha-conta'
+    | '/loja/$slug/novidades'
+    | '/loja/$slug/promocoes'
     | '/loja/$slug/quem-somos'
     | '/admin/historico'
     | '/admin/pedidos'
@@ -606,6 +628,8 @@ export interface FileRouteTypes {
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
     | '/loja/$slug/minha-conta'
+    | '/loja/$slug/novidades'
+    | '/loja/$slug/promocoes'
     | '/loja/$slug/quem-somos'
     | '/admin/historico/'
     | '/admin/pedidos/'
@@ -933,6 +957,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugMinhaContaRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/loja/$slug/novidades': {
+      id: '/loja/$slug/novidades'
+      path: '/novidades'
+      fullPath: '/loja/$slug/novidades'
+      preLoaderRoute: typeof LojaSlugNovidadesRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/promocoes': {
+      id: '/loja/$slug/promocoes'
+      path: '/promocoes'
+      fullPath: '/loja/$slug/promocoes'
+      preLoaderRoute: typeof LojaSlugPromocoesRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
     '/loja/$slug/quem-somos': {
       id: '/loja/$slug/quem-somos'
       path: '/quem-somos'
@@ -1117,6 +1155,8 @@ interface LojaSlugRouteChildren {
   LojaSlugContatoRoute: typeof LojaSlugContatoRoute
   LojaSlugEntrarRoute: typeof LojaSlugEntrarRoute
   LojaSlugMinhaContaRoute: typeof LojaSlugMinhaContaRoute
+  LojaSlugNovidadesRoute: typeof LojaSlugNovidadesRoute
+  LojaSlugPromocoesRoute: typeof LojaSlugPromocoesRoute
   LojaSlugQuemSomosRoute: typeof LojaSlugQuemSomosRoute
   LojaSlugIndexRoute: typeof LojaSlugIndexRoute
   LojaSlugCategoriaCategorySlugRoute: typeof LojaSlugCategoriaCategorySlugRouteWithChildren
@@ -1130,6 +1170,8 @@ const LojaSlugRouteChildren: LojaSlugRouteChildren = {
   LojaSlugContatoRoute: LojaSlugContatoRoute,
   LojaSlugEntrarRoute: LojaSlugEntrarRoute,
   LojaSlugMinhaContaRoute: LojaSlugMinhaContaRoute,
+  LojaSlugNovidadesRoute: LojaSlugNovidadesRoute,
+  LojaSlugPromocoesRoute: LojaSlugPromocoesRoute,
   LojaSlugQuemSomosRoute: LojaSlugQuemSomosRoute,
   LojaSlugIndexRoute: LojaSlugIndexRoute,
   LojaSlugCategoriaCategorySlugRoute:

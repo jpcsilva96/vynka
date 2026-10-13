@@ -21,6 +21,8 @@ export interface PublicProduct {
   category: Category | null;
   images: { url: string; position: number }[];
   primary_image: string | null;
+  // Opções do produto (tamanho, cor...) com os valores cadastrados, na ordem do cadastro; base dos filtros.
+  filter_options: { name: string; values: string[] }[];
 }
 
 export type PublicCategory = Category & {
@@ -86,7 +88,47 @@ function mapProduct(p: any): PublicProduct {
       : null,
     images,
     primary_image: images[0]?.url ?? null,
+    filter_options: mapFilterOptions(p.product_options),
   };
+}
+
+type RawOption = {
+  name: string | null;
+  position: number;
+  product_option_values?: { value: string | null; position: number }[] | null;
+};
+
+function mapFilterOptions(options: RawOption[] | null | undefined) {
+  const byPosition = (a: { position: number }, b: { position: number }) => a.position - b.position;
+  return (options ?? [])
+    .slice()
+    .sort(byPosition)
+    .map((option) => ({
+      name: (option.name ?? "").trim(),
+      values: (option.product_option_values ?? [])
+        .slice()
+        .sort(byPosition)
+        .map((value) => (value.value ?? "").trim())
+        .filter(Boolean),
+    }))
+    .filter((option) => option.name && option.values.length > 0);
+}
+
+// Colunas da lista de produtos (cards, busca, categorias e filtros).
+const PRODUCT_LIST_COLUMNS = `id, name, description, price, promo_price, featured, status, created_at,
+       category:categories(id,name,slug,display_order,parent_id,active),
+       product_images(url,position),
+       product_options(name,position,product_option_values(value,position))`;
+
+// Posição de cada produto em "Mais vendidos" (função do banco, só pedidos concluídos; 1 = mais vendido).
+// Sem a função ou com erro, devolve vazio e a ordem cai em Novidades.
+export async function listProductSalesRank(storeId: string): Promise<Record<string, number>> {
+  const { data, error } = await (supabase as any).rpc("public_product_sales_rank", {
+    p_store_id: storeId,
+  });
+  if (error || !Array.isArray(data)) return {};
+  const rows = data as { product_id: string; sales_rank: number }[];
+  return Object.fromEntries(rows.map((row) => [row.product_id, row.sales_rank]));
 }
 
 const STOREFRONT_COLUMNS =
@@ -199,11 +241,7 @@ function isMissingStoreBannersTable(error: { code?: string; message?: string } |
 export async function listActiveProducts(storeId: string): Promise<PublicProduct[]> {
   const { data, error } = await (supabase as any)
     .from("products")
-    .select(
-      `id, name, description, price, promo_price, featured, status, created_at,
-       category:categories(id,name,slug,display_order,parent_id,active),
-       product_images(url,position)`,
-    )
+    .select(PRODUCT_LIST_COLUMNS)
     .eq("store_id", storeId)
     .eq("status", "active")
     .order("created_at", { ascending: false });
@@ -369,11 +407,7 @@ export async function listActiveProductsByCategorySlug(
   const ids = [target.id, ...descendantCategoryIds(target.id, flat)];
   const { data, error } = await (supabase as any)
     .from("products")
-    .select(
-      `id, name, description, price, promo_price, featured, status, created_at,
-       category:categories(id,name,slug,display_order,parent_id,active),
-       product_images(url,position)`,
-    )
+    .select(PRODUCT_LIST_COLUMNS)
     .eq("store_id", storeId)
     .eq("status", "active")
     .in("category_id", ids)

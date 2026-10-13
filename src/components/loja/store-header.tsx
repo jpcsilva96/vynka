@@ -1,16 +1,18 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, Instagram, Menu, Search, ShoppingBag, User, X } from "lucide-react";
+import { ChevronDown, Instagram, Menu, Search, ShoppingBag, User } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent, type ReactElement } from "react";
 import { buildWhatsAppLink, openCart, useCartTotals } from "@/lib/cart";
 import { useStoreCustomer } from "@/lib/customer-account";
+import { newArrivals, onSale } from "@/lib/product-listing";
 import { formatBRL } from "@/lib/products";
-import { listPublicCategories, type PublicCategory } from "@/lib/public-shop";
+import { listActiveProducts, listPublicCategories, type PublicCategory } from "@/lib/public-shop";
 import {
   useStorefront,
   useStorefrontPreview,
   type StorefrontStore,
 } from "@/lib/storefront-context";
+import { StoreDrawer } from "./store-drawer";
 import { StoreLogo } from "./store-logo";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +32,15 @@ export function StoreHeader() {
     queryKey: ["public-header-categories", store.id],
     queryFn: () => listPublicCategories(store.id),
   });
+  // Mesma lista da página inicial (cache compartilhado): Novidades e Promoções só entram no menu se houver.
+  const { data: products = [] } = useQuery({
+    queryKey: ["public-products", store.id],
+    queryFn: () => listActiveProducts(store.id),
+  });
+  const highlights = {
+    hasNew: newArrivals(products).length > 0,
+    hasSale: onSale(products).length > 0,
+  };
 
   const visual = store.catalog_visual;
   const headerBackground = visual.header_background_color;
@@ -129,6 +140,24 @@ export function StoreHeader() {
             active={currentPath.includes(`/categoria/${category.slug}`)}
           />
         ))}
+        {highlights.hasNew && (
+          <Link
+            to="/loja/$slug/novidades"
+            params={{ slug }}
+            className={navLinkClass(currentPath.endsWith("/novidades"))}
+          >
+            Novidades
+          </Link>
+        )}
+        {highlights.hasSale && (
+          <Link
+            to="/loja/$slug/promocoes"
+            params={{ slug }}
+            className={navLinkClass(currentPath.endsWith("/promocoes"))}
+          >
+            Promoções
+          </Link>
+        )}
         {visual.about_enabled && (
           <Link
             to="/loja/$slug/quem-somos"
@@ -187,6 +216,7 @@ export function StoreHeader() {
         onClose={closeMenu}
         store={store}
         categories={categories}
+        highlights={highlights}
         accountLink={accountLink}
         social={social}
         currentPath={currentPath}
@@ -335,6 +365,7 @@ function MenuDrawer({
   onClose,
   store,
   categories,
+  highlights,
   accountLink,
   social,
   currentPath,
@@ -343,63 +374,43 @@ function MenuDrawer({
   onClose: () => void;
   store: StorefrontStore;
   categories: PublicCategory[];
+  highlights: { hasNew: boolean; hasSale: boolean };
   accountLink: AccountLink;
   social: SocialLink[];
   currentPath: string;
 }) {
   const slug = store.slug;
   const visual = store.catalog_visual;
-
-  // Esc fecha; a página por trás não rola com a gaveta aberta.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
-
   const itemClass =
     "flex min-h-11 items-center text-[13px] font-medium uppercase tracking-[0.16em] text-current";
 
   return (
     <div className="md:hidden">
-      <div
-        onClick={onClose}
-        className={cn(
-          "fixed inset-0 z-50 bg-black/30 transition-opacity",
-          open ? "opacity-100" : "pointer-events-none opacity-0",
-        )}
-      />
-      <aside
-        role="dialog"
-        aria-modal="true"
-        aria-label="Menu da loja"
-        aria-hidden={!open}
-        inert={!open}
-        className={cn(
-          "fixed left-0 top-0 z-50 flex h-svh w-[86%] max-w-[360px] flex-col shadow-2xl transition-transform duration-300",
-          open ? "translate-x-0" : "-translate-x-full",
-        )}
+      <StoreDrawer
+        open={open}
+        onClose={onClose}
+        title="Menu"
         style={{ backgroundColor: visual.header_background_color, color: visual.header_text_color }}
+        footer={
+          social.length > 0 && (
+            <div className="flex items-center gap-2 px-5 py-3">
+              {social.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={item.label}
+                  className="grid h-11 w-11 place-items-center rounded-full border border-current/15"
+                >
+                  <item.Icon className="h-4 w-4" />
+                </a>
+              ))}
+            </div>
+          )
+        }
       >
-        <div className="flex items-center justify-between border-b border-current/10 px-5 py-3">
-          <span className="text-[12px] font-semibold uppercase tracking-[0.2em]">Menu</span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid h-11 w-11 place-items-center rounded-full hover:bg-black/5"
-            aria-label="Fechar menu"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <nav className="flex-1 overflow-y-auto px-5 py-3">
+        <nav aria-label="Menu da loja" className="px-5 py-3">
           <Link to="/loja/$slug" params={{ slug }} onClick={onClose} className={itemClass}>
             Início
           </Link>
@@ -434,6 +445,26 @@ function MenuDrawer({
               ))}
             </div>
           )}
+          {highlights.hasNew && (
+            <Link
+              to="/loja/$slug/novidades"
+              params={{ slug }}
+              onClick={onClose}
+              className={itemClass}
+            >
+              Novidades
+            </Link>
+          )}
+          {highlights.hasSale && (
+            <Link
+              to="/loja/$slug/promocoes"
+              params={{ slug }}
+              onClick={onClose}
+              className={itemClass}
+            >
+              Promoções
+            </Link>
+          )}
           {visual.about_enabled && (
             <Link
               to="/loja/$slug/quem-somos"
@@ -461,23 +492,7 @@ function MenuDrawer({
             )}
           </div>
         </nav>
-        {social.length > 0 && (
-          <div className="flex items-center gap-2 border-t border-current/10 px-5 py-3">
-            {social.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={item.label}
-                className="grid h-11 w-11 place-items-center rounded-full border border-current/15"
-              >
-                <item.Icon className="h-4 w-4" />
-              </a>
-            ))}
-          </div>
-        )}
-      </aside>
+      </StoreDrawer>
     </div>
   );
 }
