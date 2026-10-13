@@ -370,9 +370,14 @@ export async function getPublicProduct(
       id: o.id,
       name: o.name,
       position: o.position,
+      // O cadastro aceita o mesmo valor duas vezes (ex.: "P" repetido); a loja mostra um botão só.
       values: (o.product_option_values ?? [])
         .slice()
-        .sort((a: any, b: any) => a.position - b.position),
+        .sort((a: any, b: any) => a.position - b.position)
+        .filter(
+          (v: { value: string }, i: number, all: { value: string }[]) =>
+            all.findIndex((x) => x.value === v.value) === i,
+        ),
     }));
   const variants: PublicVariant[] = (data.product_variants ?? []).map((v: any) => ({
     id: v.id,
