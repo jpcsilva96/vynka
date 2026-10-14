@@ -1,9 +1,10 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Heart, Minus, Plus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Check, Heart, Minus, Plus } from "lucide-react";
 import { ProductCard } from "@/components/loja/product-card";
-import { addToCart, openCart } from "@/lib/cart";
+import { addToCart, useCart } from "@/lib/cart";
+import { flyToCart } from "@/lib/cart-fly";
 import { trackStoreView } from "@/lib/views";
 import { listFavoriteProductIds, toggleFavorite, useStoreCustomer } from "@/lib/customer-account";
 import { formatBRL, skuKey } from "@/lib/products";
@@ -70,24 +71,59 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   const variantLabel = product.options.length ? Object.entries(selected).map(([key, value]) => `${key}: ${value}`).join(" / ") : null;
   const favorite = favoriteIds.includes(product.id);
 
+  // Quantidade limitada ao estoque, descontando o que já está no carrinho (mesmo produto e opções).
+  const cartKey = `${product.id}::${skuKey(selected) || "default"}`;
+  const inCart = useCart().find((item) => item.key === cartKey)?.quantity ?? 0;
+  const stockLimit = !product.manage_stock
+    ? Infinity
+    : product.options.length === 0
+      ? product.stock_quantity
+      : (currentVariant?.stock_quantity ?? 0);
+  const maxQty = Math.max(0, stockLimit - inCart);
+  const allInCart = canBuy && maxQty === 0;
+  const quantity = Math.max(1, Math.min(qty, maxQty || 1));
+
+  const imageRef = useRef<HTMLDivElement>(null);
+  const [added, setAdded] = useState(false);
+  useEffect(() => {
+    if (!added) return;
+    const timer = window.setTimeout(() => setAdded(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [added]);
+
   const { data: related = [] } = useQuery({
     queryKey: ["related-products", store.id, product.id, product.category?.id],
     queryFn: () => listRelatedProducts(store.id, product.category?.id ?? null, product.id, 4),
   });
 
-  const handleAdd = () => {
-    if (!canBuy) return;
+  const putInCart = () => {
     addToCart({
-      key: `${product.id}::${skuKey(selected) || "default"}`,
+      key: cartKey,
       productId: product.id,
       variantId: currentVariant?.id ?? null,
       name: product.name,
       variantLabel,
       image: image || null,
       price,
-      quantity: qty,
+      quantity,
     });
-    openCart();
+    setQty(1);
+  };
+
+  // Adicionar: a tela não muda; o produto "voa" até o carrinho do cabeçalho.
+  const handleAdd = () => {
+    if (!canBuy || maxQty === 0) return;
+    putInCart();
+    flyToCart(imageRef.current, image || null);
+    setAdded(true);
+  };
+
+  // Comprar agora: soma ao que já está no carrinho e abre o checkout (João, 13/10). Com todo o
+  // estoque já no carrinho, só abre o checkout.
+  const handleBuyNow = () => {
+    if (!canBuy) return;
+    if (maxQty > 0) putInCart();
+    navigate({ to: "/loja/$slug/checkout", params: { slug } });
   };
 
   const handleFavorite = async () => {
@@ -123,7 +159,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
             ))}
           </div>
           <div className="order-1 bg-neutral-100 md:order-2">
-            <div className="aspect-[4/5]">
+            <div ref={imageRef} className="aspect-[4/5]">
               {image ? <img src={image} alt={product.name} className="h-full w-full object-cover" /> : <div className="h-full w-full" />}
             </div>
           </div>
@@ -144,17 +180,14 @@ function ProductView({ product }: { product: PublicProductDetail }) {
             <span className="text-xl font-semibold text-black">{formatBRL(price)}</span>
             {sale && !currentVariant?.price && <span className="text-[14px] text-neutral-400 line-through">{formatBRL(product.price)}</span>}
           </div>
-          {product.description && (
-            <div className="mt-6 text-[14px] leading-relaxed text-neutral-600" dangerouslySetInnerHTML={{ __html: product.description }} />
-          )}
-
           {product.options.length > 0 && (
             <div className="mt-8 space-y-5">
               {product.options.map((option) => (
                 <div key={option.id}>
-                  <div className="mb-2 flex justify-between text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
-                    <span>{option.name}</span>
-                    <span>{selected[option.name]}</span>
+                  {/* Valor escolhido junto do nome ("Tamanho: P"): sozinho à direita parecia um botão repetido. */}
+                  <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+                    {option.name}
+                    {selected[option.name] && <span className="text-black">: {selected[option.name]}</span>}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {option.values.map((value) => {
@@ -185,19 +218,41 @@ function ProductView({ product }: { product: PublicProductDetail }) {
           <div className="mt-8 space-y-3">
             <div className="flex gap-3">
               <div className="inline-flex border border-black/15">
-                <button type="button" onClick={() => setQty((value) => Math.max(1, value - 1))} className="grid h-12 w-12 place-items-center hover:bg-neutral-100" aria-label="Diminuir">
+                <button type="button" onClick={() => setQty(Math.max(1, quantity - 1))} disabled={!canBuy || quantity <= 1} className="grid h-12 w-12 place-items-center hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30" aria-label="Diminuir">
                   <Minus className="h-4 w-4" />
                 </button>
-                <span className="grid h-12 w-10 place-items-center text-[13px]">{qty}</span>
-                <button type="button" onClick={() => setQty((value) => value + 1)} className="grid h-12 w-12 place-items-center hover:bg-neutral-100" aria-label="Aumentar">
+                <span className="grid h-12 w-10 place-items-center text-[13px]" aria-live="polite">{quantity}</span>
+                <button type="button" onClick={() => setQty(quantity + 1)} disabled={!canBuy || quantity >= maxQty} className="grid h-12 w-12 place-items-center hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30" aria-label="Aumentar">
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
-              <button type="button" onClick={handleAdd} disabled={!canBuy} className="flex-1 bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-40">
-                {canBuy ? "Adicionar ao carrinho" : "Indisponível"}
+              <button type="button" onClick={handleAdd} disabled={!canBuy || allInCart} className="inline-flex flex-1 items-center justify-center gap-2 border border-black bg-white px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-black hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40">
+                {!canBuy ? "Indisponível" : added ? <><Check className="h-4 w-4" /> Adicionado</> : "Adicionar ao carrinho"}
               </button>
             </div>
+            {canBuy && (
+              <button type="button" onClick={handleBuyNow} className="w-full bg-black px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800">
+                Comprar agora
+              </button>
+            )}
+            <p className="min-h-[18px] text-[12px] text-neutral-500" aria-live="polite">
+              {allInCart
+                ? "Todo o estoque disponível deste item já está no seu carrinho."
+                : canBuy && Number.isFinite(maxQty) && quantity >= maxQty
+                  ? `Quantidade máxima disponível: ${maxQty}.`
+                  : ""}
+            </p>
           </div>
+
+          {product.description && (
+            <div className="mt-6 border-t border-black/10 pt-6">
+              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Descrição</div>
+              <div
+                className="mt-3 text-[14px] leading-relaxed text-neutral-700 [&_a]:underline [&_h1]:mt-4 [&_h1]:font-semibold [&_h1]:text-black [&_h2]:mt-4 [&_h2]:font-semibold [&_h2]:text-black [&_h3]:mt-4 [&_h3]:font-semibold [&_h3]:text-black [&_li]:mt-1 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p+p]:mt-3 [&_strong]:text-black [&_table]:mt-3 [&_table]:w-full [&_td]:border [&_td]:border-black/10 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-black/10 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
+                dangerouslySetInnerHTML={{ __html: product.description }}
+              />
+            </div>
+          )}
         </aside>
       </section>
 

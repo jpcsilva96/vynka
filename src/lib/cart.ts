@@ -43,9 +43,12 @@ load();
 
 export function addToCart(item: Omit<CartItem, "quantity"> & { quantity?: number }) {
   const qty = item.quantity ?? 1;
-  const existing = items.find((i) => i.key === item.key);
-  if (existing) existing.quantity += qty;
-  else items = [...items, { ...item, quantity: qty }];
+  // Lista nova a cada mudança: alterar o item no lugar não avisa a tela (o cabeçalho ficava com a
+  // contagem antiga ao somar num item que já estava no carrinho).
+  const existing = items.some((i) => i.key === item.key);
+  items = existing
+    ? items.map((i) => (i.key === item.key ? { ...i, quantity: i.quantity + qty } : i))
+    : [...items, { ...item, quantity: qty }];
   persist();
 }
 export function updateQty(key: string, qty: number) {

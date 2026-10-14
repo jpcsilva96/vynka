@@ -111,6 +111,7 @@ export function StoreHeader() {
     <button
       type="button"
       onClick={openCart}
+      data-cart-target
       className="relative inline-flex h-11 items-center gap-2 rounded-full px-2.5 text-current transition-colors hover:bg-black/5"
       aria-label={`Abrir carrinho, ${count} ${count === 1 ? "item" : "itens"}`}
     >
