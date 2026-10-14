@@ -5,6 +5,7 @@ import {
   normalizeCatalogVisualSettings,
   normalizeStoragePublicUrl,
   storeBannerLinkTypes,
+  type SoldOutDisplay,
   type StoreBanner,
   type StoreBannerLinkType,
 } from "@/lib/store-settings";
@@ -25,6 +26,8 @@ export interface PublicProduct {
   filter_options: { name: string; values: string[] }[];
   // Nada para comprar: mesma regra do botão da página do produto (estoque só conta se o produto controla).
   sold_out: boolean;
+  // Valores de opção sem nenhuma combinação para comprar ("Cor:Rosa"); o modo Ocultar tira dos filtros.
+  sold_out_values: string[];
 }
 
 export type PublicCategory = Category & {
@@ -92,6 +95,7 @@ export function mapProduct(p: any): PublicProduct {
     primary_image: images[0]?.url ?? null,
     filter_options: mapFilterOptions(p.product_options),
     sold_out: isSoldOut(p),
+    sold_out_values: soldOutValues(p),
   };
 }
 
@@ -99,8 +103,58 @@ type RawStock = {
   manage_stock?: boolean | null;
   stock_quantity?: number | null;
   product_options?: unknown[] | null;
-  product_variants?: { available: boolean | null; stock_quantity: number | null }[] | null;
+  product_variants?:
+    | {
+        available: boolean | null;
+        stock_quantity: number | null;
+        options?: Record<string, string> | null;
+      }[]
+    | null;
 };
+
+const variantBuyable = (
+  p: RawStock,
+  variant: { available: boolean | null; stock_quantity: number | null },
+) => !!variant.available && (!p.manage_stock || Number(variant.stock_quantity ?? 0) > 0);
+
+// Valor sem nenhuma variação comprável ("Cor:Rosa"). Sem a coluna de opções das variações: nenhum.
+function soldOutValues(p: RawStock) {
+  const variants = p.product_variants ?? [];
+  if (p.manage_stock == null || !variants.some((variant) => variant.options)) return [];
+  const buyable = new Set<string>();
+  const all = new Set<string>();
+  for (const variant of variants) {
+    for (const [name, value] of Object.entries(variant.options ?? {})) {
+      const key = `${name}:${value}`;
+      all.add(key);
+      if (variantBuyable(p, variant)) buyable.add(key);
+    }
+  }
+  return [...all].filter((key) => !buyable.has(key));
+}
+
+// Modo Ocultar (configuração da loja): tira os produtos esgotados e, dos filtros, os valores de opção
+// sem estoque. No modo Mostrar a lista fica como está (esgotados no fim, com selo).
+export function applySoldOutDisplay(products: PublicProduct[], mode: SoldOutDisplay) {
+  if (mode !== "hide") return products;
+  return products
+    .filter((product) => !product.sold_out)
+    .map((product) =>
+      product.sold_out_values.length === 0
+        ? product
+        : {
+            ...product,
+            filter_options: product.filter_options
+              .map((option) => ({
+                ...option,
+                values: option.values.filter(
+                  (value) => !product.sold_out_values.includes(`${option.name}:${value}`),
+                ),
+              }))
+              .filter((option) => option.values.length > 0),
+          },
+    );
+}
 
 // Sem opções: esgota quando controla estoque e não tem saldo. Com opções: quando nenhuma variação
 // está disponível com saldo. Consulta sem as colunas de estoque nunca marca esgotado.
@@ -142,7 +196,7 @@ export const PRODUCT_LIST_COLUMNS = `id, name, description, price, promo_price, 
        category:categories(id,name,slug,display_order,parent_id,active),
        product_images(url,position),
        product_options(name,position,product_option_values(value,position)),
-       product_variants(available,stock_quantity)`;
+       product_variants(options,available,stock_quantity)`;
 
 // Posição de cada produto em "Mais vendidos" (função do banco, só pedidos concluídos; 1 = mais vendido).
 // Sem a função ou com erro, devolve vazio e a ordem cai em Novidades.

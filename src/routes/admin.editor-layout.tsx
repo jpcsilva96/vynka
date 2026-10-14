@@ -543,6 +543,21 @@ function EditorControls(props: ControlsProps) {
             <Toggle label="Categorias" help="Atalhos para cada categoria de produtos." checked={visual.show_categories} onChange={(checked) => patchVisual("show_categories", checked)} />
             <Toggle label="Produtos em destaque" help="Os produtos marcados como destaque no cadastro." checked={visual.show_featured} onChange={(checked) => patchVisual("show_featured", checked)} />
           </div>
+          <div className="space-y-2 border-t border-border pt-5" role="radiogroup" aria-label="Itens esgotados">
+            <span className="block text-[13px] font-medium">Itens esgotados</span>
+            {([
+              ["show", "Mostrar como esgotado", "A cor ou o tamanho sem estoque aparece riscado e o botão vira \"Esgotado\". Produto esgotado continua nas listas, no fim, com o selo."],
+              ["hide", "Ocultar", "A cor ou o tamanho sem estoque some do produto, junto com a foto dele. Produto esgotado sai das listas e da busca; pelo link direto ainda abre, como esgotado."],
+            ] as const).map(([value, label, help]) => (
+              <label key={value} className={`flex cursor-pointer gap-3 rounded-md border p-3 ${visual.sold_out_display === value ? "border-foreground/40 bg-muted/40" : "border-border"}`}>
+                <input type="radio" name="sold_out_display" value={value} checked={visual.sold_out_display === value} onChange={() => patchVisual("sold_out_display", value)} className="mt-0.5 accent-foreground" />
+                <span>
+                  <span className="block text-[13px] font-medium">{label}</span>
+                  <span className="mt-0.5 block text-[12px] text-muted-foreground">{help}</span>
+                </span>
+              </label>
+            ))}
+          </div>
         </>}
 
         {section === "header" && <>

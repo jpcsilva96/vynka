@@ -12,6 +12,7 @@ import {
   type SortKey,
 } from "@/lib/product-listing";
 import {
+  applySoldOutDisplay,
   listProductSalesRank,
   normalizeSearchText,
   type PublicCategory,
@@ -24,7 +25,7 @@ import { StoreDrawer } from "./store-drawer";
 // Lista de produtos com Ordenar e Filtros (escopo do catálogo, §5), usada na busca, nas categorias,
 // em Novidades e em Promoções. Celular: filtros em gaveta; computador: filtros na coluna da esquerda.
 export function ProductListing({
-  products,
+  products: allProducts,
   loading,
   search,
   onSearchChange,
@@ -42,6 +43,11 @@ export function ProductListing({
   emptyMessage?: ReactNode;
 }) {
   const store = useStorefront();
+  const soldOutDisplay = store.catalog_visual.sold_out_display;
+  const products = useMemo(
+    () => applySoldOutDisplay(allProducts, soldOutDisplay),
+    [allProducts, soldOutDisplay],
+  );
   const sort = search.ordem ?? defaultSort;
   const { data: salesRank = {} } = useQuery({
     queryKey: ["public-sales-rank", store.id],

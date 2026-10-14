@@ -50,7 +50,27 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   useEffect(() => {
     trackStoreView(store.id, product.id);
   }, [store.id, product.id]);
-  const [selected, setSelected] = useState<Record<string, string>>(() => initialSelection(product));
+  // Itens esgotados (configuração da loja, João 14/10). Ocultar: some o valor de opção sem nenhuma
+  // combinação para comprar, e as fotos só dele. Produto todo esgotado (aberto pelo link direto) mostra
+  // tudo riscado com "Esgotado", senão a página ficaria sem opções.
+  const productSoldOut =
+    product.options.length === 0
+      ? !!product.manage_stock && product.stock_quantity <= 0
+      : !product.variants.some((variant) => variantBuyable(product, variant));
+  const hideSoldOut = store.catalog_visual.sold_out_display === "hide" && !productSoldOut;
+  const hiddenValues = useMemo(
+    () => (hideSoldOut ? soldOutValueKeys(product) : new Set<string>()),
+    [hideSoldOut, product],
+  );
+  const options = useMemo(
+    () =>
+      product.options
+        .map((option) => ({ ...option, values: option.values.filter((value) => !hiddenValues.has(`${option.name}:${value.value}`)) }))
+        .filter((option) => option.values.length > 0),
+    [product.options, hiddenValues],
+  );
+
+  const [selected, setSelected] = useState<Record<string, string>>(() => initialSelection(product, options));
   const [qty, setQty] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
 
@@ -60,6 +80,16 @@ function ProductView({ product }: { product: PublicProductDetail }) {
     return product.variants.find((variant) => variant.sku_key === skuKey(selected)) ?? null;
   }, [product, selected]);
 
+  // Falta escolher (ex.: cor escolhida, tamanho não): o botão pede a escolha. Se nada do que já foi
+  // escolhido tem estoque (cor toda esgotada), mostra "Esgotado" direto.
+  const selectionHasStock = product.variants.some(
+    (variant) =>
+      variantBuyable(product, variant) &&
+      Object.entries(selected).every(([name, value]) => variant.options[name] === value),
+  );
+  const missingOption =
+    options.length > 0 && selectionHasStock ? (options.find((option) => !selected[option.name]) ?? null) : null;
+
   const sale = isOnSale(product);
   const price = currentVariant?.price ?? (sale ? product.promo_price! : product.price);
   // Estoque só conta quando o produto controla estoque (sem controle: sempre disponível).
@@ -67,7 +97,15 @@ function ProductView({ product }: { product: PublicProductDetail }) {
     product.options.length === 0
       ? !product.manage_stock || product.stock_quantity > 0
       : !!currentVariant && currentVariant.available && (!product.manage_stock || currentVariant.stock_quantity > 0);
-  const images = product.images.length ? product.images : [{ url: "", position: 0 }];
+  // Ocultar: foto marcada só para cores ocultas sai da galeria.
+  const hiddenPhotos = new Set(
+    product.variants
+      .filter((variant) => variant.image_url && Object.entries(variant.options).some(([name, value]) => hiddenValues.has(`${name}:${value}`)))
+      .map((variant) => variant.image_url!)
+      .filter((url) => !product.variants.some((variant) => variant.image_url === url && !Object.entries(variant.options).some(([name, value]) => hiddenValues.has(`${name}:${value}`)))),
+  );
+  const gallery = product.images.filter((item) => !hiddenPhotos.has(item.url));
+  const images = gallery.length ? gallery : [{ url: "", position: 0 }];
 
   // Foto da cor (escolhida no painel entre as fotos do produto): ao escolher a cor, a galeria pula
   // para ela, mesmo sem tamanho escolhido.
@@ -83,8 +121,19 @@ function ProductView({ product }: { product: PublicProductDetail }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colorImageUrl]);
 
+  // Escolher um valor. Mostrar como esgotado: pode escolher o esgotado (vê foto e tamanhos, botão
+  // Esgotado) e o tamanho fica. Ocultar: valor sem estoque na combinação não é escolhido e o tamanho
+  // que não existe na cor nova sai.
+  const choose = (optionName: string, value: string, fromPhoto = false) => {
+    if (hideSoldOut && !fromPhoto && !isValueAvailable(product, optionName, value, selected)) return;
+    setSelected((current) => {
+      const next = { ...current, [optionName]: value };
+      return hideSoldOut ? clearUnavailableSize(product, optionName, next) : next;
+    });
+  };
+
   // E o contrário (João, 14/10): passar pelas fotos e parar na foto de uma cor seleciona a cor.
-  // Foto sem cor ou de cor esgotada não muda a escolha; tamanho que não existe na cor sai.
+  // Foto sem cor não muda a escolha; no modo Ocultar, cor sem estoque também não.
   const showImage = (index: number) => {
     setActiveImage(index);
     if (!colorOption) return;
@@ -92,8 +141,9 @@ function ProductView({ product }: { product: PublicProductDetail }) {
     const color = url
       ? product.variants.find((variant) => variant.image_url === url && variant.options[colorOption.name])?.options[colorOption.name]
       : undefined;
-    if (!color || color === selectedColor || !isValueAvailable(product, colorOption.name, color, {})) return;
-    setSelected((current) => clearUnavailableSize(product, colorOption.name, { ...current, [colorOption.name]: color }));
+    if (!color || color === selectedColor) return;
+    if (hideSoldOut && !isValueAvailable(product, colorOption.name, color, {})) return;
+    choose(colorOption.name, color, true);
   };
   // Foto de variação fora da galeria (cadastro antigo) ainda aparece.
   const offGalleryImage =
@@ -211,9 +261,9 @@ function ProductView({ product }: { product: PublicProductDetail }) {
             <span className="text-xl font-semibold text-black">{formatBRL(price)}</span>
             {sale && !currentVariant?.price && <span className="text-[14px] text-neutral-400 line-through">{formatBRL(product.price)}</span>}
           </div>
-          {product.options.length > 0 && (
+          {options.length > 0 && (
             <div className="mt-8 space-y-5">
-              {product.options.map((option) => (
+              {options.map((option) => (
                 <div key={option.id}>
                   {/* Valor escolhido junto do nome ("Tamanho: P"): sozinho à direita parecia um botão repetido. */}
                   <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
@@ -223,17 +273,22 @@ function ProductView({ product }: { product: PublicProductDetail }) {
                   <div className="flex flex-wrap gap-2">
                     {option.values.map((value) => {
                       const active = selected[option.name] === value.value;
-                      const disabled = !isValueAvailable(product, option.name, value.value, selected);
+                      const soldOut = !isValueAvailable(product, option.name, value.value, selected);
+                      // Mostrar como esgotado: riscado, mas dá para escolher. Ocultar: travado.
+                      const disabled = soldOut && hideSoldOut;
                       return (
                         <button
                           key={value.id}
                           type="button"
                           disabled={disabled}
-                          onClick={() => setSelected((current) => clearUnavailableSize(product, option.name, { ...current, [option.name]: value.value }))}
+                          onClick={() => choose(option.name, value.value)}
+                          aria-label={soldOut ? `${value.value} (esgotado)` : undefined}
                           className={cn(
                             "min-w-11 border px-3 py-2 text-[12px] font-medium uppercase tracking-[0.12em]",
-                            active && !disabled ? "border-black bg-black text-white" : "border-black/15 text-black hover:border-black",
-                            disabled && "cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400 line-through hover:border-neutral-200",
+                            active ? "border-black bg-black text-white" : "border-black/15 text-black hover:border-black",
+                            soldOut && "line-through",
+                            soldOut && !active && "border-neutral-200 bg-neutral-100 text-neutral-400",
+                            disabled && "cursor-not-allowed hover:border-neutral-200",
                           )}
                         >
                           {value.value}
@@ -247,6 +302,16 @@ function ProductView({ product }: { product: PublicProductDetail }) {
           )}
 
           <div className="mt-8 space-y-3">
+            {missingOption ? (
+              <button type="button" disabled className="w-full cursor-not-allowed border border-black/15 px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                {chooseLabel(missingOption.name)}
+              </button>
+            ) : !canBuy ? (
+              // Esgotado no lugar dos dois botões (João, 14/10).
+              <button type="button" disabled className="w-full cursor-not-allowed bg-neutral-200 px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-neutral-500">
+                Esgotado
+              </button>
+            ) : <>
             <div className="flex gap-3">
               <div className="inline-flex border border-black/15">
                 <button type="button" onClick={() => setQty(Math.max(1, quantity - 1))} disabled={!canBuy || quantity <= 1} className="grid h-12 w-12 place-items-center hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30" aria-label="Diminuir">
@@ -257,15 +322,14 @@ function ProductView({ product }: { product: PublicProductDetail }) {
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
-              <button type="button" onClick={handleAdd} disabled={!canBuy || allInCart} className="inline-flex flex-1 items-center justify-center gap-2 border border-black bg-white px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-black hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40">
-                {!canBuy ? "Indisponível" : added ? <><Check className="h-4 w-4" /> Adicionado</> : "Adicionar ao carrinho"}
+              <button type="button" onClick={handleAdd} disabled={allInCart} className="inline-flex flex-1 items-center justify-center gap-2 border border-black bg-white px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-black hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40">
+                {added ? <><Check className="h-4 w-4" /> Adicionado</> : "Adicionar ao carrinho"}
               </button>
             </div>
-            {canBuy && (
-              <button type="button" onClick={handleBuyNow} className="w-full bg-black px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800">
-                Comprar agora
-              </button>
-            )}
+            <button type="button" onClick={handleBuyNow} className="w-full bg-black px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800">
+              Comprar agora
+            </button>
+            </>}
             <p className="min-h-[18px] text-[12px] text-neutral-500" aria-live="polite">
               {allInCart
                 ? "Todo o estoque disponível deste item já está no seu carrinho."
@@ -305,14 +369,43 @@ function normalize(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
 }
 
-function initialSelection(product: PublicProductDetail) {
+// Abre no primeiro valor com estoque (ou no primeiro, se nada tiver), entre os valores visíveis.
+function initialSelection(product: PublicProductDetail, options: PublicProductDetail["options"]) {
   const selected: Record<string, string> = {};
-  const color = product.options.find((option) => normalize(option.name) === "cor");
-  if (color?.values[0]) selected[color.name] = color.values[0].value;
-  if (!color) {
-    for (const option of product.options) if (option.values[0]) selected[option.name] = option.values[0].value;
+  const pick = (option: PublicProductDetail["options"][number]) =>
+    (option.values.find((value) => isValueAvailable(product, option.name, value.value, {})) ?? option.values[0])?.value;
+  const color = options.find((option) => normalize(option.name) === "cor");
+  const first = color ? [color] : options;
+  for (const option of first) {
+    const value = pick(option);
+    if (value) selected[option.name] = value;
   }
   return selected;
+}
+
+function variantBuyable(product: PublicProductDetail, variant: PublicProductDetail["variants"][number]) {
+  return variant.available && (!product.manage_stock || variant.stock_quantity > 0);
+}
+
+// "Cor:Rosa" para cada valor sem nenhuma combinação comprável.
+function soldOutValueKeys(product: PublicProductDetail) {
+  const keys = new Set<string>();
+  for (const option of product.options) {
+    for (const value of option.values) {
+      const buyable = product.variants.some(
+        (variant) => variant.options[option.name] === value.value && variantBuyable(product, variant),
+      );
+      if (!buyable) keys.add(`${option.name}:${value.value}`);
+    }
+  }
+  return keys;
+}
+
+function chooseLabel(optionName: string) {
+  const name = normalize(optionName);
+  if (name === "cor") return "Escolha a cor";
+  if (name === "tamanho") return "Escolha o tamanho";
+  return `Escolha: ${optionName}`;
 }
 
 function isValueAvailable(product: PublicProductDetail, optionName: string, value: string, selected: Record<string, string>) {
