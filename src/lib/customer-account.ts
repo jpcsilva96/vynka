@@ -143,20 +143,32 @@ export async function upsertStoreCustomer(
 ) {
   const user = await getSessionUser();
   if (!user) throw new Error("Cliente não autenticado.");
-  const payload = {
+  // Só os campos recebidos: campo que não veio fica como está (antes, o login mandava só nome,
+  // telefone e e-mail, e o endereço salvo era zerado).
+  const optional = [
+    "phone",
+    "zip_code",
+    "street",
+    "address_number",
+    "complement",
+    "neighborhood",
+    "city",
+    "state",
+  ] as const;
+  const payload: {
+    store_id: string;
+    user_id: string;
+    name: string;
+    email: string | null;
+  } & Partial<Record<(typeof optional)[number], string | null>> = {
     store_id: storeId,
     user_id: user.id,
     name: input.name,
-    phone: input.phone ?? null,
     email: input.email ?? user.email ?? null,
-    zip_code: input.zip_code ?? null,
-    street: input.street ?? null,
-    address_number: input.address_number ?? null,
-    complement: input.complement ?? null,
-    neighborhood: input.neighborhood ?? null,
-    city: input.city ?? null,
-    state: input.state ?? null,
   };
+  for (const key of optional) {
+    if (input[key] !== undefined) payload[key] = input[key] ?? null;
+  }
   const { data: existing, error: existingError } = await db
     .from("customers")
     .select("id")

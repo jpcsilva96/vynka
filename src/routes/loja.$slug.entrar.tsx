@@ -2,7 +2,13 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { EmailConfirmationRequiredError, signInCustomer, signUpCustomer, upsertStoreCustomer } from "@/lib/customer-account";
+import {
+  EmailConfirmationRequiredError,
+  getStoreCustomer,
+  signInCustomer,
+  signUpCustomer,
+  upsertStoreCustomer,
+} from "@/lib/customer-account";
 import { formatPhone, isValidPhone, onlyDigits } from "@/lib/br-documents";
 import { useStorefront } from "@/lib/storefront-context";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,12 +52,16 @@ function CustomerLoginPage() {
         });
       } else {
         await signInCustomer(form.email, form.password);
-        const { data } = await supabase.auth.getUser();
-        await upsertStoreCustomer(store.id, {
-          name: form.name || data.user?.user_metadata?.full_name || form.email.split("@")[0],
-          phone: form.phone || data.user?.user_metadata?.phone || null,
-          email: form.email,
-        });
+        // Primeira vez nesta loja: cria o cadastro. Já existe: fica como está (nome, telefone e
+        // endereço salvos não são regravados no login).
+        if (!(await getStoreCustomer(store.id))) {
+          const { data } = await supabase.auth.getUser();
+          await upsertStoreCustomer(store.id, {
+            name: form.name || data.user?.user_metadata?.full_name || form.email.split("@")[0],
+            phone: form.phone || data.user?.user_metadata?.phone || null,
+            email: form.email,
+          });
+        }
       }
       await queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
       navigate({ to: "/loja/$slug/minha-conta", params: { slug: store.slug } });
