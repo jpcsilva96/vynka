@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Bold, Italic, List, ListOrdered, Heading2 } from "lucide-react";
+import { sanitizeRichText } from "@/lib/rich-text";
 
 interface Props {
   value: string;
@@ -54,6 +55,14 @@ export function RichEditor({ value, onChange, placeholder }: Props) {
         suppressContentEditableWarning
         data-placeholder={placeholder}
         onInput={(e) => onChange((e.target as HTMLDivElement).innerHTML)}
+        // Colar de outro site traz fundo, fonte e cor de lá: entra só a estrutura do texto.
+        onPaste={(e) => {
+          const html = e.clipboardData.getData("text/html");
+          if (!html) return;
+          e.preventDefault();
+          document.execCommand("insertHTML", false, sanitizeRichText(html));
+          if (ref.current) onChange(ref.current.innerHTML);
+        }}
         className="min-h-[180px] px-4 py-3 text-[14px] leading-relaxed text-foreground outline-none [&:empty:before]:pointer-events-none [&:empty:before]:text-muted-foreground [&:empty:before]:content-[attr(data-placeholder)] [&_h3]:mt-2 [&_h3]:text-[15px] [&_h3]:font-medium [&_ol]:ml-5 [&_ol]:list-decimal [&_ul]:ml-5 [&_ul]:list-disc"
       />
     </div>

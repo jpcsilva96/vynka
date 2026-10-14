@@ -1,4 +1,5 @@
 import { formatBRL, type ProductFormState, type Category } from "@/lib/products";
+import { sanitizeRichText } from "@/lib/rich-text";
 
 interface Props {
   form: ProductFormState;
@@ -57,7 +58,7 @@ export function ProductPreview({ form, categories }: Props) {
           {form.description && (
             <div
               className="prose prose-sm mt-2 max-w-none text-[13px] text-muted-foreground [&_h3]:text-[13px] [&_h3]:font-medium [&_h3]:text-foreground [&_ol]:ml-4 [&_ol]:list-decimal [&_ul]:ml-4 [&_ul]:list-disc"
-              dangerouslySetInnerHTML={{ __html: form.description }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichText(form.description) }}
             />
           )}
           {form.options.length > 0 && (
