@@ -246,7 +246,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
 
           {product.description && (
             <div className="mt-6 border-t border-black/10 pt-6">
-              <h2 className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Descrição</h2>
+              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Descrição</div>
               <div
                 className="mt-3 text-[14px] leading-relaxed text-neutral-700 [&_a]:underline [&_h1]:mt-4 [&_h1]:font-semibold [&_h1]:text-black [&_h2]:mt-4 [&_h2]:font-semibold [&_h2]:text-black [&_h3]:mt-4 [&_h3]:font-semibold [&_h3]:text-black [&_li]:mt-1 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p+p]:mt-3 [&_strong]:text-black [&_table]:mt-3 [&_table]:w-full [&_td]:border [&_td]:border-black/10 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-black/10 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
                 dangerouslySetInnerHTML={{ __html: product.description }}
