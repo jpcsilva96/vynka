@@ -6,7 +6,12 @@ import { buildWhatsAppLink, openCart, useCartTotals } from "@/lib/cart";
 import { useStoreCustomer } from "@/lib/customer-account";
 import { newArrivals, onSale } from "@/lib/product-listing";
 import { formatBRL } from "@/lib/products";
-import { listActiveProducts, listPublicCategories, type PublicCategory } from "@/lib/public-shop";
+import {
+  applySoldOutDisplay,
+  listActiveProducts,
+  listPublicCategories,
+  type PublicCategory,
+} from "@/lib/public-shop";
 import {
   useStorefront,
   useStorefrontPreview,
@@ -33,10 +38,11 @@ export function StoreHeader() {
     queryFn: () => listPublicCategories(store.id),
   });
   // Mesma lista da página inicial (cache compartilhado): Novidades e Promoções só entram no menu se houver.
-  const { data: products = [] } = useQuery({
+  const { data: allProducts = [] } = useQuery({
     queryKey: ["public-products", store.id],
     queryFn: () => listActiveProducts(store.id),
   });
+  const products = applySoldOutDisplay(allProducts, store.catalog_visual.sold_out_display);
   const highlights = {
     hasNew: newArrivals(products).length > 0,
     hasSale: onSale(products).length > 0,

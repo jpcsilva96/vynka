@@ -10,7 +10,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { ProductCard } from "@/components/loja/product-card";
-import { listActiveProducts, listPublicCategories } from "@/lib/public-shop";
+import { applySoldOutDisplay, listActiveProducts, listPublicCategories } from "@/lib/public-shop";
 import { useStorefront } from "@/lib/storefront-context";
 import type { StoreBanner } from "@/lib/store-settings";
 
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/loja/$slug/")({
 function LojaIndex() {
   const store = useStorefront();
   const slug = store.slug;
-  const { data: products = [] } = useQuery({
+  const { data: allProducts = [] } = useQuery({
     queryKey: ["public-products", store.id],
     queryFn: () => listActiveProducts(store.id),
   });
@@ -30,6 +30,7 @@ function LojaIndex() {
     queryFn: () => listPublicCategories(store.id),
   });
 
+  const products = applySoldOutDisplay(allProducts, store.catalog_visual.sold_out_display);
   const featured = products.filter((product) => product.featured).slice(0, 4);
   const visibleProducts = products.slice(0, 12);
   const visual = store.catalog_visual;

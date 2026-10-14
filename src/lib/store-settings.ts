@@ -105,6 +105,9 @@ export interface StoreBanner {
   active: boolean;
 }
 
+export const soldOutDisplays = ["show", "hide"] as const;
+export type SoldOutDisplay = (typeof soldOutDisplays)[number];
+
 export interface CatalogVisualSettings {
   catalog_style: CatalogStyle;
   primary_color: string;
@@ -142,6 +145,9 @@ export interface CatalogVisualSettings {
   show_description: boolean;
   show_featured: boolean;
   show_categories: boolean;
+  // Itens esgotados (João, 14/10): "show" mostra riscado com o botão Esgotado; "hide" esconde a
+  // opção sem estoque e o produto todo esgotado das listas (pelo link direto ainda abre, Esgotado).
+  sold_out_display: SoldOutDisplay;
   section_order: CatalogSection[];
 }
 
@@ -208,6 +214,7 @@ export const defaultCatalogVisualSettings: CatalogVisualSettings = {
   show_description: true,
   show_featured: true,
   show_categories: true,
+  sold_out_display: "show",
   section_order: ["banner", "description", "categories", "featured", "products", "promos"],
 };
 
@@ -637,6 +644,7 @@ export function normalizeCatalogVisualSettings(value: unknown): CatalogVisualSet
     show_description: bool("show_description"),
     show_featured: bool("show_featured"),
     show_categories: bool("show_categories"),
+    sold_out_display: pickString(raw.sold_out_display, soldOutDisplays, fixed.sold_out_display),
   };
 }
 
