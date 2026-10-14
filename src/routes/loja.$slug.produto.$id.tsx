@@ -69,7 +69,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   const images = product.images.length ? product.images : [{ url: "", position: 0 }];
 
   // Foto da cor (escolhida no painel entre as fotos do produto): ao escolher a cor, a galeria pula
-  // para ela, mesmo sem tamanho escolhido; as miniaturas continuam trocando a foto.
+  // para ela, mesmo sem tamanho escolhido.
   const colorOption = product.options.find((option) => normalize(option.name) === "cor");
   const selectedColor = colorOption ? selected[colorOption.name] : undefined;
   const colorImageUrl = colorOption && selectedColor
@@ -81,6 +81,19 @@ function ProductView({ product }: { product: PublicProductDetail }) {
     if (index >= 0) setActiveImage(index);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colorImageUrl]);
+
+  // E o contrário (João, 14/10): passar pelas fotos e parar na foto de uma cor seleciona a cor.
+  // Foto sem cor ou de cor esgotada não muda a escolha; tamanho que não existe na cor sai.
+  const showImage = (index: number) => {
+    setActiveImage(index);
+    if (!colorOption) return;
+    const url = images[index]?.url;
+    const color = url
+      ? product.variants.find((variant) => variant.image_url === url && variant.options[colorOption.name])?.options[colorOption.name]
+      : undefined;
+    if (!color || color === selectedColor || !isValueAvailable(product, colorOption.name, color, {})) return;
+    setSelected((current) => clearUnavailableSize(product, colorOption.name, { ...current, [colorOption.name]: color }));
+  };
   // Foto de variação fora da galeria (cadastro antigo) ainda aparece.
   const offGalleryImage =
     currentVariant?.image_url && !images.some((item) => item.url === currentVariant.image_url) ? currentVariant.image_url : null;
@@ -168,7 +181,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
               <button
                 key={`${item.url}-${index}`}
                 type="button"
-                onClick={() => setActiveImage(index)}
+                onClick={() => showImage(index)}
                 className={cn("h-20 w-16 shrink-0 overflow-hidden border bg-neutral-100", activeImage === index ? "border-black" : "border-transparent")}
               >
                 {item.url && <img src={item.url} alt="" className="h-full w-full object-cover" />}
