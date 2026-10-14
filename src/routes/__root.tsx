@@ -173,7 +173,8 @@ function RouteSwitch() {
 
   return (
     <LojistaGuard>
-      <SidebarProvider>
+      {/* data-painel-escala: painel em 90% no computador (regra em styles.css). */}
+      <SidebarProvider data-painel-escala>
         <div className="flex min-h-svh w-full bg-background">
           {!isLayoutEditor && <AppSidebar />}
           <Outlet />

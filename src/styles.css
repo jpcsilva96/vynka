@@ -291,3 +291,31 @@
   letter-spacing: 0.35em;
   text-transform: uppercase;
 }
+
+/* Painel e master em 90% no computador (João 14/10): na tela de João (1920x1080 com escala de 150%
+   no Windows) o navegador tem 1280 pontos de largura e os campos ficavam apertados; com zoom de 90%
+   ficavam certos. Só na área marcada [data-painel-escala] (layouts de /admin e /master): as lojas não
+   mudam, e celular/tablet (abaixo de 1024) nem telas largas (acima de 1600) também não.
+   O zoom fica na área do painel e não no documento: menus que abrem por cima são posicionados fora dela
+   e, com zoom no documento, abriam deslocados (medido: ~10% da posição). Eles ficam em 100%.
+   O zoom encolhe também a "altura da tela" (svh); as alturas de tela cheia são compensadas. */
+@media (min-width: 1024px) and (max-width: 1600px) {
+  [data-painel-escala] {
+    --painel-escala: 0.9;
+    zoom: var(--painel-escala);
+  }
+  [data-painel-escala] .h-svh,
+  [data-painel-escala].h-svh {
+    height: calc(100svh / var(--painel-escala));
+  }
+  [data-painel-escala] .min-h-svh,
+  [data-painel-escala].min-h-svh {
+    min-height: calc(100svh / var(--painel-escala));
+  }
+  [data-painel-escala] .h-\[calc\(100svh-4rem\)\] {
+    height: calc(100svh / var(--painel-escala) - 4rem);
+  }
+  [data-painel-escala] .min-h-\[calc\(100svh-4rem\)\] {
+    min-height: calc(100svh / var(--painel-escala) - 4rem);
+  }
+}

@@ -28,7 +28,8 @@ function MasterLayout() {
 
   return (
     <MasterGuard>
-      <div className="flex min-h-svh w-full bg-background text-foreground">
+      {/* data-painel-escala: master em 90% no computador (regra em styles.css). */}
+      <div data-painel-escala className="flex min-h-svh w-full bg-background text-foreground">
         <MasterSidebar />
         <div className="flex-1">
           <Outlet />
