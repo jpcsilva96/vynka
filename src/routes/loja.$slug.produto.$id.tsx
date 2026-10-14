@@ -187,6 +187,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
       image: image || null,
       price,
       quantity,
+      maxQty: Number.isFinite(stockLimit) ? stockLimit : null,
     });
     setQty(1);
   };

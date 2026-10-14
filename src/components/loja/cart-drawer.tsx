@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { closeCart, removeItem, updateQty, useCart, useCartDrawer, useCartTotals } from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
 import { useStorefront } from "@/lib/storefront-context";
@@ -11,6 +11,20 @@ export function CartDrawer() {
   const open = useCartDrawer();
   const items = useCart();
   const { subtotal, count } = useCartTotals();
+  // Item que bateu no estoque ao clicar em "+": mostra a quantidade disponível.
+  const [limitKey, setLimitKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) setLimitKey(null);
+  }, [open]);
+
+  const increase = (key: string, quantity: number, maxQty: number | null | undefined) => {
+    if (maxQty != null && quantity >= maxQty) {
+      setLimitKey(key);
+      return;
+    }
+    setLimitKey(null);
+    updateQty(key, quantity + 1);
+  };
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -72,16 +86,25 @@ export function CartDrawer() {
                     </div>
                     <div className="mt-4 flex items-center justify-between">
                       <div className="inline-flex items-center border border-black/10">
-                        <button onClick={() => updateQty(item.key, item.quantity - 1)} className="grid h-8 w-8 place-items-center hover:bg-neutral-100" aria-label="Diminuir">
+                        <button
+                          onClick={() => {
+                            setLimitKey(null);
+                            updateQty(item.key, item.quantity - 1);
+                          }} className="grid h-8 w-8 place-items-center hover:bg-neutral-100" aria-label="Diminuir">
                           <Minus className="h-3.5 w-3.5" />
                         </button>
                         <span className="w-7 text-center text-[12px]">{item.quantity}</span>
-                        <button onClick={() => updateQty(item.key, item.quantity + 1)} className="grid h-8 w-8 place-items-center hover:bg-neutral-100" aria-label="Aumentar">
+                        <button onClick={() => increase(item.key, item.quantity, item.maxQty)} className="grid h-8 w-8 place-items-center hover:bg-neutral-100" aria-label="Aumentar">
                           <Plus className="h-3.5 w-3.5" />
                         </button>
                       </div>
                       <div className="text-[13px] font-semibold text-black">{formatBRL(item.price * item.quantity)}</div>
                     </div>
+                    {limitKey === item.key && item.maxQty != null && (
+                      <p className="mt-2 text-[12px] text-neutral-500" role="status">
+                        Quantidade máxima disponível: {item.maxQty}.
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
