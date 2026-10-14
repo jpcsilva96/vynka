@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeRichText } from "@/lib/rich-text";
 
 export type ProductStatus = "active" | "draft" | "archived";
 
@@ -561,7 +562,7 @@ export async function createProduct(storeId: string, form: ProductFormState): Pr
       ...(dimensions as object),
       store_id: storeId,
       name: form.name || "Produto sem nome",
-      description: form.description,
+      description: sanitizeRichText(form.description),
       category_id: form.category_id,
       price: priceNum,
       promo_price: promo,
@@ -641,7 +642,7 @@ export async function updateProduct(
     .update({
       ...(dimensions as object),
       name: form.name || "Produto sem nome",
-      description: form.description,
+      description: sanitizeRichText(form.description),
       category_id: form.category_id,
       price: priceNum,
       promo_price: promo,
