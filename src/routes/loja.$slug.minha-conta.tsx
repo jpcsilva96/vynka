@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ProductCard } from "@/components/loja/product-card";
+import { cepDigits, formatCep, lookupCep } from "@/lib/cep";
 import {
   listCustomerOrders,
   listFavoriteProducts,
@@ -35,6 +36,8 @@ function CustomerAccountPage() {
   const { data: customer, isLoading } = useStoreCustomer(store.id);
   const [address, setAddress] = useState(emptyAddress);
   const [saving, setSaving] = useState(false);
+  const [cepStatus, setCepStatus] = useState("");
+  const [saveStatus, setSaveStatus] = useState("");
 
   const { data: orders = [] } = useQuery({
     queryKey: ["customer-orders", store.id],
@@ -66,12 +69,49 @@ function CustomerAccountPage() {
     });
   }, [customer]);
 
+  // CEP completo: busca rua, bairro, cidade e UF (o número e o complemento ficam com o cliente).
+  const changeCep = async (value: string) => {
+    const zip = formatCep(value);
+    setAddress((current) => ({ ...current, zip_code: zip }));
+    setSaveStatus("");
+    if (cepDigits(zip).length !== 8) {
+      setCepStatus("");
+      return;
+    }
+    setCepStatus("Buscando endereço…");
+    try {
+      const found = await lookupCep(zip);
+      if (!found) {
+        setCepStatus("CEP não encontrado. Confira os números ou preencha o endereço.");
+        return;
+      }
+      setAddress((current) =>
+        current.zip_code !== zip
+          ? current
+          : {
+              ...current,
+              street: found.street || current.street,
+              neighborhood: found.neighborhood || current.neighborhood,
+              city: found.city || current.city,
+              state: found.state || current.state,
+            },
+      );
+      setCepStatus("");
+    } catch {
+      setCepStatus("Não foi possível buscar o CEP agora. Preencha o endereço.");
+    }
+  };
+
   const saveAddress = async () => {
     if (!customer) return;
     setSaving(true);
+    setSaveStatus("");
     try {
       await updateCustomerAddress(store.id, customer, address);
       await queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
+      setSaveStatus("Endereço salvo.");
+    } catch {
+      setSaveStatus("Não foi possível salvar o endereço. Tente de novo.");
     } finally {
       setSaving(false);
     }
@@ -112,7 +152,9 @@ function CustomerAccountPage() {
             <Field
               label="CEP"
               value={address.zip_code}
-              onChange={(value) => setAddress((current) => ({ ...current, zip_code: value }))}
+              onChange={changeCep}
+              inputMode="numeric"
+              hint={cepStatus}
             />
             <Field
               label="Rua"
@@ -152,6 +194,9 @@ function CustomerAccountPage() {
           >
             {saving ? "Salvando..." : "Salvar endereço"}
           </button>
+          <p className="mt-3 min-h-[18px] text-[12px] text-neutral-500" aria-live="polite">
+            {saveStatus}
+          </p>
         </div>
 
         <div id="compras">
@@ -255,10 +300,14 @@ function Field({
   label,
   value,
   onChange,
+  inputMode,
+  hint,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  inputMode?: "numeric";
+  hint?: string;
 }) {
   return (
     <label className="grid min-w-0 gap-2">
@@ -268,8 +317,14 @@ function Field({
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        inputMode={inputMode}
         className="h-10 w-full min-w-0 border border-black/10 px-3 text-[14px] outline-none focus:border-black"
       />
+      {hint && (
+        <span className="text-[12px] text-neutral-500" aria-live="polite">
+          {hint}
+        </span>
+      )}
     </label>
   );
 }
