@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 interface Props {
   options: ProductOption[];
   variants: ProductVariant[];
+  // Fotos do produto: a foto de cada cor é escolhida entre elas (João, 14/10).
+  images?: { url: string }[];
   manageStock?: boolean;
   onOptionsChange: (options: ProductOption[]) => void;
   onVariantsChange: (variants: ProductVariant[]) => void;
@@ -27,6 +29,7 @@ const DISPLAY_ORDER = ["Tamanho", "Cor"];
 export function VariationsBuilder({
   options,
   variants,
+  images = [],
   manageStock = false,
   onOptionsChange,
   onVariantsChange,
@@ -38,13 +41,45 @@ export function VariationsBuilder({
   const hasVariations = fixedOptions.some((option) =>
     option.values.some((value) => value.value.trim()),
   );
+  const colors = Array.from(
+    new Set(
+      (getOption(options, "Cor")?.values ?? []).map((value) => value.value.trim()).filter(Boolean),
+    ),
+  );
+  const imageUrls = images.map((image) => image.url).filter(Boolean);
 
   useEffect(() => {
     const next = normalizeOptions(options);
-    onVariantsChange(generateVariants(next, variants));
+    // Combinação nova (ex.: tamanho a mais) herda a foto já escolhida para a sua cor.
+    const byColor = colorImageMap(variants);
+    const generated = generateVariants(next, variants).map((variant) =>
+      variant.image_url || !variant.options.Cor
+        ? variant
+        : { ...variant, image_url: byColor.get(variant.options.Cor) ?? null },
+    );
+    onVariantsChange(generated);
     if (next.length > 0 && !manageStock) onManageStockChange?.(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(options)]);
+
+  // Foto removida da galeria deixa de ser a foto da cor.
+  useEffect(() => {
+    if (!variants.some((v) => v.image_url && !imageUrls.includes(v.image_url))) return;
+    onVariantsChange(
+      variants.map((v) =>
+        v.image_url && !imageUrls.includes(v.image_url) ? { ...v, image_url: null } : v,
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageUrls.join("|")]);
+
+  const colorImages = colorImageMap(variants);
+  const setColorImage = (color: string, url: string | null) =>
+    onVariantsChange(
+      variants.map((variant) =>
+        variant.options.Cor === color ? { ...variant, image_url: url } : variant,
+      ),
+    );
 
   const setFixedEnabled = (name: string, enabled: boolean) => {
     const next = normalizeOptions(options).filter((option) => option.name !== name);
@@ -155,6 +190,63 @@ export function VariationsBuilder({
         </div>
       </div>
 
+      {colors.length > 0 && (
+        <div className="rounded-md border border-border bg-surface p-4">
+          <div className="text-[14px] font-medium text-foreground">Foto de cada cor</div>
+          <div className="mt-0.5 text-[12px] text-muted-foreground">
+            Quando o cliente escolher a cor na loja, a foto principal troca para a foto marcada.
+          </div>
+          {imageUrls.length === 0 ? (
+            <div className="mt-3 rounded-md border border-dashed border-border px-3 py-2.5 text-[13px] text-muted-foreground">
+              Envie as fotos do produto em Imagens para escolher a foto de cada cor.
+            </div>
+          ) : (
+            <div className="mt-4 space-y-4">
+              {colors.map((color) => {
+                const chosen = colorImages.get(color) ?? null;
+                return (
+                  <div key={color}>
+                    <div className="mb-2 text-[13px] font-medium text-foreground">{color}</div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setColorImage(color, null)}
+                        aria-pressed={!chosen}
+                        className={cn(
+                          "grid h-16 w-[52px] place-items-center rounded-md border text-center text-[11px] leading-tight text-muted-foreground",
+                          !chosen
+                            ? "border-foreground ring-1 ring-foreground"
+                            : "border-border hover:border-foreground/40",
+                        )}
+                      >
+                        Sem foto
+                      </button>
+                      {imageUrls.map((url, index) => (
+                        <button
+                          key={url}
+                          type="button"
+                          onClick={() => setColorImage(color, url)}
+                          aria-pressed={chosen === url}
+                          aria-label={`Foto ${index + 1} para a cor ${color}`}
+                          className={cn(
+                            "h-16 w-[52px] overflow-hidden rounded-md border bg-muted",
+                            chosen === url
+                              ? "border-foreground ring-1 ring-foreground"
+                              : "border-border hover:border-foreground/40",
+                          )}
+                        >
+                          <img src={url} alt="" className="h-full w-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {hasVariations && variants.length === 0 && (
         <div className="rounded-md border border-dashed border-border px-4 py-3 text-[13px] text-muted-foreground">
           Informe ao menos um valor para gerar o controle de estoque.
@@ -222,6 +314,16 @@ export function VariationsBuilder({
       )}
     </div>
   );
+}
+
+// Cor -> foto escolhida (a primeira variação da cor que tiver foto).
+function colorImageMap(variants: ProductVariant[]) {
+  const map = new Map<string, string>();
+  for (const variant of variants) {
+    const color = variant.options.Cor;
+    if (color && variant.image_url && !map.has(color)) map.set(color, variant.image_url);
+  }
+  return map;
 }
 
 function getOption(options: ProductOption[], name: string) {

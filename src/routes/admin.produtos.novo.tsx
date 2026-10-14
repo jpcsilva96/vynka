@@ -244,6 +244,7 @@ function NovoProduto() {
               <VariationsBuilder
                 options={form.options}
                 variants={form.variants}
+                images={form.images}
                 manageStock={form.manage_stock}
                 onOptionsChange={(options) => patch({ options })}
                 onVariantsChange={(variants) => patch({ variants })}
