@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { canResize, resizeImage, type ResizeOptions } from "@/lib/image-resize";
 
 export interface GeneralSettingsForm {
   name: string;
@@ -50,7 +51,8 @@ export interface DeliverySettings {
 export type CatalogStyle = "minimal" | "elegant" | "commercial" | "editorial";
 export type ProductCardStyle = "large" | "compact";
 export type ProductLayout = "grid" | "list";
-export type CatalogSection = "banner" | "description" | "categories" | "featured" | "products" | "promos";
+export type CatalogSection =
+  "banner" | "description" | "categories" | "featured" | "products" | "promos";
 export type StoreFont =
   | "inter"
   | "montserrat"
@@ -353,11 +355,22 @@ export function normalizeStoragePublicUrl(value: string | null | undefined) {
 
 export type StoreBrandingKind = "logo" | "favicon" | "banner" | "og" | "about";
 
+// Tamanho máximo de cada imagem da loja ao subir (lote 4.1a). Favicon sobe como veio (já é pequeno).
+const BRANDING_SIZE: Partial<Record<StoreBrandingKind, ResizeOptions>> = {
+  logo: { maxWidth: 1000, maxHeight: 500, quality: 0.9 },
+  banner: { maxWidth: 2400, maxHeight: 2400 },
+  og: { maxWidth: 1200, maxHeight: 1200 },
+  about: { maxWidth: 1600, maxHeight: 1600 },
+};
+
 export async function uploadStoreBranding(storeId: string, kind: StoreBrandingKind, file: File) {
-  const ext = file.name.split(".").pop() ?? "png";
+  const size = BRANDING_SIZE[kind];
+  const resized = size && canResize(file) ? await resizeImage(file, size) : null;
+  const body: Blob = resized?.blob ?? file;
+  const ext = resized?.ext ?? file.name.split(".").pop() ?? "png";
   const path = `${storeId}/${kind}-${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from("store-branding").upload(path, file, {
-    contentType: file.type,
+  const { error } = await supabase.storage.from("store-branding").upload(path, body, {
+    contentType: body.type,
     cacheControl: "31536000",
     upsert: true,
   });
@@ -422,7 +435,9 @@ export async function updateCatalogVisualSettings(
 export async function listStoreBanners(storeId: string): Promise<StoreBanner[]> {
   const { data, error } = await (supabase as any)
     .from("store_banners")
-    .select("id,store_id,image_url,title,subtitle,button_label,link_type,link_target,sort_order,active")
+    .select(
+      "id,store_id,image_url,title,subtitle,button_label,link_type,link_target,sort_order,active",
+    )
     .eq("store_id", storeId)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -452,7 +467,9 @@ export async function saveStoreBanners(storeId: string, banners: StoreBanner[]) 
   if (existingError) throw existingError;
 
   const nextIds = new Set(validBanners.map((banner) => banner.id));
-  const deleteIds = (existing ?? []).map((row: { id: string }) => row.id).filter((id: string) => !nextIds.has(id));
+  const deleteIds = (existing ?? [])
+    .map((row: { id: string }) => row.id)
+    .filter((id: string) => !nextIds.has(id));
   if (deleteIds.length > 0) {
     const { error: deleteError } = await (supabase as any)
       .from("store_banners")
@@ -621,8 +638,18 @@ export function normalizeCatalogVisualSettings(value: unknown): CatalogVisualSet
     heading_font: pickString(raw.heading_font, storeFonts, fixed.heading_font),
     body_font: pickString(raw.body_font, storeFonts, fixed.body_font),
     header_logo_size: pickScale(raw.header_logo_size, fixed.header_logo_size, 24, 160),
-    header_logo_height_mobile: pickScale(raw.header_logo_height_mobile, fixed.header_logo_height_mobile, logoSlot.minHeight, logoSlot.mobile.height),
-    header_logo_height_desktop: pickScale(raw.header_logo_height_desktop, fixed.header_logo_height_desktop, logoSlot.minHeight, logoSlot.desktop.height),
+    header_logo_height_mobile: pickScale(
+      raw.header_logo_height_mobile,
+      fixed.header_logo_height_mobile,
+      logoSlot.minHeight,
+      logoSlot.mobile.height,
+    ),
+    header_logo_height_desktop: pickScale(
+      raw.header_logo_height_desktop,
+      fixed.header_logo_height_desktop,
+      logoSlot.minHeight,
+      logoSlot.desktop.height,
+    ),
     header_sticky: bool("header_sticky"),
     // Aviso da faixa fina do topo (escopo do catálogo, §4); vazio = a faixa mostra só "Entrar".
     announcement_text:
@@ -638,7 +665,8 @@ export function normalizeCatalogVisualSettings(value: unknown): CatalogVisualSet
       typeof raw.about_description === "string"
         ? raw.about_description.slice(0, 5000)
         : fixed.about_description,
-    about_image_url: typeof raw.about_image_url === "string" ? raw.about_image_url : fixed.about_image_url,
+    about_image_url:
+      typeof raw.about_image_url === "string" ? raw.about_image_url : fixed.about_image_url,
     contact_enabled: bool("contact_enabled"),
     show_banner: bool("show_banner"),
     show_description: bool("show_description"),
@@ -686,7 +714,11 @@ export function hoverColor(color: string) {
     "#" +
     [1, 3, 5]
       .map((i) => parseInt(color.slice(i, i + 2), 16))
-      .map((v) => Math.round(v + (target - v) * amount).toString(16).padStart(2, "0"))
+      .map((v) =>
+        Math.round(v + (target - v) * amount)
+          .toString(16)
+          .padStart(2, "0"),
+      )
       .join("")
   );
 }
@@ -741,7 +773,6 @@ function isMissingStoreBannersTable(error: { code?: string; message?: string } |
     error?.message?.toLowerCase().includes("store_banners") === true
   );
 }
-
 
 export function normalizeReceiptSettings(value: unknown): ReceiptSettings {
   const raw = value && typeof value === "object" ? (value as Partial<ReceiptSettings>) : {};

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, ImageIcon } from "lucide-react";
 import type { MouseEvent } from "react";
 import { listFavoriteProductIds, toggleFavorite, useStoreCustomer } from "@/lib/customer-account";
+import { thumbUrl } from "@/lib/image-resize";
 import { formatBRL } from "@/lib/products";
 import { isOnSale, type PublicProduct } from "@/lib/public-shop";
 import { useStorefront } from "@/lib/storefront-context";
@@ -46,7 +47,7 @@ export function ProductCard({ product }: { product: PublicProduct }) {
         <div className={cn("aspect-[4/5]", soldOut && "opacity-55")}>
           {product.primary_image ? (
             <img
-              src={product.primary_image}
+              src={thumbUrl(product.primary_image)}
               alt={product.name}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
               loading="lazy"

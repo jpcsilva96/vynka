@@ -6,6 +6,7 @@ import {
   type ProductOption,
   type ProductVariant,
 } from "@/lib/products";
+import { thumbUrl } from "@/lib/image-resize";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -235,7 +236,7 @@ export function VariationsBuilder({
                               : "border-border hover:border-foreground/40",
                           )}
                         >
-                          <img src={url} alt="" className="h-full w-full object-cover" />
+                          <img src={thumbUrl(url)} alt="" className="h-full w-full object-cover" />
                         </button>
                       ))}
                     </div>

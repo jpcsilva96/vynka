@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { canResize, PRODUCT_FULL, PRODUCT_THUMB, resizeImage } from "@/lib/image-resize";
 import { sanitizeRichText } from "@/lib/rich-text";
 
 export type ProductStatus = "active" | "draft" | "archived";
@@ -259,15 +260,33 @@ const moneyToInput = (value: number | string | null | undefined) => {
 };
 
 export async function uploadProductImage(storeId: string, file: File): Promise<ProductImage> {
-  const ext = file.name.split(".").pop() ?? "jpg";
   // A pasta da loja permite que a policy do bucket restrinja escrita por loja.
-  const path = `${storeId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error } = await supabase.storage.from("product-images").upload(path, file, {
-    contentType: file.type,
-    cacheControl: "31536000",
-    upsert: false,
-  });
-  if (error) throw error;
+  const base = `${storeId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const bucket = supabase.storage.from("product-images");
+  const put = (path: string, body: Blob, contentType: string) =>
+    bucket.upload(path, body, { contentType, cacheControl: "31536000", upsert: false });
+
+  let path: string;
+  if (canResize(file)) {
+    // Reduzida e com miniatura para as listas (lote 4.1a); mesmo nome-base, achada por `thumbUrl`.
+    const [full, thumb] = await Promise.all([
+      resizeImage(file, PRODUCT_FULL),
+      resizeImage(file, PRODUCT_THUMB),
+    ]);
+    path = `${base}.full.${full.ext}`;
+    const thumbPath = `${base}.thumb.${thumb.ext}`;
+    const { error: thumbError } = await put(thumbPath, thumb.blob, thumb.blob.type);
+    if (thumbError) throw thumbError;
+    const { error } = await put(path, full.blob, full.blob.type);
+    if (error) {
+      await bucket.remove([thumbPath]);
+      throw error;
+    }
+  } else {
+    path = `${base}.${file.name.split(".").pop() ?? "jpg"}`;
+    const { error } = await put(path, file, file.type);
+    if (error) throw error;
+  }
   const { data, error: sErr } = await supabase.storage
     .from("product-images")
     .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
