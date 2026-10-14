@@ -67,7 +67,24 @@ function ProductView({ product }: { product: PublicProductDetail }) {
       ? !product.manage_stock || product.stock_quantity > 0
       : !!currentVariant && currentVariant.available && (!product.manage_stock || currentVariant.stock_quantity > 0);
   const images = product.images.length ? product.images : [{ url: "", position: 0 }];
-  const image = currentVariant?.image_url || images[activeImage]?.url || product.primary_image || "";
+
+  // Foto da cor (escolhida no painel entre as fotos do produto): ao escolher a cor, a galeria pula
+  // para ela, mesmo sem tamanho escolhido; as miniaturas continuam trocando a foto.
+  const colorOption = product.options.find((option) => normalize(option.name) === "cor");
+  const selectedColor = colorOption ? selected[colorOption.name] : undefined;
+  const colorImageUrl = colorOption && selectedColor
+    ? product.variants.find((variant) => variant.options[colorOption.name] === selectedColor && variant.image_url)?.image_url ?? null
+    : null;
+  useEffect(() => {
+    if (!colorImageUrl) return;
+    const index = images.findIndex((item) => item.url === colorImageUrl);
+    if (index >= 0) setActiveImage(index);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [colorImageUrl]);
+  // Foto de variação fora da galeria (cadastro antigo) ainda aparece.
+  const offGalleryImage =
+    currentVariant?.image_url && !images.some((item) => item.url === currentVariant.image_url) ? currentVariant.image_url : null;
+  const image = offGalleryImage || images[activeImage]?.url || product.primary_image || "";
   const variantLabel = product.options.length ? Object.entries(selected).map(([key, value]) => `${key}: ${value}`).join(" / ") : null;
   const favorite = favoriteIds.includes(product.id);
 
