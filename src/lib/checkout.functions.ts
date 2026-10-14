@@ -188,6 +188,50 @@ async function computeOptions(
   };
 }
 
+// Página do produto (lote 4b): frete de um produto para um CEP, sem login. Mesma conta do checkout
+// (cotação + regra do banco); só loja publicada e ativa e produto ativo dela (checkout_cart_lines).
+export const getProductShippingOptions = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        store_id: z.string().uuid(),
+        zip: zipSchema,
+        product_id: z.string().uuid(),
+        variant_id: z.string().uuid().nullable().optional(),
+        quantity: z.number().int().min(1).max(999),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await server();
+    const { data: store } = await supabaseAdmin
+      .from("stores")
+      .select("id")
+      .eq("id", data.store_id)
+      .eq("status", "active")
+      .eq("publication_status", "published")
+      .maybeSingle();
+    if (!store) throw new Error("Loja indisponível.");
+    const address = await resolveZip(data.zip);
+    const result = await computeOptions(
+      data.store_id,
+      [
+        {
+          product_id: data.product_id,
+          variant_id: data.variant_id ?? null,
+          quantity: data.quantity,
+        },
+      ],
+      address.ibge_code,
+      address.zip_code,
+    );
+    return {
+      address: { zip_code: address.zip_code, city: address.city, state: address.state },
+      options: result.options,
+      shippingUnavailable: result.shippingUnavailable,
+    };
+  });
+
 // Etapa 2: o cliente informa o CEP e vê as opções com preço e prazo.
 export const getCheckoutOptions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
