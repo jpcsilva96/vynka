@@ -8,6 +8,7 @@ import { flyToCart } from "@/lib/cart-fly";
 import { sanitizeRichText } from "@/lib/rich-text";
 import { trackStoreView } from "@/lib/views";
 import { listFavoriteProductIds, toggleFavorite, useStoreCustomer } from "@/lib/customer-account";
+import { thumbUrl } from "@/lib/image-resize";
 import { formatBRL, skuKey } from "@/lib/products";
 import { getPublicProduct, isOnSale, listRelatedProducts, type PublicProductDetail } from "@/lib/public-shop";
 import { useStorefront } from "@/lib/storefront-context";
@@ -184,7 +185,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
       variantId: currentVariant?.id ?? null,
       name: product.name,
       variantLabel,
-      image: image || null,
+      image: image ? thumbUrl(image) : null,
       price,
       quantity,
       maxQty: Number.isFinite(stockLimit) ? stockLimit : null,
@@ -236,7 +237,9 @@ function ProductView({ product }: { product: PublicProductDetail }) {
                 onClick={() => showImage(index)}
                 className={cn("h-20 w-16 shrink-0 overflow-hidden border bg-neutral-100", activeImage === index ? "border-black" : "border-transparent")}
               >
-                {item.url && <img src={item.url} alt="" className="h-full w-full object-cover" />}
+                {item.url && (
+                  <img src={thumbUrl(item.url)} alt="" className="h-full w-full object-cover" />
+                )}
               </button>
             ))}
           </div>

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Plus, Search, Package, Filter, ChevronDown, Star, ImageIcon } from "lucide-react";
 import { PageShell, EmptyState } from "@/components/page-shell";
+import { thumbUrl } from "@/lib/image-resize";
 import { listProducts, listCategories, formatBRL, type ProductStatus } from "@/lib/products";
 import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
@@ -199,7 +200,11 @@ function ProdutosPage() {
                 >
                   <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-md bg-muted text-muted-foreground">
                     {p.primary_image ? (
-                      <img src={p.primary_image} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={thumbUrl(p.primary_image)}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       <ImageIcon className="h-4 w-4" strokeWidth={1.5} />
                     )}

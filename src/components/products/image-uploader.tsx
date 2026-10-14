@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { GripVertical, Loader2, UploadCloud, X } from "lucide-react";
+import { thumbUrl } from "@/lib/image-resize";
 import { uploadProductImage, type ProductImage } from "@/lib/products";
 import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
@@ -106,7 +107,12 @@ export function ImageUploader({ images, onChange }: Props) {
               }}
               className="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted"
             >
-              <img src={img.url} alt="" className="h-full w-full object-cover" draggable={false} />
+              <img
+                src={thumbUrl(img.url)}
+                alt=""
+                className="h-full w-full object-cover"
+                draggable={false}
+              />
               {i === 0 && (
                 <span className="absolute left-1.5 top-1.5 rounded bg-foreground px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-background">
                   Capa

@@ -23,6 +23,7 @@ import { PaymentMethodIcon } from "@/components/payment-method-icon";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useStoreContext } from "@/lib/store-context";
 import { formatPhone, onlyDigits } from "@/lib/br-documents";
+import { thumbUrl } from "@/lib/image-resize";
 import { listProducts, listCategories, formatBRL, type ProductRecord } from "@/lib/products";
 import {
   createCustomer,
@@ -503,7 +504,7 @@ function ProductTile({ product, onClick }: { product: ProductRecord; onClick: ()
       <div className="relative flex-1 overflow-hidden bg-muted">
         {product.primary_image ? (
           <img
-            src={product.primary_image}
+            src={thumbUrl(product.primary_image)}
             alt=""
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
             loading="lazy"
@@ -961,10 +962,14 @@ function VariantModal({
                 >
                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted">
                     {v.image_url ? (
-                      <img src={v.image_url} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={thumbUrl(v.image_url)}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
                     ) : product.primary_image ? (
                       <img
-                        src={product.primary_image}
+                        src={thumbUrl(product.primary_image)}
                         alt=""
                         className="h-full w-full object-cover"
                       />
