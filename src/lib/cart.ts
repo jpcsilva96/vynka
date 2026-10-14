@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 export interface CartItem {
   key: string; // productId + variantKey
@@ -9,9 +9,16 @@ export interface CartItem {
   image: string | null;
   price: number;
   quantity: number;
+  // Estoque ao adicionar (null = sem controle). Pode ficar velho: o banco confere de novo ao gravar
+  // o pedido.
+  maxQty?: number | null;
 }
 
-const KEY = "vynka:cart";
+// Um carrinho por loja: item de outra loja não chega ao checkout (o banco recusava com "produto não
+// está mais disponível"). A chave antiga, única para todas as lojas, é descartada.
+const LEGACY_KEY = "vynka:cart";
+const keyFor = (id: string) => `vynka:cart:${id}`;
+let storeId: string | null = null;
 let items: CartItem[] = [];
 const listeners = new Set<() => void>();
 
@@ -26,9 +33,9 @@ export function setCartPreviewMode(enabled: boolean) {
 }
 
 function load() {
-  if (typeof window === "undefined" || previewMode) return;
+  if (typeof window === "undefined" || previewMode || !storeId) return;
   try {
-    const raw = window.localStorage.getItem(KEY);
+    const raw = window.localStorage.getItem(keyFor(storeId));
     items = raw ? (JSON.parse(raw) as CartItem[]) : [];
   } catch {
     items = [];
@@ -36,10 +43,34 @@ function load() {
 }
 function persist() {
   if (typeof window === "undefined") return;
-  if (!previewMode) window.localStorage.setItem(KEY, JSON.stringify(items));
+  if (!previewMode && storeId) {
+    try {
+      window.localStorage.setItem(keyFor(storeId), JSON.stringify(items));
+    } catch {
+      // Navegador sem armazenamento: o carrinho segue só na memória.
+    }
+  }
   listeners.forEach((l) => l());
 }
-load();
+
+// Chamado pelo layout da loja quando a loja aberta é conhecida.
+export function setCartStore(id: string | null) {
+  if (storeId === id) return;
+  storeId = id;
+  items = [];
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(LEGACY_KEY);
+    } catch {
+      // ignora
+    }
+  }
+  load();
+  listeners.forEach((l) => l());
+}
+
+const capped = (qty: number, max: number | null | undefined) =>
+  max == null ? qty : Math.min(qty, max);
 
 export function addToCart(item: Omit<CartItem, "quantity"> & { quantity?: number }) {
   const qty = item.quantity ?? 1;
@@ -47,13 +78,17 @@ export function addToCart(item: Omit<CartItem, "quantity"> & { quantity?: number
   // contagem antiga ao somar num item que já estava no carrinho).
   const existing = items.some((i) => i.key === item.key);
   items = existing
-    ? items.map((i) => (i.key === item.key ? { ...i, quantity: i.quantity + qty } : i))
-    : [...items, { ...item, quantity: qty }];
+    ? items.map((i) =>
+        i.key === item.key
+          ? { ...i, ...item, quantity: Math.max(1, capped(i.quantity + qty, item.maxQty)) }
+          : i,
+      )
+    : [...items, { ...item, quantity: Math.max(1, capped(qty, item.maxQty)) }];
   persist();
 }
 export function updateQty(key: string, qty: number) {
   items = items
-    .map((i) => (i.key === key ? { ...i, quantity: Math.max(1, qty) } : i))
+    .map((i) => (i.key === key ? { ...i, quantity: Math.max(1, capped(qty, i.maxQty)) } : i))
     .filter((i) => i.quantity > 0);
   persist();
 }
@@ -143,12 +178,4 @@ export function orderWhatsAppText(
       : `Olá! Quero falar sobre o ${ref}:`;
   const shipping = order.shipping_amount ? `\nFrete: ${brl(order.shipping_amount)}` : "";
   return `${title}\n\n${lines.join("\n")}${shipping}\n\nTotal: ${brl(order.total)}`;
-}
-
-// Convenience effect: rehydrate on mount for SSR safety
-export function useCartHydration() {
-  useEffect(() => {
-    load();
-    listeners.forEach((l) => l());
-  }, []);
 }

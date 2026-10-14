@@ -6,7 +6,7 @@ import { trackStoreView } from "@/lib/views";
 import { CartDrawer } from "@/components/loja/cart-drawer";
 import { StoreFooter } from "@/components/loja/store-footer";
 import { StoreHeader } from "@/components/loja/store-header";
-import { setCartPreviewMode, useCartHydration } from "@/lib/cart";
+import { setCartPreviewMode, setCartStore } from "@/lib/cart";
 import { getStoreBySlug } from "@/lib/public-shop";
 import { StorefrontProvider } from "@/lib/storefront-context";
 import { normalizeCatalogVisualSettings, storeFontFamily } from "@/lib/store-settings";
@@ -36,7 +36,6 @@ function StoreMessage({ title, message }: { title: string; message: string }) {
 
 function LojaLayout() {
   const { slug } = Route.useParams();
-  useCartHydration();
 
   const { data: savedStore, isLoading, isError } = useQuery({
     queryKey: ["storefront-store", slug],
@@ -49,6 +48,9 @@ function LojaLayout() {
   useEffect(() => {
     setCartPreviewMode(preview);
   }, [preview]);
+  useEffect(() => {
+    setCartStore(savedStore?.id ?? null);
+  }, [savedStore?.id]);
   const overrides = usePreviewOverrides(preview);
   const store = useMemo(() => {
     if (!savedStore || !overrides) return savedStore;
