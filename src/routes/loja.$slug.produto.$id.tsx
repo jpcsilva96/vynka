@@ -12,6 +12,8 @@ import { thumbUrl } from "@/lib/image-resize";
 import { formatBRL, skuKey } from "@/lib/products";
 import { getPublicProduct, isOnSale, listRelatedProducts, type PublicProductDetail } from "@/lib/public-shop";
 import { useStorefront } from "@/lib/storefront-context";
+import { isPreviewFrame } from "@/lib/storefront-preview";
+import { ProductShipping } from "@/components/loja/product-shipping";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/loja/$slug/produto/$id")({
@@ -74,6 +76,9 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   const [selected, setSelected] = useState<Record<string, string>>(() => initialSelection(product, options));
   const [qty, setQty] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
+  // Prévia do editor: sem cálculo de frete (decide no navegador, como o resto da prévia).
+  const [preview, setPreview] = useState(false);
+  useEffect(() => setPreview(isPreviewFrame()), []);
 
   const currentVariant = useMemo(() => {
     if (product.options.length === 0) return null;
@@ -91,6 +96,13 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   const missingOption =
     options.length > 0 && selectionHasStock ? (options.find((option) => !selected[option.name]) ?? null) : null;
 
+  // Frete antes de escolher a opção: calcula com a primeira que tem estoque (peso e medidas são do
+  // produto; o preço pode mudar o frete grátis).
+  const shippingVariant =
+    product.options.length === 0
+      ? null
+      : (currentVariant ?? product.variants.find((variant) => variantBuyable(product, variant)));
+  const shippingVariantId = shippingVariant?.id ?? null;
   const sale = isOnSale(product);
   const price = currentVariant?.price ?? (sale ? product.promo_price! : product.price);
   // Estoque só conta quando o produto controla estoque (sem controle: sempre disponível).
@@ -342,6 +354,16 @@ function ProductView({ product }: { product: PublicProductDetail }) {
                   : ""}
             </p>
           </div>
+
+          {!preview && !productSoldOut && (
+            <ProductShipping
+              storeId={store.id}
+              productId={product.id}
+              variantId={shippingVariantId}
+              quantity={quantity}
+              savedZip={customer?.zip_code}
+            />
+          )}
 
           {product.description && (
             <div className="mt-6 border-t border-black/10 pt-6">
