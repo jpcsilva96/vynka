@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ArrowLeft, Check, Heart, Minus, Plus } from "lucide-react";
 import { ProductCard } from "@/components/loja/product-card";
 import { addToCart, useCart } from "@/lib/cart";
@@ -13,6 +13,7 @@ import { formatBRL, skuKey } from "@/lib/products";
 import { getPublicProduct, isOnSale, listRelatedProducts, type PublicProductDetail } from "@/lib/public-shop";
 import { useStorefront } from "@/lib/storefront-context";
 import { isPreviewFrame } from "@/lib/storefront-preview";
+import { ProductImageViewer } from "@/components/loja/product-image-viewer";
 import { ProductShipping } from "@/components/loja/product-shipping";
 import { cn } from "@/lib/utils";
 
@@ -178,6 +179,12 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   const quantity = Math.max(1, Math.min(qty, maxQty || 1));
 
   const imageRef = useRef<HTMLDivElement>(null);
+  // Foto em tela cheia com zoom (lote 4.1d). Foto de variação fora da galeria abre sozinha.
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const viewerImages = offGalleryImage
+    ? [offGalleryImage]
+    : images.map((item) => item.url).filter(Boolean);
+  const viewerIndex = offGalleryImage ? 0 : activeImage;
   const [added, setAdded] = useState(false);
   useEffect(() => {
     if (!added) return;
@@ -255,12 +262,44 @@ function ProductView({ product }: { product: PublicProductDetail }) {
               </button>
             ))}
           </div>
-          <div className="order-1 bg-neutral-100 md:order-2">
-            <div ref={imageRef} className="aspect-[4/5]">
-              {image ? <img src={image} alt={product.name} className="h-full w-full object-cover" /> : <div className="h-full w-full" />}
+          <div className="order-1 md:order-2 md:self-start">
+            {/* Foto inteira no quadro (sem cortar as bordas); tocar abre em tela cheia com zoom. */}
+            <div ref={imageRef} className="aspect-[4/5] bg-white">
+              {image ? (
+                <button
+                  type="button"
+                  onClick={() => setViewerOpen(true)}
+                  className="block h-full w-full cursor-zoom-in"
+                  aria-label="Ampliar foto"
+                >
+                  <img src={image} alt={product.name} className="h-full w-full object-contain" />
+                </button>
+              ) : (
+                <div className="h-full w-full" />
+              )}
             </div>
           </div>
         </div>
+
+        {image && (
+          <ProductImageViewer
+            open={viewerOpen}
+            onOpenChange={setViewerOpen}
+            images={viewerImages}
+            index={viewerIndex}
+            onIndexChange={(index) => {
+              if (!offGalleryImage) showImage(index);
+            }}
+            alt={product.name}
+            colors={
+              {
+                "--shop-background": store.catalog_visual.background_color,
+                "--shop-primary": store.catalog_visual.primary_color,
+                "--shop-secondary": store.catalog_visual.secondary_color,
+              } as CSSProperties
+            }
+          />
+        )}
 
         <aside className="md:sticky md:top-24 md:self-start">
           {product.category?.name && <div className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">{product.category.name}</div>}
