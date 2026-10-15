@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ArrowLeft, Check, Heart, Minus, Plus } from "lucide-react";
 import { ProductCard } from "@/components/loja/product-card";
 import { addToCart, useCart } from "@/lib/cart";
@@ -264,7 +264,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
           </div>
           <div className="order-1 md:order-2 md:self-start">
             {/* Foto inteira no quadro (sem cortar as bordas); tocar abre em tela cheia com zoom. */}
-            <div ref={imageRef} className="aspect-[4/5] bg-neutral-100">
+            <div ref={imageRef} className="aspect-[4/5] bg-white">
               {image ? (
                 <button
                   type="button"
@@ -291,6 +291,13 @@ function ProductView({ product }: { product: PublicProductDetail }) {
               if (!offGalleryImage) showImage(index);
             }}
             alt={product.name}
+            colors={
+              {
+                "--shop-background": store.catalog_visual.background_color,
+                "--shop-primary": store.catalog_visual.primary_color,
+                "--shop-secondary": store.catalog_visual.secondary_color,
+              } as CSSProperties
+            }
           />
         )}
 

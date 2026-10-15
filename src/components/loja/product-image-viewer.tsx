@@ -2,6 +2,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from "react";
@@ -25,6 +26,7 @@ export function ProductImageViewer({
   index,
   onIndexChange,
   alt,
+  colors,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,6 +34,8 @@ export function ProductImageViewer({
   index: number;
   onIndexChange: (index: number) => void;
   alt: string;
+  // Cores da loja: a tela cheia abre fora do bloco da loja, então recebe as variáveis aqui.
+  colors?: CSSProperties;
 }) {
   const count = images.length;
   const go = (step: number) => {
@@ -42,9 +46,13 @@ export function ProductImageViewer({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-white" />
+        <DialogPrimitive.Overlay
+          className="storefront-theme fixed inset-0 z-50 bg-white"
+          style={colors}
+        />
         <DialogPrimitive.Content
-          className="fixed inset-0 z-50 flex flex-col bg-white outline-none"
+          className="storefront-theme fixed inset-0 z-50 flex flex-col bg-white outline-none"
+          style={colors}
           onKeyDown={(event) => {
             if (event.key === "ArrowLeft") go(-1);
             if (event.key === "ArrowRight") go(1);
@@ -78,7 +86,7 @@ export function ProductImageViewer({
                 <button
                   type="button"
                   onClick={() => go(-1)}
-                  className="absolute left-2 top-1/2 hidden h-12 w-12 -translate-y-1/2 place-items-center bg-white/80 text-black hover:bg-white md:grid"
+                  className="absolute left-2 top-1/2 hidden h-12 w-12 -translate-y-1/2 place-items-center bg-[color-mix(in_srgb,var(--shop-background)_80%,transparent)] text-black hover:bg-white md:grid"
                   aria-label="Foto anterior"
                 >
                   <ChevronLeft className="h-7 w-7" />
@@ -86,7 +94,7 @@ export function ProductImageViewer({
                 <button
                   type="button"
                   onClick={() => go(1)}
-                  className="absolute right-2 top-1/2 hidden h-12 w-12 -translate-y-1/2 place-items-center bg-white/80 text-black hover:bg-white md:grid"
+                  className="absolute right-2 top-1/2 hidden h-12 w-12 -translate-y-1/2 place-items-center bg-[color-mix(in_srgb,var(--shop-background)_80%,transparent)] text-black hover:bg-white md:grid"
                   aria-label="Próxima foto"
                 >
                   <ChevronRight className="h-7 w-7" />
@@ -103,8 +111,8 @@ export function ProductImageViewer({
                   onClick={() => onIndexChange(dot)}
                   className={
                     dot === index
-                      ? "h-2 w-2 rounded-full bg-black"
-                      : "h-2 w-2 rounded-full bg-neutral-300"
+                      ? "h-2 w-2 rounded-full bg-current"
+                      : "h-2 w-2 rounded-full bg-current opacity-25"
                   }
                   aria-label={`Foto ${dot + 1}`}
                 />
