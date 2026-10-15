@@ -262,9 +262,9 @@ function ProductView({ product }: { product: PublicProductDetail }) {
               </button>
             ))}
           </div>
-          <div className="order-1 bg-neutral-100 md:order-2">
+          <div className="order-1 md:order-2 md:self-start">
             {/* Foto inteira no quadro (sem cortar as bordas); tocar abre em tela cheia com zoom. */}
-            <div ref={imageRef} className="aspect-[4/5]">
+            <div ref={imageRef} className="aspect-[4/5] bg-neutral-100">
               {image ? (
                 <button
                   type="button"
