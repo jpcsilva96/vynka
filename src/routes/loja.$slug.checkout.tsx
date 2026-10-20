@@ -16,7 +16,6 @@ import {
 } from "@/lib/checkout.functions";
 import { startOrderPayment } from "@/lib/order-payment.functions";
 import {
-  EmailConfirmationRequiredError,
   getStoreCustomer,
   signInCustomer,
   signOutCustomer,
@@ -82,7 +81,6 @@ function CheckoutPage() {
   // Etapa 1
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [form, setForm] = useState({ name: "", phone: "", email: "", password: "" });
-  const [needsProfile, setNeedsProfile] = useState(false);
 
   // Etapa 2
   const [zip, setZip] = useState("");
@@ -214,45 +212,30 @@ function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, itemsKey]);
 
+  // Conta é desta loja (login por loja, L3): criar conta já cria a ficha; entrar aceita e-mail ou
+  // telefone. Conta de outra loja não entra aqui ("incorretos"), o cliente cria a conta desta loja.
   const identify = async () => {
-    const showProfile = mode === "signup" || needsProfile;
-    if (showProfile && !form.name.trim()) return setError("Informe seu nome.");
-    if (showProfile && !isValidPhone(form.phone)) return setError("Informe seu telefone com DDD.");
-    if (!form.email.trim()) return setError("Informe seu e-mail.");
+    if (mode === "signup" && !form.name.trim()) return setError("Informe seu nome.");
+    if (mode === "signup" && !isValidPhone(form.phone))
+      return setError("Informe seu telefone com DDD.");
+    if (!form.email.trim())
+      return setError(
+        mode === "signup" ? "Informe seu e-mail." : "Informe seu e-mail ou telefone.",
+      );
     if (!form.password) return setError("Informe sua senha.");
     setBusy(true);
     setError("");
     try {
-      if (mode === "signup" && !needsProfile) {
+      if (mode === "signup") {
         await signUpCustomer({ storeId: store.id, ...form });
-      } else if (!needsProfile) {
-        await signInCustomer(form.email, form.password);
+      } else {
+        await signInCustomer(store.id, form.email, form.password);
       }
-      let existing = await getStoreCustomer(store.id);
-      if (!existing) {
-        if (!needsProfile) {
-          setNeedsProfile(true);
-          throw new Error(
-            "Primeira compra nesta loja: informe seu nome e telefone para continuar.",
-          );
-        }
-        existing = await upsertStoreCustomer(store.id, {
-          name: form.name,
-          phone: form.phone,
-          email: form.email,
-        });
-      }
+      if (!(await getStoreCustomer(store.id)))
+        throw new Error("Não foi possível entrar. Tente novamente.");
       await queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
       setStep(2);
     } catch (err) {
-      if (err instanceof EmailConfirmationRequiredError) {
-        setError(
-          "Cadastro criado. Confirme seu e-mail e depois entre com sua senha para continuar.",
-        );
-        setMode("login");
-        setForm((current) => ({ ...current, password: "" }));
-        return;
-      }
       setError(err instanceof Error ? err.message : "Não foi possível entrar.");
     } finally {
       setBusy(false);
@@ -260,7 +243,7 @@ function CheckoutPage() {
   };
 
   const signOut = async () => {
-    await signOutCustomer();
+    await signOutCustomer(store.id);
     await queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
     setQuote(null);
     setChoice("");
@@ -334,7 +317,7 @@ function CheckoutPage() {
       // pedido tem o botão "Pagar agora" para tentar de novo.
       try {
         const { url } = await startPayment({
-          data: { order_id: orderId, return_origin: window.location.origin },
+          data: { store_id: store.id, order_id: orderId, return_origin: window.location.origin },
         });
         window.location.assign(url);
         return;
@@ -450,7 +433,7 @@ function CheckoutPage() {
                       />
                     </div>
                     <div className="mt-6 grid gap-4">
-                      {(mode === "signup" || needsProfile) && (
+                      {mode === "signup" && (
                         <>
                           <Field
                             label="Nome"
@@ -461,25 +444,24 @@ function CheckoutPage() {
                             label="Telefone"
                             type="tel"
                             value={formatPhone(form.phone)}
-                            onChange={(v) => setForm((c) => ({ ...c, phone: onlyDigits(v).slice(0, 11) }))}
+                            onChange={(v) =>
+                              setForm((c) => ({ ...c, phone: onlyDigits(v).slice(0, 11) }))
+                            }
                           />
                         </>
                       )}
                       <Field
-                        label="E-mail"
-                        type="email"
+                        label={mode === "signup" ? "E-mail" : "E-mail ou telefone"}
+                        type={mode === "signup" ? "email" : "text"}
                         value={form.email}
-                        disabled={needsProfile}
                         onChange={(v) => setForm((c) => ({ ...c, email: v }))}
                       />
-                      {!needsProfile && (
-                        <Field
-                          label="Senha"
-                          type="password"
-                          value={form.password}
-                          onChange={(v) => setForm((c) => ({ ...c, password: v }))}
-                        />
-                      )}
+                      <Field
+                        label="Senha"
+                        type="password"
+                        value={form.password}
+                        onChange={(v) => setForm((c) => ({ ...c, password: v }))}
+                      />
                     </div>
                   </>
                 )}
@@ -489,7 +471,7 @@ function CheckoutPage() {
                   label={
                     account
                       ? "Continuar"
-                      : mode === "signup" && !needsProfile
+                      : mode === "signup"
                         ? "Criar conta e continuar"
                         : "Continuar"
                   }

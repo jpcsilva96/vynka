@@ -2,16 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { FormEvent } from "react";
-import {
-  EmailConfirmationRequiredError,
-  getStoreCustomer,
-  signInCustomer,
-  signUpCustomer,
-  upsertStoreCustomer,
-} from "@/lib/customer-account";
+import { signInCustomer, signUpCustomer } from "@/lib/customer-account";
 import { formatPhone, isValidPhone, onlyDigits } from "@/lib/br-documents";
 import { useStorefront } from "@/lib/storefront-context";
-import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/loja/$slug/entrar")({
   component: CustomerLoginPage,
@@ -30,12 +23,10 @@ function CustomerLoginPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
-    setSuccess("");
     if (mode === "signup" && !isValidPhone(form.phone)) {
       setError("Informe seu telefone com DDD.");
       return;
@@ -51,26 +42,13 @@ function CustomerLoginPage() {
           password: form.password,
         });
       } else {
-        await signInCustomer(form.email, form.password);
-        // Primeira vez nesta loja: cria o cadastro. Já existe: fica como está (nome, telefone e
-        // endereço salvos não são regravados no login).
-        if (!(await getStoreCustomer(store.id))) {
-          const { data } = await supabase.auth.getUser();
-          await upsertStoreCustomer(store.id, {
-            name: form.name || data.user?.user_metadata?.full_name || form.email.split("@")[0],
-            phone: form.phone || data.user?.user_metadata?.phone || null,
-            email: form.email,
-          });
-        }
+        // Conta é desta loja (login por loja): entra com e-mail ou telefone. Sem conta aqui, a
+        // resposta é a mesma de senha errada; criar conta é pelo botão abaixo.
+        await signInCustomer(store.id, form.email, form.password);
       }
       await queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
       navigate({ to: "/loja/$slug/minha-conta", params: { slug: store.slug } });
     } catch (err) {
-      if (err instanceof EmailConfirmationRequiredError) {
-        setSuccess("Cadastro criado. Confirme seu e-mail e depois volte para entrar.");
-        setMode("login");
-        return;
-      }
       setError(err instanceof Error ? err.message : "Não foi possível entrar.");
     } finally {
       setLoading(false);
@@ -98,9 +76,12 @@ function CustomerLoginPage() {
               <Field label="Telefone" type="tel" value={formatPhone(form.phone)} onChange={(value) => setForm((current) => ({ ...current, phone: onlyDigits(value).slice(0, 11) }))} required />
             </>
           )}
-          <Field label="E-mail" type="email" value={form.email} onChange={(value) => setForm((current) => ({ ...current, email: value }))} required />
+          {mode === "login" ? (
+            <Field label="E-mail ou telefone" value={form.email} onChange={(value) => setForm((current) => ({ ...current, email: value }))} required />
+          ) : (
+            <Field label="E-mail" type="email" value={form.email} onChange={(value) => setForm((current) => ({ ...current, email: value }))} required />
+          )}
           <Field label="Senha" type="password" value={form.password} onChange={(value) => setForm((current) => ({ ...current, password: value }))} required />
-          {success && <div className="border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-700">{success}</div>}
           {error && <div className="border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700">{error}</div>}
           <button disabled={loading} className="bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800 disabled:opacity-50">
             {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}
@@ -112,7 +93,7 @@ function CustomerLoginPage() {
           onClick={() => setMode((current) => (current === "login" ? "signup" : "login"))}
           className="mt-5 text-[13px] text-neutral-600 underline underline-offset-4 hover:text-black"
         >
-          {mode === "login" ? "Ainda não tenho conta" : "Já tenho conta"}
+          {mode === "login" ? `Ainda não tenho conta na ${store.name}` : "Já tenho conta"}
         </button>
       </div>
     </div>
