@@ -32,11 +32,7 @@ export function CustomerAuthDialog() {
             {store.name}
           </div>
           <div className="mt-2">
-            <CustomerAuthForm
-              initialMode={mode}
-              onDone={closeCustomerAuth}
-              onNavigate={closeCustomerAuth}
-            />
+            <CustomerAuthForm initialMode={mode} onDone={closeCustomerAuth} />
           </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

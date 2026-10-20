@@ -1,25 +1,20 @@
-import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { buildWhatsAppLink } from "@/lib/cart";
 import { signInCustomer, signUpCustomer } from "@/lib/customer-account";
 import type { CustomerAuthMode } from "@/lib/customer-auth-dialog";
 import { formatPhone, isValidPhone, onlyDigits } from "@/lib/br-documents";
 import { useStorefront } from "@/lib/storefront-context";
 
-// Formulário de entrar / criar conta / esqueci a senha da loja: o mesmo na janela (cabeçalho,
+// Formulário de entrar / criar conta da loja: o mesmo na janela (cabeçalho,
 // favoritar) e na página /entrar. A conta é desta loja (login por loja): entra com e-mail ou telefone.
 export function CustomerAuthForm({
   initialMode = "login",
   onDone,
-  onNavigate,
 }: {
   initialMode?: CustomerAuthMode;
   // Entrou ou criou a conta.
   onDone: () => void;
-  // Clicou num link que sai da janela (ex.: Contato).
-  onNavigate?: () => void;
 }) {
   const store = useStorefront();
   const queryClient = useQueryClient();
@@ -61,53 +56,6 @@ export function CustomerAuthForm({
 
   const set = (key: keyof typeof form) => (value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
-
-  if (mode === "forgot") {
-    // Sem envio de e-mail ainda (lote de e-mails): a recuperação é com a loja.
-    const whatsapp = store.whatsapp
-      ? buildWhatsAppLink(
-          `Olá! Esqueci a senha da minha conta na ${store.name}. Pode me ajudar a recuperar o acesso?`,
-          store.whatsapp,
-        )
-      : null;
-    return (
-      <div>
-        <h2 className="text-2xl font-semibold text-black">Esqueci minha senha</h2>
-        <p className="mt-3 text-[14px] leading-relaxed text-neutral-600">
-          Para recuperar o acesso à sua conta, fale com a {store.name}
-          {whatsapp ? " pelo WhatsApp." : " pelos canais de contato."}
-        </p>
-        {whatsapp ? (
-          <a
-            href={whatsapp}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-6 flex h-12 items-center justify-center bg-black px-5 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800"
-          >
-            Falar com a loja no WhatsApp
-          </a>
-        ) : (
-          store.catalog_visual.contact_enabled && (
-            <Link
-              to="/loja/$slug/contato"
-              params={{ slug: store.slug }}
-              onClick={onNavigate}
-              className="mt-6 flex h-12 items-center justify-center bg-black px-5 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800"
-            >
-              Ver contatos da loja
-            </Link>
-          )
-        )}
-        <button
-          type="button"
-          onClick={() => switchMode("login")}
-          className="mt-5 min-h-11 text-[13px] text-neutral-600 underline underline-offset-4 hover:text-black"
-        >
-          Voltar para entrar
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -168,15 +116,8 @@ export function CustomerAuthForm({
           autoComplete={mode === "login" ? "current-password" : "new-password"}
           required
         />
-        {mode === "login" && (
-          <button
-            type="button"
-            onClick={() => switchMode("forgot")}
-            className="-mt-1 w-max text-[12px] text-neutral-500 underline underline-offset-4 hover:text-black"
-          >
-            Esqueci minha senha
-          </button>
-        )}
+        {/* "Esqueci minha senha" entra aqui com o lote de e-mails (link enviado ao e-mail real da
+            ficha; login-por-loja L5). Até lá não aparece: sem e-mail, não há como recuperar. */}
         {error && (
           <div
             role="alert"
