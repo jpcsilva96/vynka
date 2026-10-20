@@ -10,9 +10,12 @@ import { useStorefront } from "@/lib/storefront-context";
 // favoritar) e na página /entrar. A conta é desta loja (login por loja): entra com e-mail ou telefone.
 export function CustomerAuthForm({
   initialMode = "login",
+  compact = false,
   onDone,
 }: {
   initialMode?: CustomerAuthMode;
+  // Dentro de outra tela com título (checkout): título menor, sem a frase de apoio.
+  compact?: boolean;
   // Entrou ou criou a conta.
   onDone: () => void;
 }) {
@@ -59,16 +62,22 @@ export function CustomerAuthForm({
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold text-black">
-        {mode === "login" ? "Entrar" : "Criar conta"}
-      </h2>
-      <p className="mt-2 text-[13px] text-neutral-500">
-        {mode === "login"
-          ? `Entre na sua conta da ${store.name}.`
-          : "Acompanhe suas compras, salve endereços e favorite produtos."}
-      </p>
+      {compact ? (
+        <h3 className="font-semibold text-black">{mode === "login" ? "Entrar" : "Criar conta"}</h3>
+      ) : (
+        <>
+          <h2 className="text-2xl font-semibold text-black">
+            {mode === "login" ? "Entrar" : "Criar conta"}
+          </h2>
+          <p className="mt-2 text-[13px] text-neutral-500">
+            {mode === "login"
+              ? `Entre na sua conta da ${store.name}.`
+              : "Acompanhe suas compras, salve endereços e favorite produtos."}
+          </p>
+        </>
+      )}
 
-      <form onSubmit={submit} className="mt-6 grid gap-4">
+      <form onSubmit={submit} className={compact ? "mt-4 grid gap-4" : "mt-6 grid gap-4"}>
         {mode === "signup" && (
           <>
             <Field

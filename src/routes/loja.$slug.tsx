@@ -1,9 +1,10 @@
-import { createFileRoute, Link, notFound, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { trackStoreView } from "@/lib/views";
 import { CartDrawer } from "@/components/loja/cart-drawer";
+import { CheckoutHeader } from "@/components/loja/checkout-header";
 import { CustomerAuthDialog } from "@/components/loja/customer-auth-dialog";
 import { StoreFooter } from "@/components/loja/store-footer";
 import { StoreHeader } from "@/components/loja/store-header";
@@ -37,8 +38,16 @@ function StoreMessage({ title, message }: { title: string; message: string }) {
 
 function LojaLayout() {
   const { slug } = Route.useParams();
+  // Checkout com cabeçalho enxuto (escopo do catálogo, §10).
+  const inCheckout = useRouterState({
+    select: (state) => /\/checkout\/?$/.test(state.location.pathname),
+  });
 
-  const { data: savedStore, isLoading, isError } = useQuery({
+  const {
+    data: savedStore,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["storefront-store", slug],
     queryFn: () => getStoreBySlug(slug),
   });
@@ -100,10 +109,17 @@ function LojaLayout() {
   if (isError || !store) throw notFound();
 
   if (store.status === "suspended" || store.status === "cancelled") {
-    return <StoreMessage title="Loja indisponível" message="Esta loja não está aceitando pedidos no momento." />;
+    return (
+      <StoreMessage
+        title="Loja indisponível"
+        message="Esta loja não está aceitando pedidos no momento."
+      />
+    );
   }
   if (store.publication_status !== "published" && !preview) {
-    return <StoreMessage title="Loja indisponível" message="Este catálogo ainda não está publicado." />;
+    return (
+      <StoreMessage title="Loja indisponível" message="Este catálogo ainda não está publicado." />
+    );
   }
 
   return (
@@ -112,7 +128,7 @@ function LojaLayout() {
         className="storefront-theme storefront-typography min-h-svh antialiased"
         style={storefrontThemeStyle(store.catalog_visual)}
       >
-        <StoreHeader />
+        {inCheckout ? <CheckoutHeader /> : <StoreHeader />}
         <main>
           <Outlet />
         </main>
