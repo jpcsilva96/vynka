@@ -118,7 +118,7 @@ function CustomerAccountPage() {
   };
 
   const logout = async () => {
-    await signOutCustomer();
+    await signOutCustomer(store.id);
     await queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
     navigate({ to: "/loja/$slug", params: { slug: store.slug } });
   };

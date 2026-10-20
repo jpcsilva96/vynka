@@ -1,17 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { resolveCustomerLogin, signUpStoreCustomer } from "@/lib/customer-auth.functions";
 import type { DeliveryAddress, DeliveryMethod, OrderStatus } from "@/lib/orders";
 import { PRODUCT_LIST_COLUMNS, type PublicProduct, isOnSale, mapProduct } from "@/lib/public-shop";
+import { storeAuthClient } from "@/lib/store-auth";
 
-type Db = typeof supabase;
-const db = supabase as unknown as Db & { from: (table: string) => any };
-
-export class EmailConfirmationRequiredError extends Error {
-  constructor() {
-    super("Cadastro criado. Confirme seu e-mail antes de entrar.");
-    this.name = "EmailConfirmationRequiredError";
-  }
-}
+// Conta do cliente é por loja (escopo login-por-loja, L3): toda leitura e escrita usa a sessão da
+// própria loja (storeAuthClient), separada da sessão do painel e das outras lojas.
+const dbFor = (storeId: string) =>
+  storeAuthClient(storeId) as unknown as { from: (table: string) => any };
 
 export interface StoreCustomer {
   id: string;
@@ -70,8 +66,8 @@ export interface CustomerOrder {
   }[];
 }
 
-export async function getSessionUser() {
-  const { data, error } = await supabase.auth.getUser();
+export async function getSessionUser(storeId: string) {
+  const { data, error } = await storeAuthClient(storeId).auth.getUser();
   if (error) return null;
   return data.user ?? null;
 }
@@ -85,9 +81,9 @@ export function useStoreCustomer(storeId: string) {
 }
 
 export async function getStoreCustomer(storeId: string): Promise<StoreCustomer | null> {
-  const user = await getSessionUser();
+  const user = await getSessionUser(storeId);
   if (!user) return null;
-  const { data, error } = await db
+  const { data, error } = await dbFor(storeId)
     .from("customers")
     .select(
       "id,store_id,user_id,name,phone,email,zip_code,street,address_number,complement,neighborhood,city,state",
@@ -99,9 +95,11 @@ export async function getStoreCustomer(storeId: string): Promise<StoreCustomer |
   return data as StoreCustomer | null;
 }
 
-export async function signInCustomer(email: string, password: string) {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+// Entrar com e-mail ou telefone: o servidor acha a conta desta loja e o navegador entra com a senha.
+export async function signInCustomer(storeId: string, login: string, password: string) {
+  const { email } = await resolveCustomerLogin({ data: { store_id: storeId, login } });
+  const { error } = await storeAuthClient(storeId).auth.signInWithPassword({ email, password });
+  if (error) throw new Error("E-mail, telefone ou senha incorretos.");
 }
 
 export async function signUpCustomer(input: {
@@ -111,26 +109,28 @@ export async function signUpCustomer(input: {
   email: string;
   password: string;
 }) {
-  const { data, error } = await supabase.auth.signUp({
-    email: input.email,
+  // Conta e ficha criadas juntas pelo servidor; depois o navegador entra (sem confirmação de e-mail
+  // no MVP, João 20/10).
+  const { email } = await signUpStoreCustomer({
+    data: {
+      store_id: input.storeId,
+      name: input.name,
+      phone: input.phone,
+      email: input.email,
+      password: input.password,
+    },
+  });
+  const { error } = await storeAuthClient(input.storeId).auth.signInWithPassword({
+    email,
     password: input.password,
-    options: { data: { full_name: input.name, phone: input.phone } },
   });
-  if (error) throw error;
-
-  if (!data.session) {
-    throw new EmailConfirmationRequiredError();
-  }
-
-  return upsertStoreCustomer(input.storeId, {
-    name: input.name,
-    phone: input.phone,
-    email: input.email,
-  });
+  if (error)
+    throw new Error("Conta criada, mas não foi possível entrar. Tente entrar com sua senha.");
+  return getStoreCustomer(input.storeId);
 }
 
-export async function signOutCustomer() {
-  await supabase.auth.signOut();
+export async function signOutCustomer(storeId: string) {
+  await storeAuthClient(storeId).auth.signOut();
 }
 
 export async function upsertStoreCustomer(
@@ -141,7 +141,7 @@ export async function upsertStoreCustomer(
     email?: string | null;
   } & Partial<CustomerAddressForm>,
 ) {
-  const user = await getSessionUser();
+  const user = await getSessionUser(storeId);
   if (!user) throw new Error("Cliente não autenticado.");
   // Só os campos recebidos: campo que não veio fica como está (antes, o login mandava só nome,
   // telefone e e-mail, e o endereço salvo era zerado).
@@ -169,6 +169,7 @@ export async function upsertStoreCustomer(
   for (const key of optional) {
     if (input[key] !== undefined) payload[key] = input[key] ?? null;
   }
+  const db = dbFor(storeId);
   const { data: existing, error: existingError } = await db
     .from("customers")
     .select("id")
@@ -212,6 +213,7 @@ export async function updateCustomerAddress(
 }
 
 export async function listCustomerOrders(storeId: string): Promise<CustomerOrder[]> {
+  const db = dbFor(storeId);
   const customer = await getStoreCustomer(storeId);
   if (!customer) return [];
   const { data, error } = await db
@@ -243,6 +245,7 @@ export async function getCustomerOrder(
   storeId: string,
   orderId: string,
 ): Promise<CustomerOrder | null> {
+  const db = dbFor(storeId);
   const { data, error } = await db
     .from("orders")
     .select(CUSTOMER_ORDER_SELECT)
@@ -254,6 +257,7 @@ export async function getCustomerOrder(
 }
 
 export async function listFavoriteProductIds(storeId: string): Promise<string[]> {
+  const db = dbFor(storeId);
   const customer = await getStoreCustomer(storeId);
   if (!customer) return [];
   const { data, error } = await db
@@ -266,6 +270,7 @@ export async function listFavoriteProductIds(storeId: string): Promise<string[]>
 }
 
 export async function toggleFavorite(storeId: string, productId: string) {
+  const db = dbFor(storeId);
   const customer = await getStoreCustomer(storeId);
   if (!customer?.user_id) throw new Error("login_required");
   const { data: existing, error: existingError } = await db
@@ -292,6 +297,7 @@ export async function toggleFavorite(storeId: string, productId: string) {
 }
 
 export async function listFavoriteProducts(storeId: string): Promise<PublicProduct[]> {
+  const db = dbFor(storeId);
   const customer = await getStoreCustomer(storeId);
   if (!customer?.user_id) return [];
   const { data, error } = await db

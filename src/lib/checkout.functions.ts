@@ -2,6 +2,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertStoreCustomer, attachStoreCustomerAuth } from "@/lib/store-auth";
 
 // Checkout em etapas (lote C2): opções de entrega e criação do pedido, sempre pelo servidor.
 // O navegador manda só itens, CEP e a opção escolhida. A cidade (código IBGE) vem do CEP, consultado
@@ -234,11 +235,12 @@ export const getProductShippingOptions = createServerFn({ method: "POST" })
 
 // Etapa 2: o cliente informa o CEP e vê as opções com preço e prazo.
 export const getCheckoutOptions = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachStoreCustomerAuth, requireSupabaseAuth])
   .inputValidator((data: unknown) =>
     z.object({ store_id: z.string().uuid(), zip: zipSchema, items: itemsSchema }).parse(data),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    assertStoreCustomer(context.claims, data.store_id);
     const address = await resolveZip(data.zip);
     const result = await computeOptions(
       data.store_id,
@@ -280,9 +282,11 @@ const money = (value: number) =>
 
 // "Finalizar": refaz CEP, cotação e regra; grava só se o frete for o mesmo que o cliente viu.
 export const placeCheckoutOrder = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachStoreCustomerAuth, requireSupabaseAuth])
   .inputValidator((data: unknown) => placeInput.parse(data))
   .handler(async ({ data, context }) => {
+    // Login por loja (L3): só conta de cliente desta loja compra aqui.
+    assertStoreCustomer(context.claims, data.store_id);
     const { supabaseAdmin } = await server();
     // Venda no site só com pagamento integrado: loja sem Mercado Pago conectado não recebe pedido.
     const { data: payment } = await supabaseAdmin

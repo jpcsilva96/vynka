@@ -2,6 +2,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertStoreCustomer, attachStoreCustomerAuth } from "@/lib/store-auth";
 
 // Pagamento do pedido do site pelo Mercado Pago (lote E3), sempre pelo servidor e com a conta da
 // loja. Só o cliente dono do pedido abre ou atualiza o pagamento.
@@ -15,9 +16,17 @@ async function server() {
   return { ...mp, supabaseAdmin: supabaseAdmin as any };
 }
 
-const orderInput = z.object({ order_id: z.string().uuid() });
+// store_id: escolhe a sessão da loja no navegador (login por loja, L3) e é conferido com o pedido.
+const orderInput = z.object({ store_id: z.string().uuid(), order_id: z.string().uuid() });
 
-async function loadCustomerOrder(supabaseAdmin: any, orderId: string, userId: string) {
+async function loadCustomerOrder(
+  supabaseAdmin: any,
+  orderId: string,
+  userId: string,
+  storeId: string,
+  claims: unknown,
+) {
+  assertStoreCustomer(claims, storeId);
   const { data: order, error } = await supabaseAdmin
     .from("orders")
     .select(
@@ -29,7 +38,12 @@ async function loadCustomerOrder(supabaseAdmin: any, orderId: string, userId: st
     .maybeSingle();
   if (error) throw error;
   const customer = Array.isArray(order?.customer) ? order.customer[0] : order?.customer;
-  if (!order || order.source !== "website" || customer?.user_id !== userId) {
+  if (
+    !order ||
+    order.source !== "website" ||
+    order.store_id !== storeId ||
+    customer?.user_id !== userId
+  ) {
     throw new Error("Pedido não encontrado.");
   }
   const store = Array.isArray(order.store) ? order.store[0] : order.store;
@@ -37,7 +51,7 @@ async function loadCustomerOrder(supabaseAdmin: any, orderId: string, userId: st
 }
 
 export const startOrderPayment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachStoreCustomerAuth, requireSupabaseAuth])
   .inputValidator((data: unknown) =>
     orderInput.extend({ return_origin: z.string().url().max(200).optional() }).parse(data),
   )
@@ -50,6 +64,8 @@ export const startOrderPayment = createServerFn({ method: "POST" })
       supabaseAdmin,
       data.order_id,
       context.userId,
+      data.store_id,
+      context.claims,
     );
     if (order.status !== "pending" || order.paid_at) {
       throw new Error(
@@ -108,14 +124,20 @@ export const startOrderPayment = createServerFn({ method: "POST" })
   });
 
 export const syncOrderPayment = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([attachStoreCustomerAuth, requireSupabaseAuth])
   .inputValidator((data: unknown) => orderInput.parse(data))
   .handler(async ({ data, context }) => {
     const { mercadoPagoConfig, searchOrderPayments, pickPayment, applyPayment, supabaseAdmin } =
       await server();
     const cfg = mercadoPagoConfig();
     if (!cfg) return { updated: false };
-    const { order } = await loadCustomerOrder(supabaseAdmin, data.order_id, context.userId);
+    const { order } = await loadCustomerOrder(
+      supabaseAdmin,
+      data.order_id,
+      context.userId,
+      data.store_id,
+      context.claims,
+    );
     if (!order.mp_preference_id) return { updated: false };
     try {
       const payment = pickPayment(await searchOrderPayments(cfg, order.store_id, order.id));

@@ -44,7 +44,7 @@ function OrderPage() {
   const syncPayment = useServerFn(syncOrderPayment);
   const payMutation = useMutation({
     mutationFn: () =>
-      startPayment({ data: { order_id: id, return_origin: window.location.origin } }),
+      startPayment({ data: { store_id: store.id, order_id: id, return_origin: window.location.origin } }),
     onSuccess: ({ url }) => window.location.assign(url),
   });
   // Uma consulta por visita enquanto aguarda pagamento (volta do Mercado Pago, Pix pago depois...).
@@ -53,7 +53,7 @@ function OrderPage() {
   useEffect(() => {
     if (!awaitingOrder || synced.current) return;
     synced.current = true;
-    syncPayment({ data: { order_id: id } })
+    syncPayment({ data: { store_id: store.id, order_id: id } })
       .then((result) => {
         if (result.updated)
           void queryClient.invalidateQueries({ queryKey: ["customer-order", store.id, id] });
