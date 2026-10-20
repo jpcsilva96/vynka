@@ -1,9 +1,11 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { ChevronDown, Instagram, Menu, Search, ShoppingBag, User } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent, type ReactElement } from "react";
 import { buildWhatsAppLink, openCart, useCartTotals } from "@/lib/cart";
-import { useStoreCustomer } from "@/lib/customer-account";
+import { signOutCustomer, useStoreCustomer } from "@/lib/customer-account";
+import { openCustomerAuth } from "@/lib/customer-auth-dialog";
 import { newArrivals, onSale } from "@/lib/product-listing";
 import { formatBRL } from "@/lib/products";
 import {
@@ -52,17 +54,27 @@ export function StoreHeader() {
   const headerBackground = visual.header_background_color;
   const firstName = customer?.name?.trim().split(/\s+/)[0] ?? "";
   const accountLabel = customer ? (firstName ? `Olá, ${firstName}` : "Minha conta") : "Entrar";
-  const accountLink: AccountLink = (className, onClick) => (
-    <Link
-      to={customer ? "/loja/$slug/minha-conta" : "/loja/$slug/entrar"}
-      params={{ slug }}
-      onClick={onClick}
-      className={className}
-    >
-      <User className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
-      <span className="truncate">{accountLabel}</span>
-    </Link>
-  );
+  // Sem conta: abre a janela de entrar. Com conta: na gaveta do celular leva à Minha conta; na faixa
+  // do topo abre o submenu (AccountMenu).
+  const accountLink: AccountLink = (className, onClick) =>
+    customer ? (
+      <Link to="/loja/$slug/minha-conta" params={{ slug }} onClick={onClick} className={className}>
+        <User className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+        <span className="truncate">{accountLabel}</span>
+      </Link>
+    ) : (
+      <button
+        type="button"
+        onClick={() => {
+          onClick?.();
+          openCustomerAuth();
+        }}
+        className={className}
+      >
+        <User className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+        <span className="truncate">{accountLabel}</span>
+      </button>
+    );
   const social = socialLinks(store);
   const contactActive = currentPath.endsWith("/contato");
   const aboutActive = currentPath.endsWith("/quem-somos");
@@ -88,8 +100,12 @@ export function StoreHeader() {
               ))}
             </div>
           )}
-          {accountLink(
-            "inline-flex h-8 max-w-[160px] items-center gap-1.5 font-medium opacity-80 transition-opacity hover:opacity-100",
+          {customer ? (
+            <AccountMenu label={accountLabel} background={headerBackground} />
+          ) : (
+            accountLink(
+              "inline-flex h-8 max-w-[160px] items-center gap-1.5 font-medium opacity-80 transition-opacity hover:opacity-100",
+            )
           )}
         </div>
       </div>
@@ -233,6 +249,60 @@ export function StoreHeader() {
 }
 
 type AccountLink = (className: string, onClick?: () => void) => ReactElement;
+
+// Submenu do "Olá, Fulano" (escopo do catálogo, §9): cada item numa página própria. Fica dentro do
+// cabeçalho (sem portal) para herdar as cores dele; Esc e clique fora fecham.
+function AccountMenu({ label, background }: { label: string; background: string }) {
+  const store = useStorefront();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const currentPath = useRouterState({ select: (state) => state.location.pathname });
+  const slug = store.slug;
+  const itemClass =
+    "flex min-h-10 cursor-pointer items-center px-3 text-[13px] text-current outline-none transition-colors data-[highlighted]:bg-black/5";
+  const items = [
+    { to: "/loja/$slug/minha-conta/dados", label: "Meus dados" },
+    { to: "/loja/$slug/minha-conta/enderecos", label: "Meus endereços" },
+    { to: "/loja/$slug/minha-conta/compras", label: "Minhas compras" },
+    { to: "/loja/$slug/minha-conta/favoritos", label: "Favoritos" },
+  ] as const;
+
+  // Na Minha conta, sai da página antes de encerrar a sessão (senão ela manda para "Entrar").
+  const signOut = async () => {
+    if (currentPath.includes("/minha-conta"))
+      await navigate({ to: "/loja/$slug", params: { slug } });
+    await signOutCustomer(store.id);
+    await queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
+  };
+
+  return (
+    <DropdownMenu.Root modal={false}>
+      <DropdownMenu.Trigger className="inline-flex h-8 max-w-[160px] items-center gap-1.5 font-medium opacity-80 outline-none transition-opacity hover:opacity-100 data-[state=open]:opacity-100">
+        <User className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+        <span className="truncate">{label}</span>
+        <ChevronDown className="h-3 w-3 shrink-0" strokeWidth={1.8} />
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content
+        align="end"
+        sideOffset={4}
+        className="z-50 w-52 border border-current/10 p-1.5 shadow-xl"
+        style={{ backgroundColor: background }}
+      >
+        {items.map((item) => (
+          <DropdownMenu.Item key={item.to} asChild>
+            <Link to={item.to} params={{ slug }} className={itemClass}>
+              {item.label}
+            </Link>
+          </DropdownMenu.Item>
+        ))}
+        <DropdownMenu.Separator className="my-1 h-px bg-current opacity-10" />
+        <DropdownMenu.Item onSelect={() => void signOut()} className={itemClass}>
+          Sair
+        </DropdownMenu.Item>
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
+  );
+}
 
 function navLinkClass(active: boolean) {
   return cn(

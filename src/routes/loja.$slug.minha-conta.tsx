@@ -1,54 +1,52 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { ProductCard } from "@/components/loja/product-card";
-import { cepDigits, formatCep, lookupCep } from "@/lib/cep";
-import {
-  listCustomerOrders,
-  listFavoriteProducts,
-  signOutCustomer,
-  updateCustomerAddress,
-  useStoreCustomer,
-  type CustomerAddressForm,
-} from "@/lib/customer-account";
-import { formatBRL } from "@/lib/products";
-import { deliveryMethodLabel, orderStatusLabelFor } from "@/lib/orders";
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, Heart, MapPin, Package, UserRound } from "lucide-react";
+import { useEffect } from "react";
+import { signOutCustomer, useStoreCustomer } from "@/lib/customer-account";
 import { useStorefront } from "@/lib/storefront-context";
+import { cn } from "@/lib/utils";
 
+// Minha conta (catálogo lote 5, §9): Meus dados · Meus endereços · Minhas compras · Favoritos, cada um
+// na sua página. No celular, /minha-conta é a lista das quatro e cada página tem "voltar"; no
+// computador, a lista fica ao lado.
 export const Route = createFileRoute("/loja/$slug/minha-conta")({
-  component: CustomerAccountPage,
+  component: CustomerAccountLayout,
 });
 
-const emptyAddress: CustomerAddressForm = {
-  zip_code: "",
-  street: "",
-  address_number: "",
-  complement: "",
-  neighborhood: "",
-  city: "",
-  state: "",
-};
+const ACCOUNT_SECTIONS = [
+  {
+    to: "/loja/$slug/minha-conta/dados",
+    label: "Meus dados",
+    hint: "Nome, telefone e senha",
+    Icon: UserRound,
+  },
+  {
+    to: "/loja/$slug/minha-conta/enderecos",
+    label: "Meus endereços",
+    hint: "Onde você recebe as compras",
+    Icon: MapPin,
+  },
+  {
+    to: "/loja/$slug/minha-conta/compras",
+    label: "Minhas compras",
+    hint: "Pedidos e situação da entrega",
+    Icon: Package,
+  },
+  {
+    to: "/loja/$slug/minha-conta/favoritos",
+    label: "Favoritos",
+    hint: "Produtos salvos para ver depois",
+    Icon: Heart,
+  },
+] as const;
 
-function CustomerAccountPage() {
+function CustomerAccountLayout() {
   const store = useStorefront();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: customer, isLoading } = useStoreCustomer(store.id);
-  const [address, setAddress] = useState(emptyAddress);
-  const [saving, setSaving] = useState(false);
-  const [cepStatus, setCepStatus] = useState("");
-  const [saveStatus, setSaveStatus] = useState("");
-
-  const { data: orders = [] } = useQuery({
-    queryKey: ["customer-orders", store.id],
-    queryFn: () => listCustomerOrders(store.id),
-    enabled: !!customer,
-  });
-  const { data: favorites = [] } = useQuery({
-    queryKey: ["customer-favorite-products", store.id],
-    queryFn: () => listFavoriteProducts(store.id),
-    enabled: !!customer,
-  });
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const onHub = /\/minha-conta\/?$/.test(pathname);
 
   useEffect(() => {
     if (!isLoading && !customer) {
@@ -56,275 +54,117 @@ function CustomerAccountPage() {
     }
   }, [customer, isLoading, navigate, store.slug]);
 
-  useEffect(() => {
-    if (!customer) return;
-    setAddress({
-      zip_code: customer.zip_code ?? "",
-      street: customer.street ?? "",
-      address_number: customer.address_number ?? "",
-      complement: customer.complement ?? "",
-      neighborhood: customer.neighborhood ?? "",
-      city: customer.city ?? "",
-      state: customer.state ?? "",
-    });
-  }, [customer]);
-
-  // CEP completo: busca rua, bairro, cidade e UF (o número e o complemento ficam com o cliente).
-  const changeCep = async (value: string) => {
-    const zip = formatCep(value);
-    setAddress((current) => ({ ...current, zip_code: zip }));
-    setSaveStatus("");
-    if (cepDigits(zip).length !== 8) {
-      setCepStatus("");
-      return;
-    }
-    setCepStatus("Buscando endereço…");
-    try {
-      const found = await lookupCep(zip);
-      if (!found) {
-        setCepStatus("CEP não encontrado. Confira os números ou preencha o endereço.");
-        return;
-      }
-      setAddress((current) =>
-        current.zip_code !== zip
-          ? current
-          : {
-              ...current,
-              street: found.street || current.street,
-              neighborhood: found.neighborhood || current.neighborhood,
-              city: found.city || current.city,
-              state: found.state || current.state,
-            },
-      );
-      setCepStatus("");
-    } catch {
-      setCepStatus("Não foi possível buscar o CEP agora. Preencha o endereço.");
-    }
-  };
-
-  const saveAddress = async () => {
-    if (!customer) return;
-    setSaving(true);
-    setSaveStatus("");
-    try {
-      await updateCustomerAddress(store.id, customer, address);
-      await queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
-      setSaveStatus("Endereço salvo.");
-    } catch {
-      setSaveStatus("Não foi possível salvar o endereço. Tente de novo.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
+  // Sai da página antes de encerrar a sessão: senão a própria página manda para "Entrar".
   const logout = async () => {
+    await navigate({ to: "/loja/$slug", params: { slug: store.slug } });
     await signOutCustomer(store.id);
     await queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
-    navigate({ to: "/loja/$slug", params: { slug: store.slug } });
   };
 
   if (isLoading || !customer) return <div className="min-h-[60vh]" />;
 
   return (
-    <div className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
-      <div className="flex flex-col justify-between gap-4 border-b border-black/10 pb-8 md:flex-row md:items-end">
-        <div>
-          <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">
-            {store.name}
-          </div>
-          <h1 className="mt-2 text-4xl font-semibold tracking-tight text-black">Minha conta</h1>
-          <p className="mt-2 text-[14px] text-neutral-500">
-            {customer.name} · {customer.email}
-          </p>
+    <div className="mx-auto max-w-[1280px] px-4 py-8 md:px-8 md:py-14">
+      <div className={cn("border-b border-black/10 pb-6 md:block md:pb-8", !onHub && "hidden")}>
+        <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">
+          {store.name}
         </div>
-        <button
-          onClick={logout}
-          className="w-max border border-black px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.16em] hover:bg-black hover:text-white"
-        >
-          Sair
-        </button>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-black md:text-4xl">
+          Minha conta
+        </h1>
+        <p className="mt-2 break-words text-[14px] text-neutral-500">
+          {customer.name}
+          {customer.email ? ` · ${customer.email}` : ""}
+        </p>
       </div>
 
-      <section className="grid gap-8 py-10 lg:grid-cols-[0.85fr_1.15fr]">
-        <div className="border border-black/10 bg-white p-5">
-          <h2 className="text-xl font-semibold text-black">Endereço de entrega</h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <Field
-              label="CEP"
-              value={address.zip_code}
-              onChange={changeCep}
-              inputMode="numeric"
-              hint={cepStatus}
-            />
-            <Field
-              label="Rua"
-              value={address.street}
-              onChange={(value) => setAddress((current) => ({ ...current, street: value }))}
-            />
-            <Field
-              label="Número"
-              value={address.address_number}
-              onChange={(value) => setAddress((current) => ({ ...current, address_number: value }))}
-            />
-            <Field
-              label="Complemento"
-              value={address.complement}
-              onChange={(value) => setAddress((current) => ({ ...current, complement: value }))}
-            />
-            <Field
-              label="Bairro"
-              value={address.neighborhood}
-              onChange={(value) => setAddress((current) => ({ ...current, neighborhood: value }))}
-            />
-            <Field
-              label="Cidade"
-              value={address.city}
-              onChange={(value) => setAddress((current) => ({ ...current, city: value }))}
-            />
-            <Field
-              label="Estado"
-              value={address.state}
-              onChange={(value) => setAddress((current) => ({ ...current, state: value }))}
-            />
-          </div>
-          <button
-            onClick={saveAddress}
-            disabled={saving}
-            className="mt-5 bg-black px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800 disabled:opacity-50"
-          >
-            {saving ? "Salvando..." : "Salvar endereço"}
-          </button>
-          <p className="mt-3 min-h-[18px] text-[12px] text-neutral-500" aria-live="polite">
-            {saveStatus}
-          </p>
-        </div>
-
-        <div id="compras">
-          <h2 className="text-xl font-semibold text-black">Minhas compras</h2>
-          <div className="mt-5 grid gap-3">
-            {orders.length === 0 ? (
-              <div className="border border-dashed border-black/15 px-5 py-10 text-center text-[13px] text-neutral-500">
-                Nenhuma compra vinculada a sua conta ainda.
-              </div>
-            ) : (
-              orders.map((order) => (
-                <article key={order.id} className="border border-black/10 bg-white p-5">
-                  <div className="flex flex-col justify-between gap-2 sm:flex-row">
-                    <div>
-                      <Link
-                        to="/loja/$slug/pedido/$id"
-                        params={{ slug: store.slug, id: order.id }}
-                        className="font-semibold text-black hover:underline"
-                      >
-                        Pedido #{order.number ?? order.id.slice(0, 8)}
-                      </Link>
-                      <div className="mt-1 text-[12px] text-neutral-500">
-                        {new Date(order.created_at).toLocaleDateString("pt-BR")} ·{" "}
-                        {orderStatusLabelFor(order)}
-                      </div>
-                    </div>
-                    <div className="text-[16px] font-semibold text-black">
-                      {formatBRL(order.total)}
-                    </div>
-                  </div>
-                  <div className="mt-4 divide-y divide-black/10">
-                    {order.order_items.map((item) => (
-                      <div key={item.id} className="flex justify-between gap-4 py-2 text-[13px]">
-                        <span>
-                          {item.quantity}x {item.product_name}
-                          {item.variant_name ? ` / ${item.variant_name}` : ""}
-                        </span>
-                        <span>{formatBRL(item.total_price)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {order.delivery_method ? (
-                    <div className="mt-3 flex justify-between gap-4 text-[12px] text-neutral-500">
-                      <span>
-                        {order.delivery_method === "shipping" && order.shipping_service_name
-                          ? order.shipping_service_name
-                          : deliveryMethodLabel[order.delivery_method]}
-                      </span>
-                      <span>
-                        Frete{" "}
-                        {order.shipping_amount > 0 ? formatBRL(order.shipping_amount) : "grátis"}
-                      </span>
-                    </div>
-                  ) : (
-                    typeof order.payment_details?.delivery_address === "object" &&
-                    order.payment_details.delivery_address && (
-                      <div className="mt-3 text-[12px] text-neutral-500">
-                        Endereço salvo no pedido.
-                      </div>
-                    )
-                  )}
-                </article>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section id="favoritos" className="border-t border-black/10 py-10">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-black">Meus favoritos</h2>
-            <p className="mt-1 text-[13px] text-neutral-500">Produtos salvos para ver depois.</p>
-          </div>
-          <Link
-            to="/loja/$slug"
-            params={{ slug: store.slug }}
-            hash="produtos"
-            className="text-[12px] font-medium uppercase tracking-[0.16em] text-neutral-500 hover:text-black"
-          >
-            Ver catálogo
-          </Link>
-        </div>
-        {favorites.length === 0 ? (
-          <div className="mt-6 border border-dashed border-black/15 px-5 py-10 text-center text-[13px] text-neutral-500">
-            Nenhum favorito salvo.
-          </div>
-        ) : (
-          <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-4">
-            {favorites.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+      <div
+        className={cn(
+          "md:grid md:grid-cols-[240px_minmax(0,1fr)] md:gap-10 md:pt-8",
+          onHub && "md:block",
         )}
-      </section>
+      >
+        {onHub ? null : (
+          <nav aria-label="Minha conta" className="hidden md:block">
+            <ul className="grid gap-1">
+              {ACCOUNT_SECTIONS.map((section) => {
+                const active = pathname.endsWith(section.to.split("/").pop()!);
+                return (
+                  <li key={section.to}>
+                    <Link
+                      to={section.to}
+                      params={{ slug: store.slug }}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "flex min-h-11 items-center gap-3 px-3 text-[14px] text-neutral-600 hover:bg-black/5 hover:text-black",
+                        active && "bg-black/5 font-semibold text-black",
+                      )}
+                    >
+                      <section.Icon className="h-4 w-4 shrink-0" strokeWidth={1.7} />
+                      {section.label}
+                    </Link>
+                  </li>
+                );
+              })}
+              <li>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="flex min-h-11 w-full items-center px-3 text-left text-[14px] text-neutral-600 hover:bg-black/5 hover:text-black"
+                >
+                  Sair
+                </button>
+              </li>
+            </ul>
+          </nav>
+        )}
+
+        <div className="min-w-0">
+          {!onHub && (
+            <Link
+              to="/loja/$slug/minha-conta"
+              params={{ slug: store.slug }}
+              className="-ml-1 mb-4 inline-flex min-h-11 items-center gap-1 text-[12px] font-medium uppercase tracking-[0.16em] text-neutral-500 hover:text-black md:hidden"
+            >
+              <ChevronLeft className="h-4 w-4" /> Minha conta
+            </Link>
+          )}
+          {onHub ? <AccountHub onLogout={logout} /> : <Outlet />}
+        </div>
+      </div>
     </div>
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  inputMode,
-  hint,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  inputMode?: "numeric";
-  hint?: string;
-}) {
+function AccountHub({ onLogout }: { onLogout: () => void }) {
+  const store = useStorefront();
   return (
-    <label className="grid min-w-0 gap-2">
-      <span className="text-[12px] font-medium uppercase tracking-[0.14em] text-neutral-500">
-        {label}
-      </span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        inputMode={inputMode}
-        className="h-10 w-full min-w-0 border border-black/10 px-3 text-[14px] outline-none focus:border-black"
-      />
-      {hint && (
-        <span className="text-[12px] text-neutral-500" aria-live="polite">
-          {hint}
-        </span>
-      )}
-    </label>
+    <div className="pt-6 md:pt-8">
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {ACCOUNT_SECTIONS.map((section) => (
+          <li key={section.to}>
+            <Link
+              to={section.to}
+              params={{ slug: store.slug }}
+              className="flex min-h-[72px] items-center gap-4 border border-black/10 bg-white px-4 py-3 hover:border-black"
+            >
+              <section.Icon className="h-5 w-5 shrink-0 text-black" strokeWidth={1.6} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-semibold text-black">{section.label}</span>
+                <span className="block text-[12px] text-neutral-500">{section.hint}</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-neutral-500" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        onClick={onLogout}
+        className="mt-6 h-12 w-full border border-black px-5 text-[12px] font-semibold uppercase tracking-[0.16em] text-black hover:bg-black hover:text-white sm:w-max"
+      >
+        Sair da conta
+      </button>
+    </div>
   );
 }

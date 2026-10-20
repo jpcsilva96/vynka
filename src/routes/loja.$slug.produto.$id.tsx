@@ -8,6 +8,7 @@ import { flyToCart } from "@/lib/cart-fly";
 import { sanitizeRichText } from "@/lib/rich-text";
 import { trackStoreView } from "@/lib/views";
 import { listFavoriteProductIds, toggleFavorite, useStoreCustomer } from "@/lib/customer-account";
+import { openCustomerAuth } from "@/lib/customer-auth-dialog";
 import { thumbUrl } from "@/lib/image-resize";
 import { formatBRL, skuKey } from "@/lib/products";
 import { getPublicProduct, isOnSale, listRelatedProducts, type PublicProductDetail } from "@/lib/public-shop";
@@ -230,7 +231,7 @@ function ProductView({ product }: { product: PublicProductDetail }) {
 
   const handleFavorite = async () => {
     if (!customer) {
-      navigate({ to: "/loja/$slug/entrar", params: { slug } });
+      openCustomerAuth();
       return;
     }
     await toggleFavorite(store.id, product.id);

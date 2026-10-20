@@ -229,9 +229,8 @@ function OrderPage() {
           )}
 
           <Link
-            to="/loja/$slug/minha-conta"
+            to="/loja/$slug/minha-conta/compras"
             params={{ slug: store.slug }}
-            hash="compras"
             className="mt-6 inline-block text-[12px] font-medium uppercase tracking-[0.16em] text-neutral-500 hover:text-black"
           >
             Ver minhas compras

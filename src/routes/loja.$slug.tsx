@@ -4,14 +4,15 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { trackStoreView } from "@/lib/views";
 import { CartDrawer } from "@/components/loja/cart-drawer";
+import { CustomerAuthDialog } from "@/components/loja/customer-auth-dialog";
 import { StoreFooter } from "@/components/loja/store-footer";
 import { StoreHeader } from "@/components/loja/store-header";
 import { setCartPreviewMode, setCartStore } from "@/lib/cart";
 import { getStoreBySlug } from "@/lib/public-shop";
 import { StorefrontProvider } from "@/lib/storefront-context";
-import { normalizeCatalogVisualSettings, storeFontFamily } from "@/lib/store-settings";
+import { normalizeCatalogVisualSettings } from "@/lib/store-settings";
+import { storefrontThemeStyle } from "@/lib/storefront-theme";
 import { isPreviewFrame, usePreviewOverrides } from "@/lib/storefront-preview";
-import type { CSSProperties } from "react";
 
 export const Route = createFileRoute("/loja/$slug")({
   component: LojaLayout,
@@ -109,20 +110,7 @@ function LojaLayout() {
     <StorefrontProvider store={store} preview={preview ? (overrides?.device ?? "mobile") : null}>
       <div
         className="storefront-theme storefront-typography min-h-svh antialiased"
-        style={{
-          "--shop-primary": store.catalog_visual.primary_color,
-          "--shop-secondary": store.catalog_visual.secondary_color,
-          "--shop-background": store.catalog_visual.background_color,
-          "--shop-button": store.catalog_visual.button_color,
-          "--shop-button-hover": store.catalog_visual.button_hover_color,
-          "--shop-button-text": store.catalog_visual.button_text_color,
-          "--shop-surface": store.catalog_visual.header_background_color,
-          "--shop-surface-text": store.catalog_visual.header_text_color,
-          "--store-heading-font": storeFontFamily(store.catalog_visual.heading_font),
-          "--store-body-font": storeFontFamily(store.catalog_visual.body_font),
-          "--store-heading-scale": store.catalog_visual.heading_scale / 100,
-          "--store-body-size": `${14 * (store.catalog_visual.body_scale / 100)}px`,
-        } as CSSProperties}
+        style={storefrontThemeStyle(store.catalog_visual)}
       >
         <StoreHeader />
         <main>
@@ -130,6 +118,7 @@ function LojaLayout() {
         </main>
         <StoreFooter />
         <CartDrawer />
+        <CustomerAuthDialog />
       </div>
     </StorefrontProvider>
   );
