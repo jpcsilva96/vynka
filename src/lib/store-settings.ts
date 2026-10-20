@@ -707,6 +707,12 @@ function relativeLuminance(hex: string) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+/** Contraste entre duas cores (1 a 21; ícone legível pede pelo menos 3). */
+export function contrastRatio(a: string, b: string) {
+  const [light, dark] = [relativeLuminance(a), relativeLuminance(b)].sort((x, y) => y - x);
+  return (light + 0.05) / (dark + 0.05);
+}
+
 /** Letra escura em fundo claro e branca em fundo escuro. */
 export function readableTextColor(background: string) {
   return relativeLuminance(background) > 0.4 ? "#111111" : "#ffffff";
