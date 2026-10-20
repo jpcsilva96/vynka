@@ -22,7 +22,7 @@ export const Route = createFileRoute("/loja/$slug/")({
 function LojaIndex() {
   const store = useStorefront();
   const slug = store.slug;
-  const { data: allProducts = [] } = useQuery({
+  const { data: allProducts = [], isFetched: productsLoaded } = useQuery({
     queryKey: ["public-products", store.id],
     queryFn: () => listActiveProducts(store.id),
   });
@@ -64,7 +64,14 @@ function LojaIndex() {
       <h1 className="sr-only">{store.name}</h1>
       {banners.length > 0 && <HeroBanners banners={banners} slug={slug} storeName={store.name} />}
 
-      {banners.length === 0 && visual.show_description && description && (
+      {banners.length === 0 && visual.show_banner && productsLoaded && (
+        <OpeningBand
+          description={visual.show_description ? description : ""}
+          hasProducts={products.length > 0}
+        />
+      )}
+
+      {banners.length === 0 && !visual.show_banner && visual.show_description && description && (
         <section className="border-b border-black/10 bg-white">
           <div className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
             <p className="max-w-3xl text-[15px] leading-relaxed text-neutral-600">{description}</p>
@@ -76,15 +83,24 @@ function LojaIndex() {
         <section id="categorias" className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">Categorias</div>
+              <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">
+                Categorias
+              </div>
               <h2 className="mt-2 text-2xl font-semibold text-black">Explore por categoria</h2>
             </div>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
             {categories.map((category) => (
-              <Link key={category.id} to="/loja/$slug/categoria/$categorySlug" params={{ slug, categorySlug: category.slug }} className="border border-black/10 bg-white px-4 py-5 hover:border-black">
+              <Link
+                key={category.id}
+                to="/loja/$slug/categoria/$categorySlug"
+                params={{ slug, categorySlug: category.slug }}
+                className="border border-black/10 bg-white px-4 py-5 hover:border-black"
+              >
                 <div className="font-medium text-black">{category.name}</div>
-                <div className="mt-1 text-[12px] text-neutral-500">{category.count} produto{category.count === 1 ? "" : "s"}</div>
+                <div className="mt-1 text-[12px] text-neutral-500">
+                  {category.count} produto{category.count === 1 ? "" : "s"}
+                </div>
               </Link>
             ))}
           </div>
@@ -94,7 +110,9 @@ function LojaIndex() {
       {visual.show_featured && featured.length > 0 && (
         <section className="border-y border-black/10 bg-neutral-50">
           <div className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
-            <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">Destaques</div>
+            <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">
+              Destaques
+            </div>
             <h2 className="mt-2 text-2xl font-semibold text-black">Produtos em destaque</h2>
             <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4">
               {featured.map((product) => (
@@ -106,7 +124,9 @@ function LojaIndex() {
       )}
 
       <section id="produtos" className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
-        <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">Produtos</div>
+        <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-neutral-500">
+          Produtos
+        </div>
         <h2 className="mt-2 text-2xl font-semibold text-black">Catálogo</h2>
         {visibleProducts.length > 0 ? (
           <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:grid-cols-4">
@@ -116,7 +136,7 @@ function LojaIndex() {
           </div>
         ) : (
           <div className="mt-8 border border-dashed border-black/15 px-6 py-14 text-center text-[13px] text-neutral-500">
-            Nenhum produto ativo cadastrado.
+            Estamos preparando os produtos. Volte daqui a pouco.
           </div>
         )}
         {products.length > visibleProducts.length && (
@@ -133,6 +153,41 @@ function LojaIndex() {
         )}
       </section>
     </div>
+  );
+}
+
+// Loja ainda sem banner (escopo do catálogo, §1.7): faixa de abertura nas cores dos botões do tema,
+// para a loja nova não abrir crua. Não repete o nome da loja: o cabeçalho já mostra logo ou nome (§2).
+function OpeningBand({ description, hasProducts }: { description: string; hasProducts: boolean }) {
+  return (
+    <section
+      className="border-b border-black/10"
+      style={{ backgroundColor: "var(--shop-button)", color: "var(--shop-button-text)" }}
+    >
+      <div className="mx-auto max-w-[1280px] px-4 py-12 md:px-8 md:py-20">
+        <div className="text-[11px] font-medium uppercase tracking-[0.24em] opacity-75">
+          Boas-vindas
+        </div>
+        <h2
+          className="mt-3 max-w-2xl font-semibold leading-tight tracking-tight"
+          style={{ fontSize: "clamp(30px, 6vw, 48px)" }}
+        >
+          {hasProducts ? "Conheça nossos produtos" : "Novidades em breve"}
+        </h2>
+        {description && (
+          <p className="mt-4 max-w-2xl text-[15px] leading-relaxed opacity-85">{description}</p>
+        )}
+        {hasProducts && (
+          <a
+            href="#produtos"
+            className="mt-8 inline-flex min-h-12 items-center rounded-sm px-7 text-[12px] font-semibold uppercase tracking-[0.16em] transition-opacity hover:opacity-85"
+            style={{ backgroundColor: "var(--shop-button-text)", color: "var(--shop-button)" }}
+          >
+            Ver produtos
+          </a>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -254,5 +309,8 @@ function bannerTargetHref(banner: StoreBanner, slug: string) {
 }
 
 function plainText(value: string | null) {
-  return (value || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return (value || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
