@@ -98,6 +98,8 @@ export interface StoreBanner {
   id: string;
   store_id: string;
   image_url: string;
+  // Arte do celular (4:5, lote 4.1c). Vazia: o celular mostra a de computador.
+  image_mobile_url: string;
   title: string;
   subtitle: string;
   button_label: string;
@@ -353,12 +355,13 @@ export function normalizeStoragePublicUrl(value: string | null | undefined) {
   }
 }
 
-export type StoreBrandingKind = "logo" | "favicon" | "banner" | "og" | "about";
+export type StoreBrandingKind = "logo" | "favicon" | "banner" | "banner_mobile" | "og" | "about";
 
 // Tamanho máximo de cada imagem da loja ao subir (lote 4.1a). Favicon sobe como veio (já é pequeno).
 const BRANDING_SIZE: Partial<Record<StoreBrandingKind, ResizeOptions>> = {
   logo: { maxWidth: 1000, maxHeight: 500, quality: 0.9 },
   banner: { maxWidth: 2400, maxHeight: 2400 },
+  banner_mobile: { maxWidth: 1200, maxHeight: 1500 },
   og: { maxWidth: 1200, maxHeight: 1200 },
   about: { maxWidth: 1600, maxHeight: 1600 },
 };
@@ -436,7 +439,7 @@ export async function listStoreBanners(storeId: string): Promise<StoreBanner[]> 
   const { data, error } = await (supabase as any)
     .from("store_banners")
     .select(
-      "id,store_id,image_url,title,subtitle,button_label,link_type,link_target,sort_order,active",
+      "id,store_id,image_url,image_mobile_url,title,subtitle,button_label,link_type,link_target,sort_order,active",
     )
     .eq("store_id", storeId)
     .order("sort_order", { ascending: true })
@@ -452,6 +455,7 @@ export async function saveStoreBanners(storeId: string, banners: StoreBanner[]) 
     .map((banner, index) => ({
       ...banner,
       image_url: normalizeStoragePublicUrl(banner.image_url).trim(),
+      image_mobile_url: normalizeStoragePublicUrl(banner.image_mobile_url).trim(),
       sort_order: index,
     }))
     .filter((banner) => banner.image_url);
@@ -486,6 +490,7 @@ export async function saveStoreBanners(storeId: string, banners: StoreBanner[]) 
       id: banner.id,
       store_id: storeId,
       image_url: banner.image_url,
+      image_mobile_url: clean(banner.image_mobile_url),
       title: clean(banner.title),
       subtitle: clean(banner.subtitle),
       button_label: clean(banner.button_label),
@@ -521,6 +526,7 @@ async function saveStoreBannersToSettings(storeId: string, banners: StoreBanner[
       setting_value: banners.map((banner, index) => ({
         id: banner.id,
         image_url: banner.image_url,
+        image_mobile_url: banner.image_mobile_url,
         title: banner.title,
         subtitle: banner.subtitle,
         button_label: banner.button_label,
@@ -727,6 +733,7 @@ function normalizeStoreBanner(row: {
   id: string;
   store_id: string;
   image_url: string | null;
+  image_mobile_url?: string | null;
   title: string | null;
   subtitle: string | null;
   button_label: string | null;
@@ -740,6 +747,7 @@ function normalizeStoreBanner(row: {
     id: row.id,
     store_id: row.store_id,
     image_url: normalizeStoragePublicUrl(row.image_url),
+    image_mobile_url: normalizeStoragePublicUrl(row.image_mobile_url ?? null),
     title: row.title ?? "",
     subtitle: row.subtitle ?? "",
     button_label: row.button_label ?? "",
@@ -756,6 +764,7 @@ function normalizeStoreBannerValue(storeId: string, value: unknown, index: numbe
     id: typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
     store_id: storeId,
     image_url: typeof raw.image_url === "string" ? raw.image_url : "",
+    image_mobile_url: typeof raw.image_mobile_url === "string" ? raw.image_mobile_url : null,
     title: typeof raw.title === "string" ? raw.title : null,
     subtitle: typeof raw.subtitle === "string" ? raw.subtitle : null,
     button_label: typeof raw.button_label === "string" ? raw.button_label : null,

@@ -13,6 +13,7 @@ import { ProductCard } from "@/components/loja/product-card";
 import { applySoldOutDisplay, listActiveProducts, listPublicCategories } from "@/lib/public-shop";
 import { useStorefront } from "@/lib/storefront-context";
 import type { StoreBanner } from "@/lib/store-settings";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/loja/$slug/")({
   component: LojaIndex,
@@ -46,6 +47,7 @@ function LojaIndex() {
               id: "legacy",
               store_id: store.id,
               image_url: store.banner_url,
+              image_mobile_url: "",
               title: "",
               subtitle: "",
               button_label: "",
@@ -187,13 +189,21 @@ function HeroBanner({
   slug: string;
   storeName: string;
 }) {
-  // A arte inteira aparece em 3:1 (João 09/10: mais baixa que 12:5) até existir a versão de celular (lote 4.1).
+  // Computador em 3:1 (João 09/10). Celular (até 767 px) usa a arte 4:5 quando o lojista subiu uma
+  // (lote 4.1c, João 20/10); sem ela, a de computador em 3:1.
+  const mobile = banner.image_mobile_url;
   const image = (
-    <img
-      src={banner.image_url}
-      alt={banner.title || storeName}
-      className="mx-auto block aspect-[3/1] w-full max-w-[1600px] object-cover"
-    />
+    <picture>
+      {mobile && <source media="(max-width: 767px)" srcSet={mobile} />}
+      <img
+        src={banner.image_url}
+        alt={banner.title || storeName}
+        className={cn(
+          "mx-auto block w-full max-w-[1600px] object-cover",
+          mobile ? "aspect-[4/5] md:aspect-[3/1]" : "aspect-[3/1]",
+        )}
+      />
+    </picture>
   );
   const target = bannerTargetHref(banner, slug);
   if (!target) return image;
