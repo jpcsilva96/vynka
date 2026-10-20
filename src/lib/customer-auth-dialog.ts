@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 
 // Janela de entrar/criar conta da loja (catálogo lote 5, §9): abre de qualquer ponto da loja
 // (cabeçalho, favoritar) sem sair da página.
-export type CustomerAuthMode = "login" | "signup" | "forgot";
+export type CustomerAuthMode = "login" | "signup";
 
 let state: { open: boolean; mode: CustomerAuthMode } = { open: false, mode: "login" };
 const listeners = new Set<() => void>();
