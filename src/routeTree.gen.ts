@@ -58,6 +58,10 @@ import { Route as LojaSlugQuemSomosRouteImport } from './routes/loja.$slug.quem-
 import { Route as AdminIntegracoesMelhorEnvioRetornoRouteImport } from './routes/admin.integracoes.melhor-envio.retorno'
 import { Route as AdminIntegracoesMercadoPagoRetornoRouteImport } from './routes/admin.integracoes.mercado-pago.retorno'
 import { Route as LojaSlugCategoriaCategorySlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug'
+import { Route as LojaSlugMinhaContaComprasRouteImport } from './routes/loja.$slug.minha-conta.compras'
+import { Route as LojaSlugMinhaContaDadosRouteImport } from './routes/loja.$slug.minha-conta.dados'
+import { Route as LojaSlugMinhaContaEnderecosRouteImport } from './routes/loja.$slug.minha-conta.enderecos'
+import { Route as LojaSlugMinhaContaFavoritosRouteImport } from './routes/loja.$slug.minha-conta.favoritos'
 import { Route as LojaSlugPedidoIdRouteImport } from './routes/loja.$slug.pedido.$id'
 import { Route as LojaSlugProdutoIdRouteImport } from './routes/loja.$slug.produto.$id'
 import { Route as LojaSlugCategoriaCategorySlugChildSlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug.$childSlug'
@@ -310,6 +314,29 @@ const LojaSlugCategoriaCategorySlugRoute =
     path: '/categoria/$categorySlug',
     getParentRoute: () => LojaSlugRoute,
   } as any)
+const LojaSlugMinhaContaComprasRoute =
+  LojaSlugMinhaContaComprasRouteImport.update({
+    id: '/compras',
+    path: '/compras',
+    getParentRoute: () => LojaSlugMinhaContaRoute,
+  } as any)
+const LojaSlugMinhaContaDadosRoute = LojaSlugMinhaContaDadosRouteImport.update({
+  id: '/dados',
+  path: '/dados',
+  getParentRoute: () => LojaSlugMinhaContaRoute,
+} as any)
+const LojaSlugMinhaContaEnderecosRoute =
+  LojaSlugMinhaContaEnderecosRouteImport.update({
+    id: '/enderecos',
+    path: '/enderecos',
+    getParentRoute: () => LojaSlugMinhaContaRoute,
+  } as any)
+const LojaSlugMinhaContaFavoritosRoute =
+  LojaSlugMinhaContaFavoritosRouteImport.update({
+    id: '/favoritos',
+    path: '/favoritos',
+    getParentRoute: () => LojaSlugMinhaContaRoute,
+  } as any)
 const LojaSlugPedidoIdRoute = LojaSlugPedidoIdRouteImport.update({
   id: '/pedido/$id',
   path: '/pedido/$id',
@@ -366,7 +393,7 @@ export interface FileRoutesByFullPath {
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
-  '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
+  '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRouteWithChildren
   '/loja/$slug/novidades': typeof LojaSlugNovidadesRoute
   '/loja/$slug/promocoes': typeof LojaSlugPromocoesRoute
   '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
@@ -377,6 +404,10 @@ export interface FileRoutesByFullPath {
   '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
   '/admin/integracoes/mercado-pago/retorno': typeof AdminIntegracoesMercadoPagoRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
+  '/loja/$slug/minha-conta/compras': typeof LojaSlugMinhaContaComprasRoute
+  '/loja/$slug/minha-conta/dados': typeof LojaSlugMinhaContaDadosRoute
+  '/loja/$slug/minha-conta/enderecos': typeof LojaSlugMinhaContaEnderecosRoute
+  '/loja/$slug/minha-conta/favoritos': typeof LojaSlugMinhaContaFavoritosRoute
   '/loja/$slug/pedido/$id': typeof LojaSlugPedidoIdRoute
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
   '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
@@ -414,7 +445,7 @@ export interface FileRoutesByTo {
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
-  '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
+  '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRouteWithChildren
   '/loja/$slug/novidades': typeof LojaSlugNovidadesRoute
   '/loja/$slug/promocoes': typeof LojaSlugPromocoesRoute
   '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
@@ -425,6 +456,10 @@ export interface FileRoutesByTo {
   '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
   '/admin/integracoes/mercado-pago/retorno': typeof AdminIntegracoesMercadoPagoRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
+  '/loja/$slug/minha-conta/compras': typeof LojaSlugMinhaContaComprasRoute
+  '/loja/$slug/minha-conta/dados': typeof LojaSlugMinhaContaDadosRoute
+  '/loja/$slug/minha-conta/enderecos': typeof LojaSlugMinhaContaEnderecosRoute
+  '/loja/$slug/minha-conta/favoritos': typeof LojaSlugMinhaContaFavoritosRoute
   '/loja/$slug/pedido/$id': typeof LojaSlugPedidoIdRoute
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
   '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
@@ -469,7 +504,7 @@ export interface FileRoutesById {
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
-  '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRoute
+  '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRouteWithChildren
   '/loja/$slug/novidades': typeof LojaSlugNovidadesRoute
   '/loja/$slug/promocoes': typeof LojaSlugPromocoesRoute
   '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
@@ -480,6 +515,10 @@ export interface FileRoutesById {
   '/admin/integracoes/melhor-envio/retorno': typeof AdminIntegracoesMelhorEnvioRetornoRoute
   '/admin/integracoes/mercado-pago/retorno': typeof AdminIntegracoesMercadoPagoRetornoRoute
   '/loja/$slug/categoria/$categorySlug': typeof LojaSlugCategoriaCategorySlugRouteWithChildren
+  '/loja/$slug/minha-conta/compras': typeof LojaSlugMinhaContaComprasRoute
+  '/loja/$slug/minha-conta/dados': typeof LojaSlugMinhaContaDadosRoute
+  '/loja/$slug/minha-conta/enderecos': typeof LojaSlugMinhaContaEnderecosRoute
+  '/loja/$slug/minha-conta/favoritos': typeof LojaSlugMinhaContaFavoritosRoute
   '/loja/$slug/pedido/$id': typeof LojaSlugPedidoIdRoute
   '/loja/$slug/produto/$id': typeof LojaSlugProdutoIdRoute
   '/loja/$slug/categoria/$categorySlug/$childSlug': typeof LojaSlugCategoriaCategorySlugChildSlugRoute
@@ -536,6 +575,10 @@ export interface FileRouteTypes {
     | '/admin/integracoes/melhor-envio/retorno'
     | '/admin/integracoes/mercado-pago/retorno'
     | '/loja/$slug/categoria/$categorySlug'
+    | '/loja/$slug/minha-conta/compras'
+    | '/loja/$slug/minha-conta/dados'
+    | '/loja/$slug/minha-conta/enderecos'
+    | '/loja/$slug/minha-conta/favoritos'
     | '/loja/$slug/pedido/$id'
     | '/loja/$slug/produto/$id'
     | '/loja/$slug/categoria/$categorySlug/$childSlug'
@@ -584,6 +627,10 @@ export interface FileRouteTypes {
     | '/admin/integracoes/melhor-envio/retorno'
     | '/admin/integracoes/mercado-pago/retorno'
     | '/loja/$slug/categoria/$categorySlug'
+    | '/loja/$slug/minha-conta/compras'
+    | '/loja/$slug/minha-conta/dados'
+    | '/loja/$slug/minha-conta/enderecos'
+    | '/loja/$slug/minha-conta/favoritos'
     | '/loja/$slug/pedido/$id'
     | '/loja/$slug/produto/$id'
     | '/loja/$slug/categoria/$categorySlug/$childSlug'
@@ -638,6 +685,10 @@ export interface FileRouteTypes {
     | '/admin/integracoes/melhor-envio/retorno'
     | '/admin/integracoes/mercado-pago/retorno'
     | '/loja/$slug/categoria/$categorySlug'
+    | '/loja/$slug/minha-conta/compras'
+    | '/loja/$slug/minha-conta/dados'
+    | '/loja/$slug/minha-conta/enderecos'
+    | '/loja/$slug/minha-conta/favoritos'
     | '/loja/$slug/pedido/$id'
     | '/loja/$slug/produto/$id'
     | '/loja/$slug/categoria/$categorySlug/$childSlug'
@@ -999,6 +1050,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugCategoriaCategorySlugRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/loja/$slug/minha-conta/compras': {
+      id: '/loja/$slug/minha-conta/compras'
+      path: '/compras'
+      fullPath: '/loja/$slug/minha-conta/compras'
+      preLoaderRoute: typeof LojaSlugMinhaContaComprasRouteImport
+      parentRoute: typeof LojaSlugMinhaContaRoute
+    }
+    '/loja/$slug/minha-conta/dados': {
+      id: '/loja/$slug/minha-conta/dados'
+      path: '/dados'
+      fullPath: '/loja/$slug/minha-conta/dados'
+      preLoaderRoute: typeof LojaSlugMinhaContaDadosRouteImport
+      parentRoute: typeof LojaSlugMinhaContaRoute
+    }
+    '/loja/$slug/minha-conta/enderecos': {
+      id: '/loja/$slug/minha-conta/enderecos'
+      path: '/enderecos'
+      fullPath: '/loja/$slug/minha-conta/enderecos'
+      preLoaderRoute: typeof LojaSlugMinhaContaEnderecosRouteImport
+      parentRoute: typeof LojaSlugMinhaContaRoute
+    }
+    '/loja/$slug/minha-conta/favoritos': {
+      id: '/loja/$slug/minha-conta/favoritos'
+      path: '/favoritos'
+      fullPath: '/loja/$slug/minha-conta/favoritos'
+      preLoaderRoute: typeof LojaSlugMinhaContaFavoritosRouteImport
+      parentRoute: typeof LojaSlugMinhaContaRoute
+    }
     '/loja/$slug/pedido/$id': {
       id: '/loja/$slug/pedido/$id'
       path: '/pedido/$id'
@@ -1134,6 +1213,23 @@ const MasterRouteChildren: MasterRouteChildren = {
 const MasterRouteWithChildren =
   MasterRoute._addFileChildren(MasterRouteChildren)
 
+interface LojaSlugMinhaContaRouteChildren {
+  LojaSlugMinhaContaComprasRoute: typeof LojaSlugMinhaContaComprasRoute
+  LojaSlugMinhaContaDadosRoute: typeof LojaSlugMinhaContaDadosRoute
+  LojaSlugMinhaContaEnderecosRoute: typeof LojaSlugMinhaContaEnderecosRoute
+  LojaSlugMinhaContaFavoritosRoute: typeof LojaSlugMinhaContaFavoritosRoute
+}
+
+const LojaSlugMinhaContaRouteChildren: LojaSlugMinhaContaRouteChildren = {
+  LojaSlugMinhaContaComprasRoute: LojaSlugMinhaContaComprasRoute,
+  LojaSlugMinhaContaDadosRoute: LojaSlugMinhaContaDadosRoute,
+  LojaSlugMinhaContaEnderecosRoute: LojaSlugMinhaContaEnderecosRoute,
+  LojaSlugMinhaContaFavoritosRoute: LojaSlugMinhaContaFavoritosRoute,
+}
+
+const LojaSlugMinhaContaRouteWithChildren =
+  LojaSlugMinhaContaRoute._addFileChildren(LojaSlugMinhaContaRouteChildren)
+
 interface LojaSlugCategoriaCategorySlugRouteChildren {
   LojaSlugCategoriaCategorySlugChildSlugRoute: typeof LojaSlugCategoriaCategorySlugChildSlugRoute
 }
@@ -1154,7 +1250,7 @@ interface LojaSlugRouteChildren {
   LojaSlugCheckoutRoute: typeof LojaSlugCheckoutRoute
   LojaSlugContatoRoute: typeof LojaSlugContatoRoute
   LojaSlugEntrarRoute: typeof LojaSlugEntrarRoute
-  LojaSlugMinhaContaRoute: typeof LojaSlugMinhaContaRoute
+  LojaSlugMinhaContaRoute: typeof LojaSlugMinhaContaRouteWithChildren
   LojaSlugNovidadesRoute: typeof LojaSlugNovidadesRoute
   LojaSlugPromocoesRoute: typeof LojaSlugPromocoesRoute
   LojaSlugQuemSomosRoute: typeof LojaSlugQuemSomosRoute
@@ -1169,7 +1265,7 @@ const LojaSlugRouteChildren: LojaSlugRouteChildren = {
   LojaSlugCheckoutRoute: LojaSlugCheckoutRoute,
   LojaSlugContatoRoute: LojaSlugContatoRoute,
   LojaSlugEntrarRoute: LojaSlugEntrarRoute,
-  LojaSlugMinhaContaRoute: LojaSlugMinhaContaRoute,
+  LojaSlugMinhaContaRoute: LojaSlugMinhaContaRouteWithChildren,
   LojaSlugNovidadesRoute: LojaSlugNovidadesRoute,
   LojaSlugPromocoesRoute: LojaSlugPromocoesRoute,
   LojaSlugQuemSomosRoute: LojaSlugQuemSomosRoute,

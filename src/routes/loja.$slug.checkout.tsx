@@ -20,7 +20,7 @@ import {
   signInCustomer,
   signOutCustomer,
   signUpCustomer,
-  upsertStoreCustomer,
+  rememberCheckoutAddress,
   useStoreCustomer,
 } from "@/lib/customer-account";
 import { deliveryDaysLabel, formatDeliveryAddress } from "@/lib/orders";
@@ -300,16 +300,16 @@ function CheckoutPage() {
       // Pedido gravado: o carrinho sai já, para um novo clique não duplicar o pedido.
       clearCart();
       if (!isPickup) {
-        // Endereço usado vira o endereço salvo da conta (cidade/UF do CEP).
-        void upsertStoreCustomer(store.id, {
-          name: account.name,
-          phone: account.phone,
-          email: account.email,
+        // Endereço usado vira o principal em Meus endereços (cidade/UF do CEP); o banco copia o
+        // principal para a ficha.
+        void rememberCheckoutAddress(store.id, account, {
           zip_code: validQuote.zip,
           ...street,
           city: validQuote.address.city,
           state: validQuote.address.state,
-        }).catch(() => undefined);
+        })
+          .then(() => queryClient.invalidateQueries({ queryKey: ["customer-addresses", store.id] }))
+          .catch(() => undefined);
       }
       void queryClient.invalidateQueries({ queryKey: ["store-customer", store.id] });
       void queryClient.invalidateQueries({ queryKey: ["customer-orders", store.id] });

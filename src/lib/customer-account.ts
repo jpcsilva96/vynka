@@ -133,83 +133,133 @@ export async function signOutCustomer(storeId: string) {
   await storeAuthClient(storeId).auth.signOut();
 }
 
-export async function upsertStoreCustomer(
+// Meus dados: nome e telefone. O e-mail não muda pela loja (identifica a conta e será o caminho do
+// "Esqueci minha senha"; sem envio de e-mail não há como confirmar um novo).
+export async function updateCustomerProfile(
   storeId: string,
-  input: {
-    name: string;
-    phone?: string | null;
-    email?: string | null;
-  } & Partial<CustomerAddressForm>,
+  customer: StoreCustomer,
+  input: { name: string; phone: string },
 ) {
-  const user = await getSessionUser(storeId);
-  if (!user) throw new Error("Cliente não autenticado.");
-  // Só os campos recebidos: campo que não veio fica como está (antes, o login mandava só nome,
-  // telefone e e-mail, e o endereço salvo era zerado).
-  const optional = [
-    "phone",
-    "zip_code",
-    "street",
-    "address_number",
-    "complement",
-    "neighborhood",
-    "city",
-    "state",
-  ] as const;
-  const payload: {
-    store_id: string;
-    user_id: string;
-    name: string;
-    email: string | null;
-  } & Partial<Record<(typeof optional)[number], string | null>> = {
-    store_id: storeId,
-    user_id: user.id,
-    name: input.name,
-    email: input.email ?? user.email ?? null,
-  };
-  for (const key of optional) {
-    if (input[key] !== undefined) payload[key] = input[key] ?? null;
-  }
-  const db = dbFor(storeId);
-  const { data: existing, error: existingError } = await db
+  const { error } = await dbFor(storeId)
     .from("customers")
-    .select("id")
-    .eq("store_id", storeId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (existingError) throw existingError;
-
-  const query = existing?.id
-    ? db
-        .from("customers")
-        .update(payload)
-        .eq("id", existing.id)
-        .select(
-          "id,store_id,user_id,name,phone,email,zip_code,street,address_number,complement,neighborhood,city,state",
-        )
-        .single()
-    : db
-        .from("customers")
-        .insert(payload)
-        .select(
-          "id,store_id,user_id,name,phone,email,zip_code,street,address_number,complement,neighborhood,city,state",
-        )
-        .single();
-  const { data, error } = await query;
-  if (error) throw error;
-  return data as StoreCustomer;
+    .update({ name: input.name.trim(), phone: input.phone.replace(/\D/g, "") })
+    .eq("id", customer.id);
+  if (error?.code === "23505") throw new Error("Este telefone já está em outra conta desta loja.");
+  if (error) throw new Error("Não foi possível salvar seus dados. Tente de novo.");
 }
 
-export async function updateCustomerAddress(
+// Trocar a senha: confere a senha atual antes (entra de novo com ela na conta da loja).
+export async function changeCustomerPassword(storeId: string, current: string, next: string) {
+  const auth = storeAuthClient(storeId).auth;
+  const user = await getSessionUser(storeId);
+  if (!user?.email) throw new Error("Entre na sua conta para trocar a senha.");
+  const check = await auth.signInWithPassword({ email: user.email, password: current });
+  if (check.error) throw new Error("Senha atual incorreta.");
+  const { error } = await auth.updateUser({ password: next });
+  if (error) throw new Error("Não foi possível trocar a senha. Tente outra senha.");
+}
+
+// Meus endereços (lote 5a): até 10 por conta; o principal o banco copia para a ficha (e é o que o
+// checkout já preenche). Marcar outro como principal troca; apagar o principal promove outro.
+export const MAX_CUSTOMER_ADDRESSES = 10;
+
+export interface CustomerAddress extends CustomerAddressForm {
+  id: string;
+  label: string | null;
+  is_default: boolean;
+}
+
+const ADDRESS_COLUMNS =
+  "id,label,zip_code,street,address_number,complement,neighborhood,city,state,is_default";
+
+export function useCustomerAddresses(storeId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["customer-addresses", storeId],
+    queryFn: () => listCustomerAddresses(storeId),
+    enabled,
+  });
+}
+
+export async function listCustomerAddresses(storeId: string): Promise<CustomerAddress[]> {
+  const { data, error } = await dbFor(storeId)
+    .from("customer_addresses")
+    .select(ADDRESS_COLUMNS)
+    .eq("store_id", storeId)
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as CustomerAddress[];
+}
+
+const addressPayload = (address: CustomerAddressForm & { label?: string | null }) => ({
+  label: address.label?.trim() || null,
+  zip_code: address.zip_code.replace(/\D/g, ""),
+  street: address.street.trim(),
+  address_number: address.address_number.trim(),
+  complement: address.complement.trim() || null,
+  neighborhood: address.neighborhood.trim(),
+  city: address.city.trim(),
+  state: address.state.trim().toUpperCase(),
+});
+
+const addressError = (error: { message?: string } | null) =>
+  error
+    ? new Error(
+        /Limite de 10/.test(error.message ?? "")
+          ? `Você já tem ${MAX_CUSTOMER_ADDRESSES} endereços. Apague um para salvar outro.`
+          : "Não foi possível salvar o endereço. Confira os campos e tente de novo.",
+      )
+    : null;
+
+export async function saveCustomerAddress(
+  storeId: string,
+  customer: StoreCustomer,
+  address: CustomerAddressForm & { id?: string; label?: string | null; is_default?: boolean },
+) {
+  const db = dbFor(storeId).from("customer_addresses");
+  const payload = {
+    ...addressPayload(address),
+    ...(address.is_default ? { is_default: true } : {}),
+  };
+  const { error } = address.id
+    ? await db.update(payload).eq("id", address.id)
+    : await db.insert({ ...payload, store_id: storeId, customer_id: customer.id });
+  const failure = addressError(error);
+  if (failure) throw failure;
+}
+
+export async function setDefaultCustomerAddress(storeId: string, id: string) {
+  const { error } = await dbFor(storeId)
+    .from("customer_addresses")
+    .update({ is_default: true })
+    .eq("id", id);
+  if (error) throw new Error("Não foi possível trocar o endereço principal.");
+}
+
+export async function deleteCustomerAddress(storeId: string, id: string) {
+  const { error } = await dbFor(storeId).from("customer_addresses").delete().eq("id", id);
+  if (error) throw new Error("Não foi possível apagar o endereço.");
+}
+
+// Checkout: o endereço usado na compra vira o principal. Se já está salvo (mesmo CEP, rua, número e
+// complemento), só passa a ser o principal; senão entra como novo. Com 10 salvos, não grava.
+export async function rememberCheckoutAddress(
   storeId: string,
   customer: StoreCustomer,
   address: CustomerAddressForm,
 ) {
-  return upsertStoreCustomer(storeId, {
-    name: customer.name,
-    phone: customer.phone,
-    email: customer.email,
-    ...address,
-  });
+  const key = (a: CustomerAddressForm) =>
+    [a.zip_code.replace(/\D/g, ""), a.street, a.address_number, a.complement ?? ""]
+      .map((part) => part.trim().toLowerCase())
+      .join("|");
+  const saved = await listCustomerAddresses(storeId);
+  const same = saved.find((item) => key(item) === key(address));
+  if (same) {
+    if (!same.is_default) await setDefaultCustomerAddress(storeId, same.id);
+    return;
+  }
+  if (saved.length >= MAX_CUSTOMER_ADDRESSES) return;
+  await saveCustomerAddress(storeId, customer, { ...address, is_default: true });
 }
 
 export async function listCustomerOrders(storeId: string): Promise<CustomerOrder[]> {

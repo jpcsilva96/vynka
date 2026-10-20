@@ -1,8 +1,9 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, ImageIcon } from "lucide-react";
 import type { MouseEvent } from "react";
 import { listFavoriteProductIds, toggleFavorite, useStoreCustomer } from "@/lib/customer-account";
+import { openCustomerAuth } from "@/lib/customer-auth-dialog";
 import { thumbUrl } from "@/lib/image-resize";
 import { formatBRL } from "@/lib/products";
 import { isOnSale, type PublicProduct } from "@/lib/public-shop";
@@ -11,7 +12,6 @@ import { cn } from "@/lib/utils";
 
 export function ProductCard({ product }: { product: PublicProduct }) {
   const store = useStorefront();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: customer } = useStoreCustomer(store.id);
   const { data: favoriteIds = [] } = useQuery({
@@ -28,7 +28,7 @@ export function ProductCard({ product }: { product: PublicProduct }) {
     event.preventDefault();
     event.stopPropagation();
     if (!customer) {
-      navigate({ to: "/loja/$slug/entrar", params: { slug: store.slug } });
+      openCustomerAuth();
       return;
     }
     await toggleFavorite(store.id, product.id);
