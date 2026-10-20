@@ -247,7 +247,7 @@ function LayoutEditor() {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: ({ kind, file }: { targetId: string; kind: "logo" | "favicon" | "banner" | "about"; file: File }) =>
+    mutationFn: ({ kind, file }: { targetId: string; kind: "logo" | "favicon" | "banner" | "banner_mobile" | "about"; file: File }) =>
       uploadStoreBranding(storeId, kind, file),
     onSuccess: (url, variables) => {
       if (variables.kind === "logo") {
@@ -256,6 +256,9 @@ function LayoutEditor() {
         setStore((current) => ({ ...current, favicon_url: url }));
       } else if (variables.kind === "about") {
         setVisual((current) => ({ ...current, about_image_url: url }));
+      } else if (variables.kind === "banner_mobile") {
+        const bannerId = variables.targetId.replace(/:mobile$/, "");
+        setBanners((current) => current.map((banner) => banner.id === bannerId ? { ...banner, image_mobile_url: url } : banner));
       } else {
         setBanners((current) => current.map((banner) => banner.id === variables.targetId ? { ...banner, image_url: url } : banner));
       }
@@ -295,6 +298,7 @@ function LayoutEditor() {
       id: crypto.randomUUID(),
       store_id: storeId,
       image_url: "",
+      image_mobile_url: "",
       title: "",
       subtitle: "",
       button_label: "",
@@ -456,7 +460,7 @@ type ControlsProps = {
   applyTheme: (theme: StoreTheme) => void;
   setBanners: React.Dispatch<React.SetStateAction<StoreBanner[]>>;
   addBanner: () => void;
-  upload: (targetId: string, kind: "logo" | "favicon" | "banner" | "about", file: File) => void;
+  upload: (targetId: string, kind: "logo" | "favicon" | "banner" | "banner_mobile" | "about", file: File) => void;
 };
 
 function EditorControls(props: ControlsProps) {
@@ -528,10 +532,12 @@ function EditorControls(props: ControlsProps) {
                   categories={categories}
                   visual={visual}
                   uploading={props.uploading === banner.id}
+                  uploadingMobile={props.uploading === `${banner.id}:mobile`}
                   patch={props.patchBanner}
                   remove={() => props.setBanners((items) => items.filter((item) => item.id !== banner.id))}
                   move={(direction) => props.setBanners((items) => moveItem(items, index, direction))}
                   upload={(file) => props.upload(banner.id, "banner", file)}
+                  uploadMobile={(file) => props.upload(`${banner.id}:mobile`, "banner_mobile", file)}
                 />
               ))}
             </div>
@@ -715,23 +721,29 @@ function FontSelector({ label, help, value, onChange, onReset }: { label: string
   );
 }
 
-function ImageUpload({ value, uploading, onFile, onRemove, variant = "logo" }: { value: string; uploading: boolean; onFile: (file: File) => void; onRemove: () => void; variant?: "logo" | "favicon" | "banner" | "about" }) {
+// Tamanho recomendado de cada imagem (largura x altura, em px).
+const IMAGE_SIZE = {
+  banner: { width: 1920, height: 640 },
+  banner_mobile: { width: 1080, height: 1350 },
+  about: { width: 1200, height: 900 },
+} as const;
+
+function ImageUpload({ value, uploading, onFile, onRemove, variant = "logo" }: { value: string; uploading: boolean; onFile: (file: File) => void; onRemove: () => void; variant?: "logo" | "favicon" | "banner" | "banner_mobile" | "about" }) {
   const [dimensionWarning, setDimensionWarning] = useState("");
 
   const selectFile = async (file: File) => {
     setDimensionWarning("");
-    if (variant === "banner" || variant === "about") {
+    if (variant === "banner" || variant === "banner_mobile" || variant === "about") {
+      const { width: minimumWidth, height: minimumHeight } = IMAGE_SIZE[variant];
       try {
         const dimensions = await readImageDimensions(file);
-        const minimumWidth = variant === "banner" ? 1920 : 1200;
-        const minimumHeight = variant === "banner" ? 640 : 900;
         if (dimensions.width < minimumWidth || dimensions.height < minimumHeight) {
           setDimensionWarning(
             `Sua imagem tem ${dimensions.width} x ${dimensions.height} px. Recomendamos pelo menos ${minimumWidth} x ${minimumHeight} px para não perder qualidade.`,
           );
         }
       } catch {
-        setDimensionWarning(variant === "banner" ? "Não foi possível conferir o tamanho da imagem. Verifique se ela tem pelo menos 1920 x 640 px." : "Não foi possível conferir o tamanho da imagem. Verifique se ela tem pelo menos 1200 x 900 px.");
+        setDimensionWarning(`Não foi possível conferir o tamanho da imagem. Verifique se ela tem pelo menos ${minimumWidth} x ${minimumHeight} px.`);
       }
     }
     onFile(file);
@@ -740,8 +752,8 @@ function ImageUpload({ value, uploading, onFile, onRemove, variant = "logo" }: {
   return (
     <div>
       <div className="overflow-hidden rounded-md border border-border">
-        <div className={cn("grid place-items-center bg-neutral-50", variant === "banner" ? "aspect-[3/1]" : variant === "about" ? "aspect-[4/3]" : "h-28")}>
-          {value ? <img src={value} alt="" className={cn(variant === "about" || variant === "banner" ? "object-cover" : "object-contain", variant === "favicon" ? "h-16 w-16" : "h-full w-full")} /> : <ImageIcon className="h-7 w-7 text-muted-foreground" />}
+        <div className={cn("grid place-items-center bg-neutral-50", variant === "banner" ? "aspect-[3/1]" : variant === "banner_mobile" ? "mx-auto aspect-[4/5] w-1/2" : variant === "about" ? "aspect-[4/3]" : "h-28")}>
+          {value ? <img src={value} alt="" className={cn(variant === "about" || variant === "banner" || variant === "banner_mobile" ? "object-cover" : "object-contain", variant === "favicon" ? "h-16 w-16" : "h-full w-full")} /> : <ImageIcon className="h-7 w-7 text-muted-foreground" />}
         </div>
         <div className="flex items-center gap-2 border-t border-border p-2">
           <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-[12px] font-medium">
@@ -754,7 +766,12 @@ function ImageUpload({ value, uploading, onFile, onRemove, variant = "logo" }: {
       </div>
       {variant === "banner" && (
         <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-          Tamanho ideal: 1920 x 640 px (imagem deitada, 3 vezes mais larga que alta). A imagem aparece inteira, também no celular.
+          Tamanho ideal: 1920 x 640 px (imagem deitada, 3 vezes mais larga que alta). Sem a imagem para celular, esta também aparece no celular, bem mais baixa.
+        </p>
+      )}
+      {variant === "banner_mobile" && (
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          Tamanho ideal: 1080 x 1350 px (imagem em pé, formato de post do Instagram). Se usar em um banner, use em todos, para o carrossel do celular ficar com a mesma altura.
         </p>
       )}
       {variant === "favicon" && <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">Use uma imagem quadrada, de pelo menos 130 x 130 px.</p>}
@@ -780,7 +797,7 @@ function bannerDestinations(visual: CatalogVisualSettings): { value: StoreBanner
   ];
 }
 
-function BannerEditor({ banner, index, total, products, categories, visual, uploading, patch, remove, move, upload }: { banner: StoreBanner; index: number; total: number; products: ProductRecord[]; categories: Category[]; visual: CatalogVisualSettings; uploading: boolean; patch: ControlsProps["patchBanner"]; remove: () => void; move: (direction: -1 | 1) => void; upload: (file: File) => void }) {
+function BannerEditor({ banner, index, total, products, categories, visual, uploading, uploadingMobile, patch, remove, move, upload, uploadMobile }: { banner: StoreBanner; index: number; total: number; products: ProductRecord[]; categories: Category[]; visual: CatalogVisualSettings; uploading: boolean; uploadingMobile: boolean; patch: ControlsProps["patchBanner"]; remove: () => void; move: (direction: -1 | 1) => void; upload: (file: File) => void; uploadMobile: (file: File) => void }) {
   const [productSearch, setProductSearch] = useState("");
   const destinations = bannerDestinations(visual);
   const known = destinations.some((item) => item.value === banner.link_type);
@@ -799,7 +816,15 @@ function BannerEditor({ banner, index, total, products, categories, visual, uplo
         <Button type="button" size="icon" variant="ghost" onClick={remove} title="Remover banner" className="text-red-600"><Trash2 /></Button>
       </div>
       <div className="space-y-3 p-3">
-        <ImageUpload value={banner.image_url} uploading={uploading} onFile={upload} onRemove={() => patch(banner.id, "image_url", "")} variant="banner" />
+        {/* Duas artes (lote 4.1c): computador 3:1 e celular 4:5 (opcional). */}
+        <div className="space-y-1.5">
+          <span className="block text-[12px] font-medium">Imagem para computador</span>
+          <ImageUpload value={banner.image_url} uploading={uploading} onFile={upload} onRemove={() => patch(banner.id, "image_url", "")} variant="banner" />
+        </div>
+        <div className="space-y-1.5">
+          <span className="block text-[12px] font-medium">Imagem para celular <span className="font-normal text-muted-foreground">(opcional)</span></span>
+          <ImageUpload value={banner.image_mobile_url} uploading={uploadingMobile} onFile={uploadMobile} onRemove={() => patch(banner.id, "image_mobile_url", "")} variant="banner_mobile" />
+        </div>
         <div className="space-y-2">
           <span className="block text-[12px] font-medium">Quando o cliente clicar, ir para:</span>
           <select

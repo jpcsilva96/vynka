@@ -238,7 +238,9 @@ export async function getStoreBySlug(slug: string): Promise<StorefrontStore | nu
   if (faviconError) throw faviconError;
   const { data: banners, error: bannersError } = await (supabase as any)
     .from("store_banners")
-    .select("id,store_id,image_url,title,subtitle,button_label,link_type,link_target,sort_order,active")
+    .select(
+      "id,store_id,image_url,image_mobile_url,title,subtitle,button_label,link_type,link_target,sort_order,active",
+    )
     .eq("store_id", data.id)
     .eq("active", true)
     .order("sort_order", { ascending: true })
@@ -254,6 +256,7 @@ export async function getStoreBySlug(slug: string): Promise<StorefrontStore | nu
       id: banner.id,
       store_id: banner.store_id,
       image_url: banner.image_url ?? "",
+      image_mobile_url: banner.image_mobile_url ?? "",
       title: banner.title ?? "",
       subtitle: banner.subtitle ?? "",
       button_label: banner.button_label ?? "",
@@ -294,6 +297,7 @@ function normalizePublicBannerValue(storeId: string, value: unknown, index: numb
     id: typeof raw.id === "string" ? raw.id : `${storeId}-${index}`,
     store_id: storeId,
     image_url: typeof raw.image_url === "string" ? raw.image_url : "",
+    image_mobile_url: typeof raw.image_mobile_url === "string" ? raw.image_mobile_url : "",
     title: typeof raw.title === "string" ? raw.title : "",
     subtitle: typeof raw.subtitle === "string" ? raw.subtitle : "",
     button_label: typeof raw.button_label === "string" ? raw.button_label : "",
