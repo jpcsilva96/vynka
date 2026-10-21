@@ -212,13 +212,25 @@ export async function listProductSalesRank(storeId: string): Promise<Record<stri
 const STOREFRONT_COLUMNS =
   "id,slug,name,description,logo_url,banner_url,og_image_url,banner_title,banner_subtitle,banner_cta,phone,whatsapp,email,instagram,address,address_number,complement,city,state,zip_code,business_hours,status,publication_status";
 
+// Vitrine lê a visão pública (só lojas publicadas e só as colunas da vitrine; lote de permissão).
+// Loja fora da visão (rascunho): só o dono ou o master a leem direto em stores, para a prévia do
+// editor; para os demais a leitura volta vazia ou recusada, e a loja fica "não encontrada".
 export async function getStoreBySlug(slug: string): Promise<StorefrontStore | null> {
-  const { data, error } = await (supabase as any)
-    .from("stores")
+  const { data: published, error } = await (supabase as any)
+    .from("storefront_stores")
     .select(STOREFRONT_COLUMNS)
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw error;
+  let data = published;
+  if (!data) {
+    const { data: own } = await (supabase as any)
+      .from("stores")
+      .select(STOREFRONT_COLUMNS)
+      .eq("slug", slug)
+      .maybeSingle();
+    data = own ?? null;
+  }
   if (!data) return null;
   const [{ data: visual, error: visualError }, { data: favicon, error: faviconError }] = await Promise.all([
     supabase
