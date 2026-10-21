@@ -5,6 +5,7 @@ import { buildWhatsAppLink, openCart } from "@/lib/cart";
 import { formatPhone } from "@/lib/br-documents";
 import { useStoreCustomer } from "@/lib/customer-account";
 import { openCustomerAuth } from "@/lib/customer-auth-dialog";
+import { storeIdentity } from "@/lib/legal-policies";
 import { contrastRatio } from "@/lib/store-settings";
 import { useStorefront } from "@/lib/storefront-context";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ export function StoreFooter() {
       ? store.phone
       : null;
   const description = plainText(store.description);
+  const identity = storeIdentity(store);
 
   const institutional: ReactNode[] = [];
   if (visual.about_enabled) {
@@ -60,6 +62,18 @@ export function StoreFooter() {
       </Link>,
     );
   }
+  // Páginas legais: toda loja tem (modelo padrão do Vynka, escopo paginas-legais.md).
+  institutional.push(
+    <Link key="trocas" to="/loja/$slug/trocas" params={{ slug }} className={linkClass}>
+      Trocas e devoluções
+    </Link>,
+    <Link key="envios" to="/loja/$slug/envios" params={{ slug }} className={linkClass}>
+      Envios e prazos
+    </Link>,
+    <Link key="privacidade" to="/loja/$slug/privacidade" params={{ slug }} className={linkClass}>
+      Política de privacidade
+    </Link>,
+  );
 
   const firstName = customer?.name?.trim().split(/\s+/)[0] ?? "";
   // Sem conta, Minhas compras e Favoritos abrem a janela de entrar (mesma do cabeçalho).
@@ -174,9 +188,7 @@ export function StoreFooter() {
           )}
         </div>
 
-        {institutional.length > 0 && (
-          <FooterColumn title="Institucional">{institutional}</FooterColumn>
-        )}
+        <FooterColumn title="Institucional">{institutional}</FooterColumn>
 
         <FooterColumn title="Minha conta">
           {customer ? (
@@ -207,6 +219,12 @@ export function StoreFooter() {
               Todos os direitos reservados à {store.name}
               {location ? ` · ${location}` : ""}
             </span>
+            {/* Identificação de quem vende (Decreto 7.962/2013). */}
+            {identity.document && (
+              <span>
+                {identity.name} · {identity.document}
+              </span>
+            )}
             <span>Plataforma Vynka</span>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">

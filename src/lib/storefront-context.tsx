@@ -25,6 +25,8 @@ export interface StorefrontStore {
   state: string | null;
   zip_code: string | null;
   business_hours: string | null;
+  tax_document: string | null;
+  responsible_name: string | null;
   status: string;
   publication_status: "draft" | "published" | "unpublished" | "suspended";
   catalog_visual: CatalogVisualSettings;

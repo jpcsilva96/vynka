@@ -606,6 +606,13 @@ function CheckoutPage() {
               </label>
               {open === 3 && errorBox}
               <PrimaryButton busy={busy} onClick={finish} label="Finalizar e pagar" />
+              <p className="mt-3 text-[12px] leading-relaxed text-neutral-500">
+                Ao finalizar, você concorda com as políticas de{" "}
+                <PolicyLink slug={store.slug} to="/loja/$slug/trocas" label="Trocas" />,{" "}
+                <PolicyLink slug={store.slug} to="/loja/$slug/envios" label="Envios" /> e{" "}
+                <PolicyLink slug={store.slug} to="/loja/$slug/privacidade" label="Privacidade" /> da
+                loja.
+              </p>
             </Section>
           </div>
 
@@ -634,6 +641,23 @@ function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Abre em outra aba para o cliente não perder o checkout preenchido.
+function PolicyLink({
+  slug,
+  to,
+  label,
+}: {
+  slug: string;
+  to: "/loja/$slug/trocas" | "/loja/$slug/envios" | "/loja/$slug/privacidade";
+  label: string;
+}) {
+  return (
+    <Link to={to} params={{ slug }} target="_blank" className="underline underline-offset-2">
+      {label}
+    </Link>
   );
 }
 
