@@ -4,6 +4,7 @@ import {
   Check,
   ChevronsUpDown,
   CreditCard,
+  FileText,
   Loader2,
   MapPin,
   Package,
@@ -23,6 +24,15 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  defaultLegalPolicies,
+  EXCHANGE_DAYS,
+  EXTRA_TEXT_MAX,
+  getLegalPolicies,
+  PREPARATION_DAYS,
+  saveLegalPolicies,
+  type LegalPolicies,
+} from "@/lib/legal-policies";
 import {
   BOLETO_DAYS,
   BRAZIL_STATES,
@@ -730,6 +740,217 @@ export function OrderStockSettingsTab({ storeId }: { storeId: string }) {
         pending={saveMutation.isPending}
         saved={saved}
         label="Salvar pedidos e vendas"
+        onSave={() => saveMutation.mutate()}
+      />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Políticas da loja
+
+// Páginas legais, lote L3 (escopo paginas-legais.md, §2): o lojista escolhe só o que varia de loja
+// para loja; a parte exigida por lei fica fixa e é mostrada aqui para ele saber o que vale sempre.
+export function LegalPoliciesTab({
+  storeId,
+  slug,
+  hasDocument,
+}: {
+  storeId: string;
+  slug: string;
+  hasDocument: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const { data: saved, isLoading } = useQuery({
+    queryKey: ["legal-policies", storeId],
+    queryFn: () => getLegalPolicies(storeId),
+    enabled: !!storeId,
+  });
+  const [form, setForm] = useState<LegalPolicies>(defaultLegalPolicies);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (saved) setForm(saved);
+  }, [saved]);
+
+  const patch = <K extends keyof LegalPolicies>(key: K, value: LegalPolicies[K]) => {
+    setDone(false);
+    setError("");
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: () => saveLegalPolicies(storeId, form),
+    onSuccess: async () => {
+      setDone(true);
+      await queryClient.invalidateQueries({ queryKey: ["legal-policies", storeId] });
+      window.setTimeout(() => setDone(false), 2200);
+    },
+    onError: (err) => setError(err instanceof Error ? err.message : "Não foi possível salvar."),
+  });
+
+  if (isLoading) return <LoadingBox />;
+
+  const pages = [
+    { path: "trocas", label: "Trocas e devoluções" },
+    { path: "envios", label: "Envios e prazos" },
+    { path: "privacidade", label: "Política de privacidade" },
+  ];
+  const extras = [
+    ["extra_exchange", "Trocas e devoluções"],
+    ["extra_shipping", "Envios e prazos"],
+    ["extra_privacy", "Política de privacidade"],
+  ] as const;
+
+  return (
+    <div className="space-y-6">
+      <TabHeader
+        icon={<FileText className="h-14 w-14" strokeWidth={1.3} />}
+        title="Políticas da loja"
+        description="As páginas de Trocas, Envios e Privacidade já vêm prontas. Aqui você ajusta o que muda na sua loja."
+      />
+
+      {!hasDocument && (
+        <Notice tone="warning">
+          Cadastre o CPF ou CNPJ na aba Loja: a lei pede que ele apareça na loja, junto do nome e do
+          endereço.
+        </Notice>
+      )}
+
+      <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
+        <h3 className="text-[16px] font-semibold text-foreground">Vale sempre, em toda loja</h3>
+        <ul className="mt-3 list-disc space-y-1.5 pl-5 text-[13px] text-muted-foreground">
+          <li>
+            O cliente pode desistir da compra em até 7 dias depois de receber, com o dinheiro de
+            volta, inclusive o frete.
+          </li>
+          <li>
+            Produto com defeito: o cliente tem 90 dias para reclamar, e a loja, 30 dias para
+            resolver. O frete é da loja.
+          </li>
+          <li>Nome, CPF ou CNPJ, endereço e contato da loja aparecem no rodapé e nas páginas.</li>
+        </ul>
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[13px]">
+          {pages.map((page) => (
+            <a
+              key={page.path}
+              href={`/loja/${slug}/${page.path}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-foreground underline-offset-2 hover:underline"
+            >
+              Ver {page.label}
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
+        <h3 className="text-[16px] font-semibold text-foreground">Troca por tamanho ou cor</h3>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Troca sem defeito, quando a peça não serviu ou o cliente quer outra cor.
+        </p>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <ChoiceCard
+            checked={form.exchange_enabled}
+            onSelect={() => patch("exchange_enabled", true)}
+            title="Aceito troca"
+            description="Sujeita a estoque. A peça volta sem uso, com etiqueta e na embalagem."
+          />
+          <ChoiceCard
+            checked={!form.exchange_enabled}
+            onSelect={() => patch("exchange_enabled", false)}
+            title="Não faço troca"
+            description="O cliente ainda pode desistir da compra em até 7 dias."
+          />
+        </div>
+        {form.exchange_enabled && (
+          <div className="mt-5 grid gap-5 border-t border-border pt-5 md:grid-cols-2">
+            <Field label="Prazo para pedir a troca">
+              <div className="space-y-2.5">
+                {EXCHANGE_DAYS.map((days) => (
+                  <RadioLine
+                    key={days}
+                    checked={form.exchange_days === days}
+                    onSelect={() => patch("exchange_days", days)}
+                    label={`${days} dias depois de receber`}
+                  />
+                ))}
+              </div>
+            </Field>
+            <Field label="Quem paga o frete da troca">
+              <div className="space-y-2.5">
+                <RadioLine
+                  checked={form.exchange_shipping === "customer"}
+                  onSelect={() => patch("exchange_shipping", "customer")}
+                  label="O cliente"
+                  detail="Envio e retorno por conta dele."
+                />
+                <RadioLine
+                  checked={form.exchange_shipping === "store"}
+                  onSelect={() => patch("exchange_shipping", "store")}
+                  label="A loja"
+                />
+                <RadioLine
+                  checked={form.exchange_shipping === "first_free"}
+                  onSelect={() => patch("exchange_shipping", "first_free")}
+                  label="A loja paga a primeira troca"
+                  detail="As seguintes ficam com o cliente."
+                />
+              </div>
+            </Field>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
+        <h3 className="text-[16px] font-semibold text-foreground">Prazo para separar o pedido</h3>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Quanto tempo você leva, depois do pagamento, para deixar o pedido pronto para envio ou
+          retirada.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2.5">
+          {PREPARATION_DAYS.map((days) => (
+            <div key={days}>
+              <RadioLine
+                checked={form.preparation_days === days}
+                onSelect={() => patch("preparation_days", days)}
+                label={`${days} ${days === 1 ? "dia útil" : "dias úteis"}`}
+              />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
+        <h3 className="text-[16px] font-semibold text-foreground">Texto a mais (opcional)</h3>
+        <p className="mt-1 text-[13px] text-muted-foreground">
+          Aparece no fim da página, com o título &quot;Observações da loja&quot;. Não substitui o
+          texto padrão.
+        </p>
+        <div className="mt-4 grid gap-4">
+          {extras.map(([key, label]) => (
+            <Field
+              key={key}
+              label={label}
+              hint={`${form[key].length} de ${EXTRA_TEXT_MAX} caracteres.`}
+            >
+              <textarea
+                value={form[key]}
+                onChange={(event) => patch(key, event.target.value.slice(0, EXTRA_TEXT_MAX))}
+                rows={3}
+                className="w-full resize-y rounded-md border border-border bg-surface px-3 py-2.5 text-[14px] text-foreground outline-none focus:border-foreground/40"
+              />
+            </Field>
+          ))}
+        </div>
+      </section>
+
+      {error && <Notice tone="error">{error}</Notice>}
+      <SaveBar
+        pending={saveMutation.isPending}
+        saved={done}
+        label="Salvar políticas"
         onSave={() => saveMutation.mutate()}
       />
     </div>
