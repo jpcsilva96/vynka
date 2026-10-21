@@ -10,7 +10,9 @@ import {
 import { useStorefront } from "@/lib/storefront-context";
 
 // Política de privacidade (escopo paginas-legais.md, §3.3). "No seu navegador" descreve o que a loja
-// guarda de fato (medido 20/10): carrinho, último CEP, sessão e a marca da contagem de visitas.
+// guarda de fato (medido 20/10): carrinho, último CEP, sessão e a marca da contagem de visitas. A
+// hospedagem (Lovable) injeta estatística de acesso com cookies e as fontes vêm do Google Fonts
+// (medido no site publicado em 20/10); se a estatística for desligada, rever este texto.
 export const Route = createFileRoute("/loja/$slug/privacidade")({
   component: PrivacyPolicyPage,
 });
@@ -64,7 +66,8 @@ function PrivacyPolicyPage() {
           body: (
             <p>
               Mercado Pago (pagamento); Melhor Envio e a transportadora escolhida (entrega: nome,
-              endereço e telefone); Vynka (plataforma). Não vendemos seus dados.
+              endereço e telefone); Vynka (plataforma) e a empresa que hospeda o site. Não vendemos
+              seus dados.
             </p>
           ),
         },
@@ -72,9 +75,10 @@ function PrivacyPolicyPage() {
           title: "No seu navegador",
           body: (
             <p>
-              Guardamos o carrinho, o último CEP consultado e sua sessão de login. Não usamos
-              cookies de publicidade nem ferramentas de rastreamento de terceiros. A contagem de
-              visitas não identifica você.
+              Guardamos o carrinho, o último CEP consultado e sua sessão de login. A contagem de
+              visitas da loja não identifica você. A empresa que hospeda o site registra
+              estatísticas de acesso, como as páginas visitadas, e usa cookies para isso; as letras
+              do site são carregadas do Google Fonts. Não usamos cookies de publicidade.
             </p>
           ),
         },
