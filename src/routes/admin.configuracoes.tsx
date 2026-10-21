@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { PageShell } from "@/components/page-shell";
 import {
   DeliverySettingsTab,
+  LegalPoliciesTab,
   OrderStockSettingsTab,
   PaymentSettingsTab,
 } from "@/components/admin/checkout-settings";
@@ -57,6 +58,7 @@ const tabs = [
   "Recibo",
   "Pagamentos",
   "Entrega e Retirada",
+  "Políticas",
   "Integrações",
 ];
 
@@ -231,6 +233,12 @@ function Configuracoes() {
           <OrderStockSettingsTab storeId={storeId} />
         ) : activeTab === "Entrega e Retirada" ? (
           <DeliverySettingsTab storeId={storeId} storeAddress={formatStoreAddress(form)} />
+        ) : activeTab === "Políticas" ? (
+          <LegalPoliciesTab
+            storeId={storeId}
+            slug={form.slug}
+            hasDocument={!!data?.tax_document?.trim()}
+          />
         ) : activeTab === "Pagamentos" ? (
           <PaymentSettingsTab storeId={storeId} />
         ) : activeTab === "Loja" ? (
@@ -313,6 +321,11 @@ function Configuracoes() {
                       value={form.tax_document}
                       onChange={(value) => patch("tax_document", value)}
                     />
+                    {/* Decreto 7.962/2013: identificação de quem vende visível na loja. */}
+                    <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                      Aparece no rodapé e nas políticas da loja, como pede a lei. Com CPF, o nome do
+                      responsável aparece junto.
+                    </p>
                   </LabeledField>
                 </SettingsCard>
 
