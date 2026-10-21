@@ -87,7 +87,7 @@ function NovoProduto() {
       console.error(e);
       // Peso/medidas fora do limite: mostra o motivo (a mensagem vem de productDimensions).
       alert(
-        e instanceof Error && /^(Peso|Altura|Largura|Comprimento):/.test(e.message)
+        e instanceof Error && /^(Peso|Altura|Largura|Comprimento|Opções):/.test(e.message)
           ? e.message
           : "Não foi possível salvar o produto.",
       );

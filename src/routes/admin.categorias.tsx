@@ -30,6 +30,7 @@ import {
 } from "@/lib/products";
 import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
+import { confirmAction } from "@/lib/confirm-dialog";
 
 export const Route = createFileRoute("/admin/categorias")({
   head: () => ({
@@ -189,9 +190,14 @@ function Categorias() {
                 onEdit={(category) => setDraft({ mode: "edit", category, name: category.name, active: category.active })}
                 onAddSubcategory={startSubcategory}
                 onDuplicate={duplicate}
-                onDelete={(category) => {
-                  if (!window.confirm(`Excluir "${category.name}"? Essa ação não pode ser desfeita.`)) return;
-                  deleteMutation.mutate(category.id);
+                onDelete={async (category) => {
+                  const ok = await confirmAction({
+                    title: `Excluir "${category.name}"?`,
+                    description: "Essa ação não pode ser desfeita.",
+                    confirmLabel: "Excluir",
+                    destructive: true,
+                  });
+                  if (ok) deleteMutation.mutate(category.id);
                 }}
               />
             ))}

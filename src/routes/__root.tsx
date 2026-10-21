@@ -19,6 +19,7 @@ import { MasterStoreBar } from "@/components/master-store-bar";
 import { StoreProvider, useStoreContext } from "@/lib/store-context";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { ConfirmDialogHost } from "@/components/confirm-dialog";
 
 function NotFoundComponent() {
   return (
@@ -153,6 +154,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <StoreProvider>
         <RouteSwitch />
+        <ConfirmDialogHost />
       </StoreProvider>
     </QueryClientProvider>
   );

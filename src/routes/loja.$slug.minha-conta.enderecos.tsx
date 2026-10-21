@@ -20,6 +20,7 @@ import {
   type CustomerAddressForm,
 } from "@/lib/customer-account";
 import { useStorefront } from "@/lib/storefront-context";
+import { storeErrorMessage } from "@/lib/store-errors";
 
 // Meus endereços (catálogo lote 5; banco no lote 5a): até 10, um principal. O principal é o que o
 // checkout já preenche.
@@ -77,7 +78,7 @@ function CustomerAddressesPage() {
       setStatus({ text: done, error: false });
     } catch (err) {
       setStatus({
-        text: err instanceof Error ? err.message : "Não foi possível salvar.",
+        text: storeErrorMessage(err, "Não foi possível salvar."),
         error: true,
       });
     }

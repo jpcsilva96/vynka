@@ -34,6 +34,7 @@ import {
 import { deliveryDaysLabel, formatDeliveryAddress } from "@/lib/orders";
 import { formatBRL } from "@/lib/products";
 import { useStorefront, useStorefrontPreview } from "@/lib/storefront-context";
+import { storeErrorMessage } from "@/lib/store-errors";
 
 export const Route = createFileRoute("/loja/$slug/checkout")({
   component: CheckoutRoute,
@@ -179,7 +180,7 @@ function CheckoutPage() {
       }
     } catch (err) {
       setQuote(null);
-      setError(err instanceof Error ? err.message : "Não foi possível calcular a entrega.");
+      setError(storeErrorMessage(err, "Não foi possível calcular a entrega."));
     } finally {
       setBusy(false);
     }
@@ -325,7 +326,7 @@ function CheckoutPage() {
         });
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Não foi possível finalizar.";
+      const message = storeErrorMessage(err, "Não foi possível finalizar.");
       setError(message);
       // Frete mudou ou opção saiu: volta para a entrega com a conta refeita.
       if (/frete mudou|não está mais disponível|não está disponível/i.test(message)) {

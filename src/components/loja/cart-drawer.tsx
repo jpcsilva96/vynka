@@ -48,7 +48,7 @@ export function CartDrawer() {
         <header className="flex items-center justify-between border-b border-black/10 px-5 py-5">
           <div>
             <div className="text-[12px] font-semibold uppercase tracking-[0.2em] text-black">Carrinho</div>
-            <div className="mt-1 text-[12px] text-neutral-500">{count} item{count === 1 ? "" : "s"}</div>
+            <div className="mt-1 text-[12px] text-neutral-500">{count} {count === 1 ? "item" : "itens"}</div>
           </div>
           <button onClick={closeCart} className="grid h-10 w-10 place-items-center rounded-full hover:bg-neutral-100" aria-label="Fechar">
             <X className="h-5 w-5" />

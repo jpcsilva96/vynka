@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStoreContext } from "@/lib/store-context";
 import { formatPhone, onlyDigits } from "@/lib/br-documents";
 import { cn } from "@/lib/utils";
+import { confirmAction } from "@/lib/confirm-dialog";
 
 export const Route = createFileRoute("/admin/clientes")({
   head: () => ({
@@ -228,7 +229,12 @@ function Clientes() {
   };
 
   const deleteCustomer = async (customer: CustomerRow) => {
-    const confirmed = window.confirm(`Excluir ${customer.name}?`);
+    const confirmed = await confirmAction({
+      title: `Excluir ${customer.name}?`,
+      description: "A ficha do cliente sai da lista. Essa ação não pode ser desfeita.",
+      confirmLabel: "Excluir",
+      destructive: true,
+    });
     if (!confirmed || !currentStore?.id) return;
 
     const { error } = await supabase
