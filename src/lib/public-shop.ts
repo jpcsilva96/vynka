@@ -210,7 +210,7 @@ export async function listProductSalesRank(storeId: string): Promise<Record<stri
 }
 
 const STOREFRONT_COLUMNS =
-  "id,slug,name,description,logo_url,banner_url,og_image_url,banner_title,banner_subtitle,banner_cta,phone,whatsapp,email,instagram,address,address_number,complement,city,state,zip_code,business_hours,status,publication_status";
+  "id,slug,name,description,logo_url,banner_url,og_image_url,banner_title,banner_subtitle,banner_cta,phone,whatsapp,email,instagram,address,address_number,complement,city,state,zip_code,business_hours,status,publication_status,tax_document,responsible_name";
 
 // Vitrine lê a visão pública (só lojas publicadas e só as colunas da vitrine; lote de permissão).
 // Loja fora da visão (rascunho): só o dono ou o master a leem direto em stores, para a prévia do

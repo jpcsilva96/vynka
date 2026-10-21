@@ -51,10 +51,13 @@ import { Route as LojaSlugBuscaRouteImport } from './routes/loja.$slug.busca'
 import { Route as LojaSlugCheckoutRouteImport } from './routes/loja.$slug.checkout'
 import { Route as LojaSlugContatoRouteImport } from './routes/loja.$slug.contato'
 import { Route as LojaSlugEntrarRouteImport } from './routes/loja.$slug.entrar'
+import { Route as LojaSlugEnviosRouteImport } from './routes/loja.$slug.envios'
 import { Route as LojaSlugMinhaContaRouteImport } from './routes/loja.$slug.minha-conta'
 import { Route as LojaSlugNovidadesRouteImport } from './routes/loja.$slug.novidades'
+import { Route as LojaSlugPrivacidadeRouteImport } from './routes/loja.$slug.privacidade'
 import { Route as LojaSlugPromocoesRouteImport } from './routes/loja.$slug.promocoes'
 import { Route as LojaSlugQuemSomosRouteImport } from './routes/loja.$slug.quem-somos'
+import { Route as LojaSlugTrocasRouteImport } from './routes/loja.$slug.trocas'
 import { Route as AdminIntegracoesMelhorEnvioRetornoRouteImport } from './routes/admin.integracoes.melhor-envio.retorno'
 import { Route as AdminIntegracoesMercadoPagoRetornoRouteImport } from './routes/admin.integracoes.mercado-pago.retorno'
 import { Route as LojaSlugCategoriaCategorySlugRouteImport } from './routes/loja.$slug.categoria.$categorySlug'
@@ -276,6 +279,11 @@ const LojaSlugEntrarRoute = LojaSlugEntrarRouteImport.update({
   path: '/entrar',
   getParentRoute: () => LojaSlugRoute,
 } as any)
+const LojaSlugEnviosRoute = LojaSlugEnviosRouteImport.update({
+  id: '/envios',
+  path: '/envios',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
 const LojaSlugMinhaContaRoute = LojaSlugMinhaContaRouteImport.update({
   id: '/minha-conta',
   path: '/minha-conta',
@@ -286,6 +294,11 @@ const LojaSlugNovidadesRoute = LojaSlugNovidadesRouteImport.update({
   path: '/novidades',
   getParentRoute: () => LojaSlugRoute,
 } as any)
+const LojaSlugPrivacidadeRoute = LojaSlugPrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
 const LojaSlugPromocoesRoute = LojaSlugPromocoesRouteImport.update({
   id: '/promocoes',
   path: '/promocoes',
@@ -294,6 +307,11 @@ const LojaSlugPromocoesRoute = LojaSlugPromocoesRouteImport.update({
 const LojaSlugQuemSomosRoute = LojaSlugQuemSomosRouteImport.update({
   id: '/quem-somos',
   path: '/quem-somos',
+  getParentRoute: () => LojaSlugRoute,
+} as any)
+const LojaSlugTrocasRoute = LojaSlugTrocasRouteImport.update({
+  id: '/trocas',
+  path: '/trocas',
   getParentRoute: () => LojaSlugRoute,
 } as any)
 const AdminIntegracoesMelhorEnvioRetornoRoute =
@@ -393,10 +411,13 @@ export interface FileRoutesByFullPath {
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
+  '/loja/$slug/envios': typeof LojaSlugEnviosRoute
   '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRouteWithChildren
   '/loja/$slug/novidades': typeof LojaSlugNovidadesRoute
+  '/loja/$slug/privacidade': typeof LojaSlugPrivacidadeRoute
   '/loja/$slug/promocoes': typeof LojaSlugPromocoesRoute
   '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
+  '/loja/$slug/trocas': typeof LojaSlugTrocasRoute
   '/admin/historico/': typeof AdminHistoricoIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/produtos/': typeof AdminProdutosIndexRoute
@@ -445,10 +466,13 @@ export interface FileRoutesByTo {
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
+  '/loja/$slug/envios': typeof LojaSlugEnviosRoute
   '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRouteWithChildren
   '/loja/$slug/novidades': typeof LojaSlugNovidadesRoute
+  '/loja/$slug/privacidade': typeof LojaSlugPrivacidadeRoute
   '/loja/$slug/promocoes': typeof LojaSlugPromocoesRoute
   '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
+  '/loja/$slug/trocas': typeof LojaSlugTrocasRoute
   '/admin/historico': typeof AdminHistoricoIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/admin/produtos': typeof AdminProdutosIndexRoute
@@ -504,10 +528,13 @@ export interface FileRoutesById {
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
   '/loja/$slug/contato': typeof LojaSlugContatoRoute
   '/loja/$slug/entrar': typeof LojaSlugEntrarRoute
+  '/loja/$slug/envios': typeof LojaSlugEnviosRoute
   '/loja/$slug/minha-conta': typeof LojaSlugMinhaContaRouteWithChildren
   '/loja/$slug/novidades': typeof LojaSlugNovidadesRoute
+  '/loja/$slug/privacidade': typeof LojaSlugPrivacidadeRoute
   '/loja/$slug/promocoes': typeof LojaSlugPromocoesRoute
   '/loja/$slug/quem-somos': typeof LojaSlugQuemSomosRoute
+  '/loja/$slug/trocas': typeof LojaSlugTrocasRoute
   '/admin/historico/': typeof AdminHistoricoIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/produtos/': typeof AdminProdutosIndexRoute
@@ -564,10 +591,13 @@ export interface FileRouteTypes {
     | '/loja/$slug/checkout'
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
+    | '/loja/$slug/envios'
     | '/loja/$slug/minha-conta'
     | '/loja/$slug/novidades'
+    | '/loja/$slug/privacidade'
     | '/loja/$slug/promocoes'
     | '/loja/$slug/quem-somos'
+    | '/loja/$slug/trocas'
     | '/admin/historico/'
     | '/admin/pedidos/'
     | '/admin/produtos/'
@@ -616,10 +646,13 @@ export interface FileRouteTypes {
     | '/loja/$slug/checkout'
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
+    | '/loja/$slug/envios'
     | '/loja/$slug/minha-conta'
     | '/loja/$slug/novidades'
+    | '/loja/$slug/privacidade'
     | '/loja/$slug/promocoes'
     | '/loja/$slug/quem-somos'
+    | '/loja/$slug/trocas'
     | '/admin/historico'
     | '/admin/pedidos'
     | '/admin/produtos'
@@ -674,10 +707,13 @@ export interface FileRouteTypes {
     | '/loja/$slug/checkout'
     | '/loja/$slug/contato'
     | '/loja/$slug/entrar'
+    | '/loja/$slug/envios'
     | '/loja/$slug/minha-conta'
     | '/loja/$slug/novidades'
+    | '/loja/$slug/privacidade'
     | '/loja/$slug/promocoes'
     | '/loja/$slug/quem-somos'
+    | '/loja/$slug/trocas'
     | '/admin/historico/'
     | '/admin/pedidos/'
     | '/admin/produtos/'
@@ -1001,6 +1037,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugEntrarRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/loja/$slug/envios': {
+      id: '/loja/$slug/envios'
+      path: '/envios'
+      fullPath: '/loja/$slug/envios'
+      preLoaderRoute: typeof LojaSlugEnviosRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
     '/loja/$slug/minha-conta': {
       id: '/loja/$slug/minha-conta'
       path: '/minha-conta'
@@ -1015,6 +1058,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LojaSlugNovidadesRouteImport
       parentRoute: typeof LojaSlugRoute
     }
+    '/loja/$slug/privacidade': {
+      id: '/loja/$slug/privacidade'
+      path: '/privacidade'
+      fullPath: '/loja/$slug/privacidade'
+      preLoaderRoute: typeof LojaSlugPrivacidadeRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
     '/loja/$slug/promocoes': {
       id: '/loja/$slug/promocoes'
       path: '/promocoes'
@@ -1027,6 +1077,13 @@ declare module '@tanstack/react-router' {
       path: '/quem-somos'
       fullPath: '/loja/$slug/quem-somos'
       preLoaderRoute: typeof LojaSlugQuemSomosRouteImport
+      parentRoute: typeof LojaSlugRoute
+    }
+    '/loja/$slug/trocas': {
+      id: '/loja/$slug/trocas'
+      path: '/trocas'
+      fullPath: '/loja/$slug/trocas'
+      preLoaderRoute: typeof LojaSlugTrocasRouteImport
       parentRoute: typeof LojaSlugRoute
     }
     '/admin/integracoes/melhor-envio/retorno': {
@@ -1250,10 +1307,13 @@ interface LojaSlugRouteChildren {
   LojaSlugCheckoutRoute: typeof LojaSlugCheckoutRoute
   LojaSlugContatoRoute: typeof LojaSlugContatoRoute
   LojaSlugEntrarRoute: typeof LojaSlugEntrarRoute
+  LojaSlugEnviosRoute: typeof LojaSlugEnviosRoute
   LojaSlugMinhaContaRoute: typeof LojaSlugMinhaContaRouteWithChildren
   LojaSlugNovidadesRoute: typeof LojaSlugNovidadesRoute
+  LojaSlugPrivacidadeRoute: typeof LojaSlugPrivacidadeRoute
   LojaSlugPromocoesRoute: typeof LojaSlugPromocoesRoute
   LojaSlugQuemSomosRoute: typeof LojaSlugQuemSomosRoute
+  LojaSlugTrocasRoute: typeof LojaSlugTrocasRoute
   LojaSlugIndexRoute: typeof LojaSlugIndexRoute
   LojaSlugCategoriaCategorySlugRoute: typeof LojaSlugCategoriaCategorySlugRouteWithChildren
   LojaSlugPedidoIdRoute: typeof LojaSlugPedidoIdRoute
@@ -1265,10 +1325,13 @@ const LojaSlugRouteChildren: LojaSlugRouteChildren = {
   LojaSlugCheckoutRoute: LojaSlugCheckoutRoute,
   LojaSlugContatoRoute: LojaSlugContatoRoute,
   LojaSlugEntrarRoute: LojaSlugEntrarRoute,
+  LojaSlugEnviosRoute: LojaSlugEnviosRoute,
   LojaSlugMinhaContaRoute: LojaSlugMinhaContaRouteWithChildren,
   LojaSlugNovidadesRoute: LojaSlugNovidadesRoute,
+  LojaSlugPrivacidadeRoute: LojaSlugPrivacidadeRoute,
   LojaSlugPromocoesRoute: LojaSlugPromocoesRoute,
   LojaSlugQuemSomosRoute: LojaSlugQuemSomosRoute,
+  LojaSlugTrocasRoute: LojaSlugTrocasRoute,
   LojaSlugIndexRoute: LojaSlugIndexRoute,
   LojaSlugCategoriaCategorySlugRoute:
     LojaSlugCategoriaCategorySlugRouteWithChildren,
