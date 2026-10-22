@@ -49,6 +49,7 @@ import { formatBRL } from "@/lib/products";
 import { paymentMethodLabel, type PaymentMethod } from "@/lib/sales";
 import { useStoreContext } from "@/lib/store-context";
 import { cn } from "@/lib/utils";
+import { confirmAction } from "@/lib/confirm-dialog";
 
 export const Route = createFileRoute("/admin/financas")({
   head: () => ({ meta: [{ title: "Finanças · VYNKA" }] }),
@@ -367,8 +368,13 @@ function Financas() {
                         });
                       }}
                       onToggle={() => togglePaid.mutate(row.entry)}
-                      onDelete={() => {
-                        if (window.confirm("Excluir este lançamento?")) remove.mutate(row.entry.id);
+                      onDelete={async () => {
+                        const ok = await confirmAction({
+                          title: "Excluir este lançamento?",
+                          confirmLabel: "Excluir",
+                          destructive: true,
+                        });
+                        if (ok) remove.mutate(row.entry.id);
                       }}
                     />
                   ),

@@ -13,6 +13,7 @@ import {
   listPlans,
 } from "@/lib/master.functions";
 import { MASTER_ACTIVE_STORE_KEY } from "@/lib/master-store-access";
+import { confirmAction } from "@/lib/confirm-dialog";
 
 export const Route = createFileRoute("/master/lojas")({
   head: () => ({
@@ -99,15 +100,20 @@ function LojasPage() {
     onError: (e) => setActionError(errorMessage(e, "Falha ao gerar o link de acesso.")),
   });
 
-  const onStatusChange = (store: StoreRow, status: string) => {
+  const onStatusChange = async (store: StoreRow, status: string) => {
     const question = STATUS_CONFIRM[status];
-    if (question && !window.confirm(`${store.name}\n\n${question}`)) return;
+    if (question && !(await confirmAction({ title: store.name, description: question }))) return;
     statusMutation.mutate({ store_id: store.id, status });
   };
 
-  const onPlanChange = (store: StoreRow, planId: string) => {
+  const onPlanChange = async (store: StoreRow, planId: string) => {
     const plan = (plans as PlanRow[]).find((p) => p.id === planId);
-    if (!window.confirm(`Trocar o plano de "${store.name}" para "${plan?.name ?? "—"}"?`)) return;
+    const ok = await confirmAction({
+      title: `Trocar o plano de "${store.name}"?`,
+      description: `Novo plano: ${plan?.name ?? "—"}.`,
+      confirmLabel: "Trocar plano",
+    });
+    if (!ok) return;
     planMutation.mutate({ store_id: store.id, plan_id: planId });
   };
 

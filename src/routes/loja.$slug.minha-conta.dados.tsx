@@ -14,6 +14,7 @@ import {
   useStoreCustomer,
 } from "@/lib/customer-account";
 import { useStorefront } from "@/lib/storefront-context";
+import { storeErrorMessage } from "@/lib/store-errors";
 
 // Meus dados: nome e telefone editáveis; e-mail só leitura (João, 20/10); troca de senha com a atual.
 export const Route = createFileRoute("/loja/$slug/minha-conta/dados")({
@@ -51,7 +52,7 @@ function CustomerDataPage() {
       setProfileStatus({ text: "Dados salvos.", error: false });
     } catch (err) {
       setProfileStatus({
-        text: err instanceof Error ? err.message : "Não foi possível salvar.",
+        text: storeErrorMessage(err, "Não foi possível salvar."),
         error: true,
       });
     } finally {
@@ -76,7 +77,7 @@ function CustomerDataPage() {
       setPasswordStatus({ text: "Senha trocada.", error: false });
     } catch (err) {
       setPasswordStatus({
-        text: err instanceof Error ? err.message : "Não foi possível trocar a senha.",
+        text: storeErrorMessage(err, "Não foi possível trocar a senha."),
         error: true,
       });
     } finally {

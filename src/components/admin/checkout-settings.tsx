@@ -65,6 +65,7 @@ import {
   testPaymentConnection,
 } from "@/lib/mercado-pago.functions";
 import { cn } from "@/lib/utils";
+import { confirmAction } from "@/lib/confirm-dialog";
 
 // Telas das configurações de checkout (lote A): aba Entrega e Retirada, aba Pedidos e Vendas
 // (estoque e prazos) e aba Pagamentos. Cada aba salva só os próprios campos.
@@ -1120,13 +1121,14 @@ function MercadoPagoConnection({
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "Desconectar a conta do Mercado Pago? A loja deixa de receber pagamentos pelo site até conectar de novo.",
-                  )
-                )
-                  disconnectMutation.mutate();
+              onClick={async () => {
+                const ok = await confirmAction({
+                  title: "Desconectar o Mercado Pago?",
+                  description: "A loja deixa de receber pagamentos pelo site até conectar de novo.",
+                  confirmLabel: "Desconectar",
+                  destructive: true,
+                });
+                if (ok) disconnectMutation.mutate();
               }}
               disabled={disconnectMutation.isPending}
               className={secondaryButton}
@@ -1269,13 +1271,14 @@ function MelhorEnvioConnection({
         action={
           <button
             type="button"
-            onClick={() => {
-              if (
-                window.confirm(
-                  "Desconectar a conta do Melhor Envio? Correios e transportadoras saem do checkout.",
-                )
-              )
-                disconnectMutation.mutate();
+            onClick={async () => {
+              const ok = await confirmAction({
+                title: "Desconectar o Melhor Envio?",
+                description: "Correios e transportadoras saem do checkout.",
+                confirmLabel: "Desconectar",
+                destructive: true,
+              });
+              if (ok) disconnectMutation.mutate();
             }}
             disabled={disconnectMutation.isPending}
             className={secondaryButton}

@@ -17,6 +17,7 @@ import {
 } from "@/lib/orders";
 import { formatBRL } from "@/lib/products";
 import { useStorefront } from "@/lib/storefront-context";
+import { storeErrorMessage } from "@/lib/store-errors";
 
 export const Route = createFileRoute("/loja/$slug/pedido/$id")({
   component: OrderPage,
@@ -137,9 +138,7 @@ function OrderPage() {
               )}
               {payMutation.isError && (
                 <span className="mt-2 block text-red-700">
-                  {payMutation.error instanceof Error
-                    ? payMutation.error.message
-                    : "Não foi possível abrir o pagamento."}
+                  {storeErrorMessage(payMutation.error, "Não foi possível abrir o pagamento.")}
                 </span>
               )}
             </div>
@@ -207,7 +206,7 @@ function OrderPage() {
               </div>
               <div className="mt-1 text-neutral-600">
                 {order.delivery_method === "pickup"
-                  ? "Você retira na loja. Avisamos quando estiver pronto."
+                  ? pickupMessage(order.status)
                   : formatDeliveryAddress(order.delivery_address)}
               </div>
             </div>
@@ -283,4 +282,12 @@ function formatDateTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+// Retirada conforme a etapa (in_dispatch de retirada = pronto; delivered = retirado).
+function pickupMessage(status: string) {
+  if (status === "in_dispatch") return "Seu pedido está pronto. Pode retirar na loja.";
+  if (status === "delivered") return "Pedido retirado na loja.";
+  if (status === "cancelled") return "Retirada na loja.";
+  return "Você retira na loja. Avisamos quando estiver pronto.";
 }

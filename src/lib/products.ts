@@ -461,6 +461,27 @@ const DIMENSION_LIMITS = {
 
 // Peso/medidas para o banco: vazio vira null (usa a embalagem padrão da loja); valor fora do limite
 // para aqui com mensagem clara, antes de o banco recusar.
+// Opção repetida ("Tamanho" duas vezes) ou valor repetido na mesma opção ("P" e "p") gera variações
+// iguais; a loja juntava na tela, mas o cadastro aceitava (lote de tela). Sem diferença de maiúsculas.
+export function validateProductOptions(options: ProductOption[]) {
+  const names = new Set<string>();
+  for (const option of options) {
+    const name = option.name.trim();
+    const values = option.values.map((v) => v.value.trim()).filter(Boolean);
+    if (!name || values.length === 0) continue;
+    const nameKey = name.toLocaleLowerCase("pt-BR");
+    if (names.has(nameKey)) throw new Error(`Opções: "${name}" aparece duas vezes.`);
+    names.add(nameKey);
+    const seen = new Set<string>();
+    for (const value of values) {
+      const key = value.toLocaleLowerCase("pt-BR");
+      if (seen.has(key))
+        throw new Error(`Opções: o valor "${value}" aparece duas vezes em ${name}.`);
+      seen.add(key);
+    }
+  }
+}
+
 export function productDimensions(form: ProductFormState) {
   const out: Record<keyof typeof DIMENSION_LIMITS, number | null> = {
     weight_kg: null,
@@ -570,6 +591,7 @@ export async function getProductForEdit(
 }
 
 export async function createProduct(storeId: string, form: ProductFormState): Promise<string> {
+  validateProductOptions(form.options);
   const priceNum = parseMoney(form.price);
   const promo = form.promo_price ? parseMoney(form.promo_price) : null;
   const cost = parseMoney(form.cost_price);
@@ -651,6 +673,7 @@ export async function updateProduct(
   productId: string,
   form: ProductFormState,
 ): Promise<void> {
+  validateProductOptions(form.options);
   const priceNum = parseMoney(form.price);
   const promo = form.promo_price ? parseMoney(form.promo_price) : null;
   const cost = parseMoney(form.cost_price);

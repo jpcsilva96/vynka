@@ -15,7 +15,7 @@ import {
   User,
   XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PaymentMethodIcon } from "@/components/payment-method-icon";
 import { OrderReceiptCard } from "@/components/order-receipt";
 import { useStoreContext } from "@/lib/store-context";
@@ -46,6 +46,7 @@ import {
   type OrderRecord,
   type OrderStatus,
 } from "@/lib/orders";
+import { confirmAction } from "@/lib/confirm-dialog";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   head: () => ({ meta: [{ title: "Pedido - VYNKA" }] }),
@@ -111,6 +112,23 @@ function PedidoDetalhe() {
   const queryClient = useQueryClient();
   const [nextStatus, setNextStatus] = useState<OrderStatus | "">("");
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+  // Menu de status fecha com Esc e com clique fora dele (lote de tela).
+  useEffect(() => {
+    if (!statusMenuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setStatusMenuOpen(false);
+    };
+    const onPointer = (event: PointerEvent) => {
+      if (!statusMenuRef.current?.contains(event.target as Node)) setStatusMenuOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
+  }, [statusMenuOpen]);
   const [modal, setModal] = useState<"customer" | "notes" | "items" | "payment" | null>(null);
   const [customerId, setCustomerId] = useState("");
   const [showNewCustomer, setShowNewCustomer] = useState(false);
@@ -220,8 +238,8 @@ function PedidoDetalhe() {
   const canCancelSale = order.status !== "cancelled" && order.status !== "delivered";
   const cancelWarning =
     isWebsite && order.paid_at
-      ? "Cancelar este pedido? Ele já foi pago: o reembolso ao cliente é feito na sua conta do Mercado Pago."
-      : "Cancelar este pedido?";
+      ? "Ele já foi pago: o reembolso ao cliente é feito na sua conta do Mercado Pago."
+      : undefined;
   const statusChoices: { value: OrderStatus; label: string; icon: React.ReactNode }[] = isWebsite
     ? nextStages.map((stage) => ({ ...stage, icon: <Check className="h-4 w-4" /> }))
     : [
@@ -368,7 +386,7 @@ function PedidoDetalhe() {
           <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-wrap items-center gap-5">
-                <div className="relative flex items-center gap-2">
+                <div ref={statusMenuRef} className="relative flex items-center gap-2">
                   <span className="text-[13px] font-medium text-foreground">Status:</span>
                   <button
                     type="button"
@@ -464,9 +482,16 @@ function PedidoDetalhe() {
                   <button
                     type="button"
                     disabled={statusMutation.isPending}
-                    onClick={() =>
-                      window.confirm(cancelWarning) && statusMutation.mutate("cancelled")
-                    }
+                    onClick={async () => {
+                      const ok = await confirmAction({
+                        title: "Cancelar este pedido?",
+                        description: cancelWarning,
+                        confirmLabel: "Cancelar pedido",
+                        cancelLabel: "Manter pedido",
+                        destructive: true,
+                      });
+                      if (ok) statusMutation.mutate("cancelled");
+                    }}
                     className="grid h-11 w-12 place-items-center rounded-md bg-muted text-foreground hover:bg-border disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label="Cancelar venda"
                     title="Cancelar venda"

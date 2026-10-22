@@ -27,6 +27,7 @@ import {
   type OrderRecord,
 } from "@/lib/orders";
 import { paymentMethodLabel, type PaymentMethod } from "@/lib/sales";
+import { confirmAction } from "@/lib/confirm-dialog";
 
 export const Route = createFileRoute("/admin/historico/")({
   head: () => ({ meta: [{ title: "Historico de vendas - VYNKA" }] }),
@@ -304,10 +305,15 @@ function Historico() {
                         <button
                           type="button"
                           disabled={order.status === "cancelled" || cancelMutation.isPending}
-                          onClick={(event) => {
+                          onClick={async (event) => {
                             event.preventDefault();
                             event.stopPropagation();
-                            const confirmed = window.confirm("Cancelar esta venda?");
+                            const confirmed = await confirmAction({
+                              title: "Cancelar esta venda?",
+                              confirmLabel: "Cancelar venda",
+                              cancelLabel: "Manter venda",
+                              destructive: true,
+                            });
                             if (confirmed) cancelMutation.mutate(order.id);
                           }}
                           className="grid h-8 w-8 place-items-center rounded-md bg-surface text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
