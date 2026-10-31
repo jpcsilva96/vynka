@@ -149,6 +149,12 @@ function LayoutEditor() {
   const storeId = currentStore?.id ?? "";
   const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState<EditorSection | null>(null);
+  // Links do roteiro de primeiros passos abrem a seção certa: ?secao=brand, themes ou home.
+  useEffect(() => {
+    const secao = new URLSearchParams(window.location.search).get("secao");
+    if (editorSections.some((section) => section.id === secao))
+      setActiveSection(secao as EditorSection);
+  }, []);
   // Abre a seção clicada (fechando a outra) ou recolhe se já estava aberta. Ao abrir, o título pode
   // subir junto com a seção que fechou acima; a lista rola até ele.
   const toggleSection = (id: EditorSection) => {
