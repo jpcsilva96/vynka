@@ -23,7 +23,11 @@ export function VynkaLogo({ className, variant = "light" }: VynkaLogoProps) {
       <span aria-hidden="true" className="inline-block" style={{ transform: "scaleX(-1)" }}>
         K
       </span>
-      <span aria-hidden="true" className="inline-block ml-[0.35em]" style={{ transform: "scaleX(-1)" }}>
+      <span
+        aria-hidden="true"
+        className="inline-block ml-[0.35em]"
+        style={{ transform: "scaleX(-1)" }}
+      >
         A
       </span>
     </span>

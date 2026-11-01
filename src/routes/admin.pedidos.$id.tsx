@@ -610,7 +610,9 @@ function PedidoDetalhe() {
                   <div className="space-y-1 text-[13px]">
                     <div className="font-medium text-foreground">{order.customer.name}</div>
                     {order.customer.phone && (
-                      <div className="text-muted-foreground">{formatPhone(order.customer.phone)}</div>
+                      <div className="text-muted-foreground">
+                        {formatPhone(order.customer.phone)}
+                      </div>
                     )}
                     {order.customer.email && (
                       <div className="text-muted-foreground">{order.customer.email}</div>
@@ -822,13 +824,17 @@ function PedidoDetalhe() {
                       label="Celular"
                       type="tel"
                       value={formatPhone(newCustomer.mobile)}
-                      onChange={(value) => updateNewCustomer("mobile", onlyDigits(value).slice(0, 11))}
+                      onChange={(value) =>
+                        updateNewCustomer("mobile", onlyDigits(value).slice(0, 11))
+                      }
                     />
                     <TextField
                       label="Telefone"
                       type="tel"
                       value={formatPhone(newCustomer.telephone)}
-                      onChange={(value) => updateNewCustomer("telephone", onlyDigits(value).slice(0, 11))}
+                      onChange={(value) =>
+                        updateNewCustomer("telephone", onlyDigits(value).slice(0, 11))
+                      }
                     />
                   </FormSection>
 

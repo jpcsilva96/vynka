@@ -185,9 +185,13 @@ function ResetPasswordPage() {
           {!checking && !linkToken && !ready && (
             <div className="mt-4 space-y-4">
               <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-800">
-                Este link é inválido ou expirou. Peça um novo convite à VYNKA ou use "Esqueci minha senha" na tela de login.
+                Este link é inválido ou expirou. Peça um novo convite à VYNKA ou use "Esqueci minha
+                senha" na tela de login.
               </div>
-              <Link to="/login" className="text-[13px] text-foreground underline underline-offset-2">
+              <Link
+                to="/login"
+                className="text-[13px] text-foreground underline underline-offset-2"
+              >
                 Ir para o login
               </Link>
             </div>
@@ -216,7 +220,11 @@ function ResetPasswordPage() {
                       className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted-foreground hover:text-foreground"
                       aria-label={showPass ? "Ocultar senha" : "Mostrar senha"}
                     >
-                      {showPass ? <EyeOff className="h-4 w-4" strokeWidth={1.5} /> : <Eye className="h-4 w-4" strokeWidth={1.5} />}
+                      {showPass ? (
+                        <EyeOff className="h-4 w-4" strokeWidth={1.5} />
+                      ) : (
+                        <Eye className="h-4 w-4" strokeWidth={1.5} />
+                      )}
                     </button>
                   </div>
                 </label>

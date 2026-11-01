@@ -48,7 +48,8 @@ export interface ProductViewRow {
 export async function listProductViews(storeId: string): Promise<ProductViewRow[]> {
   type Page = {
     data:
-      { product_id: string; day: string; views: number; product: { name: string } | null }[] | null;
+      | { product_id: string; day: string; views: number; product: { name: string } | null }[]
+      | null;
     error: unknown;
   };
   const viewsDb = supabase as unknown as {

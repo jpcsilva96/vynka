@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 // Configurações de checkout da loja (escopo checkout/entrega/pagamento, lote A). Só guarda as
 // escolhas do lojista; o checkout passa a usá-las nos lotes seguintes.
 
-
 export type StockDeduction = "on_order" | "on_payment";
 
 export interface CheckoutSettings {

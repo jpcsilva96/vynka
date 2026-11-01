@@ -54,7 +54,9 @@ function LoginPage() {
         .eq("user_id", data.user.id)
         .eq("active", true);
 
-      const active = (mem ?? []).find((m: any) => m.store && ["trial", "active"].includes(m.store.status));
+      const active = (mem ?? []).find(
+        (m: any) => m.store && ["trial", "active"].includes(m.store.status),
+      );
       if (!mem || mem.length === 0) {
         await supabase.auth.signOut();
         throw new Error("Seu usuário não está vinculado a nenhuma loja. Fale com a VYNKA.");
@@ -127,7 +129,11 @@ function LoginPage() {
                   className="absolute inset-y-0 right-0 grid w-10 place-items-center text-muted-foreground hover:text-foreground"
                   aria-label={showPass ? "Ocultar senha" : "Mostrar senha"}
                 >
-                  {showPass ? <EyeOff className="h-4 w-4" strokeWidth={1.5} /> : <Eye className="h-4 w-4" strokeWidth={1.5} />}
+                  {showPass ? (
+                    <EyeOff className="h-4 w-4" strokeWidth={1.5} />
+                  ) : (
+                    <Eye className="h-4 w-4" strokeWidth={1.5} />
+                  )}
                 </button>
               </div>
             </label>
@@ -145,7 +151,10 @@ function LoginPage() {
               <button
                 type="button"
                 onClick={async () => {
-                  if (!email) { setError("Informe o e-mail para redefinir a senha."); return; }
+                  if (!email) {
+                    setError("Informe o e-mail para redefinir a senha.");
+                    return;
+                  }
                   const { error } = await supabase.auth.resetPasswordForEmail(email, {
                     redirectTo: `${window.location.origin}/reset-password`,
                   });
@@ -176,16 +185,23 @@ function LoginPage() {
 
           <p className="mt-6 text-center text-[12px] text-muted-foreground">
             Ainda não tem acesso?{" "}
-            <a href="mailto:contato@vynka.app" className="text-foreground underline underline-offset-2">
+            <a
+              href="mailto:contato@vynka.app"
+              className="text-foreground underline underline-offset-2"
+            >
               Entre em contato com a VYNKA
             </a>
           </p>
         </div>
 
         <div className="mt-8 flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
-          <Link to="/" className="hover:text-foreground">Início</Link>
+          <Link to="/" className="hover:text-foreground">
+            Início
+          </Link>
           <span>·</span>
-          <Link to="/master/login" className="hover:text-foreground">Painel VYNKA</Link>
+          <Link to="/master/login" className="hover:text-foreground">
+            Painel VYNKA
+          </Link>
         </div>
       </div>
     </div>

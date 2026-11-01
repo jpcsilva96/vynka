@@ -124,7 +124,9 @@ export function ReceiptPaper({
           <div className="mb-5 text-[13px] leading-relaxed">
             <div className="font-medium text-slate-800">{store?.name ?? "Loja"}</div>
             {store?.address && <div>{store.address}</div>}
-            {(store?.whatsapp || store?.phone) && <div>{formatPhone(store.whatsapp || store.phone)}</div>}
+            {(store?.whatsapp || store?.phone) && (
+              <div>{formatPhone(store.whatsapp || store.phone)}</div>
+            )}
           </div>
         )}
 

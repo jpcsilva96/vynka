@@ -1,7 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { closeCart, removeItem, updateQty, useCart, useCartDrawer, useCartTotals } from "@/lib/cart";
+import {
+  closeCart,
+  removeItem,
+  updateQty,
+  useCart,
+  useCartDrawer,
+  useCartTotals,
+} from "@/lib/cart";
 import { formatBRL } from "@/lib/products";
 import { useStorefront } from "@/lib/storefront-context";
 import { cn } from "@/lib/utils";
@@ -37,7 +44,10 @@ export function CartDrawer() {
     <>
       <div
         onClick={closeCart}
-        className={cn("fixed inset-0 z-50 bg-black/30 transition-opacity", open ? "opacity-100" : "pointer-events-none opacity-0")}
+        className={cn(
+          "fixed inset-0 z-50 bg-black/30 transition-opacity",
+          open ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
       />
       <aside
         className={cn(
@@ -47,10 +57,18 @@ export function CartDrawer() {
       >
         <header className="flex items-center justify-between border-b border-black/10 px-5 py-5">
           <div>
-            <div className="text-[12px] font-semibold uppercase tracking-[0.2em] text-black">Carrinho</div>
-            <div className="mt-1 text-[12px] text-neutral-500">{count} {count === 1 ? "item" : "itens"}</div>
+            <div className="text-[12px] font-semibold uppercase tracking-[0.2em] text-black">
+              Carrinho
+            </div>
+            <div className="mt-1 text-[12px] text-neutral-500">
+              {count} {count === 1 ? "item" : "itens"}
+            </div>
           </div>
-          <button onClick={closeCart} className="grid h-10 w-10 place-items-center rounded-full hover:bg-neutral-100" aria-label="Fechar">
+          <button
+            onClick={closeCart}
+            className="grid h-10 w-10 place-items-center rounded-full hover:bg-neutral-100"
+            aria-label="Fechar"
+          >
             <X className="h-5 w-5" />
           </button>
         </header>
@@ -61,8 +79,13 @@ export function CartDrawer() {
               <ShoppingBag className="h-5 w-5 text-neutral-500" />
             </div>
             <div className="mt-5 text-[18px] font-semibold text-black">Seu carrinho está vazio</div>
-            <p className="mt-2 text-[13px] text-neutral-500">Adicione produtos para finalizar a compra.</p>
-            <button onClick={closeCart} className="mt-6 border border-black bg-black px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-white hover:text-black">
+            <p className="mt-2 text-[13px] text-neutral-500">
+              Adicione produtos para finalizar a compra.
+            </p>
+            <button
+              onClick={closeCart}
+              className="mt-6 border border-black bg-black px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-white hover:text-black"
+            >
               Continuar comprando
             </button>
           </div>
@@ -72,15 +95,26 @@ export function CartDrawer() {
               {items.map((item) => (
                 <div key={item.key} className="grid grid-cols-[76px_1fr] gap-4 px-5 py-5">
                   <div className="aspect-[4/5] overflow-hidden bg-neutral-100">
-                    {item.image && <img src={item.image} alt="" className="h-full w-full object-cover" />}
+                    {item.image && (
+                      <img src={item.image} alt="" className="h-full w-full object-cover" />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="line-clamp-2 text-[13px] font-medium text-black">{item.name}</div>
-                        {item.variantLabel && <div className="mt-1 text-[12px] text-neutral-500">{item.variantLabel}</div>}
+                        <div className="line-clamp-2 text-[13px] font-medium text-black">
+                          {item.name}
+                        </div>
+                        {item.variantLabel && (
+                          <div className="mt-1 text-[12px] text-neutral-500">
+                            {item.variantLabel}
+                          </div>
+                        )}
                       </div>
-                      <button onClick={() => removeItem(item.key)} className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 hover:text-black">
+                      <button
+                        onClick={() => removeItem(item.key)}
+                        className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 hover:text-black"
+                      >
                         Remover
                       </button>
                     </div>
@@ -90,15 +124,24 @@ export function CartDrawer() {
                           onClick={() => {
                             setLimitKey(null);
                             updateQty(item.key, item.quantity - 1);
-                          }} className="grid h-8 w-8 place-items-center hover:bg-neutral-100" aria-label="Diminuir">
+                          }}
+                          className="grid h-8 w-8 place-items-center hover:bg-neutral-100"
+                          aria-label="Diminuir"
+                        >
                           <Minus className="h-3.5 w-3.5" />
                         </button>
                         <span className="w-7 text-center text-[12px]">{item.quantity}</span>
-                        <button onClick={() => increase(item.key, item.quantity, item.maxQty)} className="grid h-8 w-8 place-items-center hover:bg-neutral-100" aria-label="Aumentar">
+                        <button
+                          onClick={() => increase(item.key, item.quantity, item.maxQty)}
+                          className="grid h-8 w-8 place-items-center hover:bg-neutral-100"
+                          aria-label="Aumentar"
+                        >
                           <Plus className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <div className="text-[13px] font-semibold text-black">{formatBRL(item.price * item.quantity)}</div>
+                      <div className="text-[13px] font-semibold text-black">
+                        {formatBRL(item.price * item.quantity)}
+                      </div>
                     </div>
                     {limitKey === item.key && item.maxQty != null && (
                       <p className="mt-2 text-[12px] text-neutral-500" role="status">
@@ -111,7 +154,9 @@ export function CartDrawer() {
             </div>
             <footer className="border-t border-black/10 px-5 py-5">
               <div className="flex items-center justify-between">
-                <span className="text-[12px] uppercase tracking-[0.18em] text-neutral-500">Subtotal</span>
+                <span className="text-[12px] uppercase tracking-[0.18em] text-neutral-500">
+                  Subtotal
+                </span>
                 <span className="text-[18px] font-semibold text-black">{formatBRL(subtotal)}</span>
               </div>
               <Link

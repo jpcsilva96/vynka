@@ -69,9 +69,7 @@ export const isOnSale = (p: Pick<PublicProduct, "price" | "promo_price">) =>
   p.promo_price != null && p.promo_price < p.price;
 
 export function mapProduct(p: any): PublicProduct {
-  const images = (p.product_images ?? [])
-    .slice()
-    .sort((a: any, b: any) => a.position - b.position);
+  const images = (p.product_images ?? []).slice().sort((a: any, b: any) => a.position - b.position);
   return {
     id: p.id,
     name: p.name,
@@ -232,20 +230,21 @@ export async function getStoreBySlug(slug: string): Promise<StorefrontStore | nu
     data = own ?? null;
   }
   if (!data) return null;
-  const [{ data: visual, error: visualError }, { data: favicon, error: faviconError }] = await Promise.all([
-    supabase
-      .from("store_settings")
-      .select("setting_value")
-      .eq("store_id", data.id)
-      .eq("setting_key", "catalog_visual")
-      .maybeSingle(),
-    supabase
-      .from("store_settings")
-      .select("setting_value")
-      .eq("store_id", data.id)
-      .eq("setting_key", "favicon")
-      .maybeSingle(),
-  ]);
+  const [{ data: visual, error: visualError }, { data: favicon, error: faviconError }] =
+    await Promise.all([
+      supabase
+        .from("store_settings")
+        .select("setting_value")
+        .eq("store_id", data.id)
+        .eq("setting_key", "catalog_visual")
+        .maybeSingle(),
+      supabase
+        .from("store_settings")
+        .select("setting_value")
+        .eq("store_id", data.id)
+        .eq("setting_key", "favicon")
+        .maybeSingle(),
+    ]);
   if (visualError) throw visualError;
   if (faviconError) throw faviconError;
   const { data: banners, error: bannersError } = await (supabase as any)
@@ -258,25 +257,28 @@ export async function getStoreBySlug(slug: string): Promise<StorefrontStore | nu
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
   if (bannersError && !isMissingStoreBannersTable(bannersError)) throw bannersError;
-  const settingBanners =
-    isMissingStoreBannersTable(bannersError) ? await listPublicBannersFromSettings(data.id) : [];
+  const settingBanners = isMissingStoreBannersTable(bannersError)
+    ? await listPublicBannersFromSettings(data.id)
+    : [];
   return {
     ...(data as unknown as Omit<StorefrontStore, "catalog_visual" | "banners">),
     favicon_url: normalizeStoragePublicUrl(readPublicFaviconUrl(favicon?.setting_value)) || null,
     catalog_visual: normalizeCatalogVisualSettings(visual?.setting_value),
-    banners: isMissingStoreBannersTable(bannersError) ? settingBanners : (banners ?? []).map((banner: any) => ({
-      id: banner.id,
-      store_id: banner.store_id,
-      image_url: banner.image_url ?? "",
-      image_mobile_url: banner.image_mobile_url ?? "",
-      title: banner.title ?? "",
-      subtitle: banner.subtitle ?? "",
-      button_label: banner.button_label ?? "",
-      link_type: isBannerLinkType(banner.link_type) ? banner.link_type : "home",
-      link_target: banner.link_target ?? "",
-      sort_order: banner.sort_order ?? 0,
-      active: banner.active ?? true,
-    })),
+    banners: isMissingStoreBannersTable(bannersError)
+      ? settingBanners
+      : (banners ?? []).map((banner: any) => ({
+          id: banner.id,
+          store_id: banner.store_id,
+          image_url: banner.image_url ?? "",
+          image_mobile_url: banner.image_mobile_url ?? "",
+          title: banner.title ?? "",
+          subtitle: banner.subtitle ?? "",
+          button_label: banner.button_label ?? "",
+          link_type: isBannerLinkType(banner.link_type) ? banner.link_type : "home",
+          link_target: banner.link_target ?? "",
+          sort_order: banner.sort_order ?? 0,
+          active: banner.active ?? true,
+        })),
   };
 }
 
@@ -313,7 +315,9 @@ function normalizePublicBannerValue(storeId: string, value: unknown, index: numb
     title: typeof raw.title === "string" ? raw.title : "",
     subtitle: typeof raw.subtitle === "string" ? raw.subtitle : "",
     button_label: typeof raw.button_label === "string" ? raw.button_label : "",
-    link_type: isBannerLinkType(raw.link_type ?? null) ? (raw.link_type as StoreBannerLinkType) : "home",
+    link_type: isBannerLinkType(raw.link_type ?? null)
+      ? (raw.link_type as StoreBannerLinkType)
+      : "home",
     link_target: typeof raw.link_target === "string" ? raw.link_target : "",
     sort_order: typeof raw.sort_order === "number" ? raw.sort_order : index,
     active: typeof raw.active === "boolean" ? raw.active : true,
@@ -343,9 +347,7 @@ export async function listActiveProducts(storeId: string): Promise<PublicProduct
   return (data ?? []).map(mapProduct);
 }
 
-export async function listPublicCategories(
-  storeId: string,
-): Promise<PublicCategory[]> {
+export async function listPublicCategories(storeId: string): Promise<PublicCategory[]> {
   const [cats, prods] = await Promise.all([
     supabase
       .from("categories")
@@ -380,7 +382,9 @@ export async function listPublicCategories(
     const entry = byCat.get(p.category_id ?? "") ?? { count: 0, cover: null };
     entry.count += 1;
     if (!entry.cover) {
-      const imgs = (p.product_images ?? []).slice().sort((a: any, b: any) => a.position - b.position);
+      const imgs = (p.product_images ?? [])
+        .slice()
+        .sort((a: any, b: any) => a.position - b.position);
       entry.cover = imgs[0]?.url ?? null;
     }
     byCat.set(p.category_id ?? "", entry);
@@ -496,7 +500,7 @@ export async function listActiveProductsByCategorySlug(
   const parent = flat.find((category) => category.slug === categorySlug && !category.parent_id);
   const target = childSlug
     ? flat.find((category) => category.slug === childSlug && category.parent_id === parent?.id)
-    : parent ?? flat.find((category) => category.slug === categorySlug);
+    : (parent ?? flat.find((category) => category.slug === categorySlug));
   if (!target) return { category: null, products: [] };
 
   const ids = [target.id, ...descendantCategoryIds(target.id, flat)];

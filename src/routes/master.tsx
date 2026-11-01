@@ -1,7 +1,14 @@
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import {
-  BarChart3, Store, Users, Package, CreditCard, Settings, LogOut, Loader2,
+  BarChart3,
+  Store,
+  Users,
+  Package,
+  CreditCard,
+  Settings,
+  LogOut,
+  Loader2,
 } from "lucide-react";
 import { useStoreContext } from "@/lib/store-context";
 import { VynkaLogo } from "@/components/vynka-logo";
@@ -73,14 +80,18 @@ function MasterSidebar() {
       </div>
       <nav className="flex-1 space-y-0.5 px-3 py-4">
         {NAV.map((item) => {
-          const active = item.exact ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`);
+          const active = item.exact
+            ? pathname === item.to
+            : pathname === item.to || pathname.startsWith(`${item.to}/`);
           return (
             <Link
               key={item.to}
               to={item.to}
               className={cn(
                 "flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] transition-colors",
-                active ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5 hover:text-white",
+                active
+                  ? "bg-white/10 text-white"
+                  : "text-white/70 hover:bg-white/5 hover:text-white",
               )}
             >
               <item.icon className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -93,7 +104,10 @@ function MasterSidebar() {
         <div className="mb-2 truncate px-3 text-[11px] text-white/50">{user?.email}</div>
         <button
           type="button"
-          onClick={async () => { await signOut(); window.location.href = "/master/login"; }}
+          onClick={async () => {
+            await signOut();
+            window.location.href = "/master/login";
+          }}
           className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-[13px] text-white/70 transition-colors hover:bg-white/5 hover:text-white"
         >
           <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
