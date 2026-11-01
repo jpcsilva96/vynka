@@ -34,3 +34,6 @@ supabase/.temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Lock unico: bun.lock (Lovable instala com bun)
+package-lock.json
