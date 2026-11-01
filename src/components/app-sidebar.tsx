@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/sidebar";
 import { VynkaLogo } from "@/components/vynka-logo";
 import { UserAvatar, UserMenu, useCurrentUserIdentity } from "@/components/user-menu";
+import { useStoreContext } from "@/lib/store-context";
 
 const primary = [
   { title: "Vender", url: "/admin/vender", icon: ShoppingCart },
@@ -37,17 +38,17 @@ const primary = [
   { title: "Histórico", url: "/admin/historico", icon: History },
   { title: "Finanças", url: "/admin/financas", icon: Wallet },
   { title: "Estatísticas", url: "/admin/estatisticas", icon: BarChart3 },
-  { title: "Usuários", url: "/admin/usuarios", icon: UserCog },
+  { title: "Usuários", url: "/admin/usuarios", icon: UserCog, ownerOnly: true },
   { title: "Loja e Catálogo", url: "/admin/configuracoes", icon: Settings },
 ];
 
-const workspace = [
-  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-];
+const workspace = [{ title: "Dashboard", url: "/admin", icon: LayoutDashboard }];
 
 export function AppSidebar() {
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
   const { name, storeName } = useCurrentUserIdentity();
+  const { currentRole, isPlatformAdmin } = useStoreContext();
+  const isOwner = currentRole === "owner" || isPlatformAdmin;
   const isActive = (path: string) =>
     path === "/admin" ? currentPath === "/admin" : currentPath.startsWith(path);
 
@@ -66,21 +67,23 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {primary.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.url)}
-                    tooltip={item.title}
-                    className="h-10 rounded-md text-white/70 hover:bg-white/5 hover:text-white data-[active=true]:bg-white/10 data-[active=true]:text-white data-[active=true]:font-medium"
-                  >
-                    <Link to={item.url}>
-                      <item.icon strokeWidth={1.5} className="h-4 w-4" />
-                      <span className="text-[13px]">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {primary
+                .filter((item) => !item.ownerOnly || isOwner)
+                .map((item) => (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                      tooltip={item.title}
+                      className="h-10 rounded-md text-white/70 hover:bg-white/5 hover:text-white data-[active=true]:bg-white/10 data-[active=true]:text-white data-[active=true]:font-medium"
+                    >
+                      <Link to={item.url}>
+                        <item.icon strokeWidth={1.5} className="h-4 w-4" />
+                        <span className="text-[13px]">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

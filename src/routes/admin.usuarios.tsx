@@ -19,46 +19,23 @@ type PermissionKey =
 
 type PermissionState = Record<PermissionKey, boolean>;
 
-const permissionOptions: {
-  key: PermissionKey;
-  label: string;
-  description: string;
-}[] = [
-  {
-    key: "view_all_transactions",
-    label: "Ver transações de outros usuários",
-    description:
-      "Permite ver todos os pedidos e vendas, inclusive de outros usuários e do catálogo online.",
-  },
-  {
-    key: "discount_sales",
-    label: "Dar desconto em vendas",
-    description:
-      "Permite aplicar descontos tanto no valor dos produtos, quanto no valor total do pedido.",
-  },
-  {
-    key: "manage_products",
-    label: "Cadastrar/Alterar produtos",
-    description:
-      "Permite que o usuário edite os dados dos produtos como preço, nome, descrição e visibilidade no catálogo.",
-  },
-  {
-    key: "manage_stock",
-    label: "Gerenciar estoque",
-    description: "Permite alterar o estoque atual dos produtos e também o estoque mínimo.",
-  },
-];
-
-const emptyPermissions: PermissionState = {
-  view_all_transactions: false,
-  discount_sales: false,
-  manage_products: false,
-  manage_stock: false,
-};
-
 function UsuariosPage() {
-  const { currentStore } = useStoreContext();
-  const storeId = currentStore?.id ?? "";
+  const { currentStore, currentRole, isPlatformAdmin, loading } = useStoreContext();
+  const isOwner = currentRole === "owner" || isPlatformAdmin;
+  if (loading) return null;
+  if (!isOwner) {
+    return (
+      <PageShell title="Usuários">
+        <div className="rounded-lg border border-border bg-surface px-4 py-12 text-center text-[13px] text-muted-foreground">
+          Só o dono da loja cadastra e altera usuários.
+        </div>
+      </PageShell>
+    );
+  }
+  return <UsuariosManager storeId={currentStore?.id ?? ""} />;
+}
+
+function UsuariosManager({ storeId }: { storeId: string }) {
   const queryClient = useQueryClient();
   const fetchUsers = useServerFn(listStoreUsers);
   const createUser = useServerFn(createStoreUser);
@@ -234,16 +211,11 @@ function NewUserModal({
   const [administrator, setAdministrator] = useState(
     user?.role === "owner" || user?.role === "admin",
   );
-  const [permissions, setPermissions] = useState<PermissionState>(() =>
-    normalizePermissions(user?.permissions),
-  );
+  // Permissões detalhadas ficam escondidas até o sistema respeitá-las; as gravadas seguem como estão.
+  const [permissions] = useState<PermissionState>(() => normalizePermissions(user?.permissions));
 
   const canSave =
     !!storeId && name.trim() && email.trim() && (editing || password.length >= 6) && !saving;
-
-  const togglePermission = (key: PermissionKey) => {
-    setPermissions((current) => ({ ...current, [key]: !current[key] }));
-  };
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 px-4">
@@ -298,34 +270,20 @@ function NewUserModal({
           </div>
 
           <div className="mt-5 rounded-md bg-muted px-4 py-3 text-[12px] leading-relaxed text-foreground">
-            <strong>Por padrão, todos os usuários têm acesso a:</strong> lançar pedidos e vendas,
-            ver seus próprios pedidos, ver e cadastrar clientes e ver os produtos.
+            Todo usuário cadastrado aqui entra no painel desta loja. Só o dono cadastra e altera
+            usuários.
           </div>
 
-          <div className="mt-5 space-y-4">
-            <p className="text-[13px] text-muted-foreground">
-              Se precisar, adicione outras permissões para{" "}
-              <span className="font-medium text-foreground">{name.trim() || "este usuário"}</span>:
-            </p>
-
-            <PermissionToggle
-              label="Administrador"
-              description="Dá acesso a todas as funcionalidades da loja, exceto a gestão da assinatura, disponível apenas para o proprietário da conta."
-              checked={administrator}
-              disabled={user?.role === "owner"}
-              onChange={() => setAdministrator((current) => !current)}
-            />
-
-            {permissionOptions.map((option) => (
+          {user?.role !== "owner" && (
+            <div className="mt-5 space-y-4">
               <PermissionToggle
-                key={option.key}
-                label={option.label}
-                description={option.description}
-                checked={permissions[option.key]}
-                onChange={() => togglePermission(option.key)}
+                label="Administrador"
+                description="Marca o usuário como administrador da loja. A gestão de usuários e da assinatura fica só com o dono."
+                checked={administrator}
+                onChange={() => setAdministrator((current) => !current)}
               />
-            ))}
-          </div>
+            </div>
+          )}
 
           {error && (
             <div className="mt-5 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
