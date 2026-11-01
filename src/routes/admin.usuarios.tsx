@@ -227,8 +227,8 @@ function NewUserModal({
             </h2>
             <p className="mt-1 text-[12px] text-muted-foreground">
               {editing
-                ? "Altere os dados e permissões do vendedor."
-                : "Cadastre um vendedor para esta loja."}
+                ? "Altere os dados do usuário."
+                : "Cadastre um usuário para esta loja."}
             </p>
           </div>
           <button
