@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { findAuthUserIdByEmail, getAuthUsersByIds } from "@/lib/auth-users.server";
 import {
   PROVISIONAL_STORE_NAME,
   isProvisionalName,
@@ -29,15 +30,10 @@ async function storeDisplayStatuses(stores: { id: string; name: string; status: 
     .in("store_id", open.map((s) => s.id));
   if (error) throw error;
 
-  // Um listUsers paginado em vez de um getUserById por loja.
-  const signupDone = new Set<string>();
-  const perPage = 200;
-  for (let page = 1; page <= 10; page++) {
-    const { data: list, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
-    if (listErr) throw listErr;
-    for (const u of list.users) if (u.user_metadata?.signup_completed === true) signupDone.add(u.id);
-    if (list.users.length < perPage) break;
-  }
+  const authById = await getAuthUsersByIds((owners ?? []).map((o) => o.user_id as string));
+  const signupDone = new Set(
+    [...authById].filter(([, u]) => u.signup_completed).map(([id]) => id),
+  );
 
   for (const s of open) {
     const ownerIds = (owners ?? []).filter((o) => o.store_id === s.id).map((o) => o.user_id as string);
@@ -150,15 +146,8 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
     }
 
     // procura ou cria usuário
-    let userId: string | null = null;
+    let userId: string | null = await findAuthUserIdByEmail(data.owner_email);
     let inviteLink: string | null = null;
-    const perPage = 200;
-    for (let page = 1; page <= 5; page++) {
-      const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
-      const found = list.users.find((u) => u.email?.toLowerCase() === data.owner_email.toLowerCase());
-      if (found) { userId = found.id; break; }
-      if (list.users.length < perPage) break;
-    }
 
     if (!userId) {
       const link = await supabaseAdmin.auth.admin.generateLink({
@@ -488,21 +477,7 @@ export const listStoreUsersForMaster = createServerFn({ method: "GET" })
       ? await supabaseAdmin.from("profiles").select("user_id, full_name, phone").in("user_id", userIds)
       : { data: [] as { user_id: string; full_name: string | null; phone: string | null }[] };
 
-    // Um listUsers paginado em vez de um getUserById por usuário.
-    const authById = new Map<string, { email: string | null; last_sign_in_at: string | null; signup_completed: boolean }>();
-    const perPage = 200;
-    for (let page = 1; page <= 10; page++) {
-      const { data: list, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
-      if (listErr) throw listErr;
-      for (const u of list.users) {
-        authById.set(u.id, {
-          email: u.email ?? null,
-          last_sign_in_at: u.last_sign_in_at ?? null,
-          signup_completed: u.user_metadata?.signup_completed === true,
-        });
-      }
-      if (list.users.length < perPage) break;
-    }
+    const authById = await getAuthUsersByIds(userIds);
 
     return (members ?? []).map((m) => {
       const store = (Array.isArray(m.store) ? m.store[0] : m.store) as

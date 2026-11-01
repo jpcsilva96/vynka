@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { findAuthUserIdByEmail } from "@/lib/auth-users.server";
 
 const permissionsSchema = z.object({
   view_all_transactions: z.boolean().default(false),
@@ -141,18 +142,7 @@ export const createStoreUser = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const email = data.email.trim().toLowerCase();
-    let userId: string | null = null;
-    const perPage = 200;
-    for (let page = 1; page <= 10; page++) {
-      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
-      if (error) throw error;
-      const found = list.users.find((user) => user.email?.toLowerCase() === email);
-      if (found) {
-        userId = found.id;
-        break;
-      }
-      if (list.users.length < perPage) break;
-    }
+    let userId: string | null = await findAuthUserIdByEmail(email);
 
     const userAlreadyExisted = !!userId;
 
