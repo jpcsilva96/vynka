@@ -4,12 +4,18 @@ import { useServerFn } from "@tanstack/react-start";
 import { listSubscriptions } from "@/lib/master.functions";
 
 export const Route = createFileRoute("/master/assinaturas")({
-  head: () => ({ meta: [{ title: "Assinaturas · Painel VYNKA" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Assinaturas · Painel VYNKA" }, { name: "robots", content: "noindex" }],
+  }),
   component: AssinaturasPage,
 });
 
 const LABEL: Record<string, string> = {
-  trial: "Em teste", active: "Ativa", past_due: "Em atraso", suspended: "Suspensa", cancelled: "Cancelada",
+  trial: "Em teste",
+  active: "Ativa",
+  past_due: "Em atraso",
+  suspended: "Suspensa",
+  cancelled: "Cancelada",
 };
 
 function AssinaturasPage() {
@@ -36,15 +42,31 @@ function AssinaturasPage() {
           </thead>
           <tbody className="divide-y divide-border">
             {(subs as any[]).length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-10 text-center text-[12px] text-muted-foreground">Nenhuma assinatura.</td></tr>
+              <tr>
+                <td
+                  colSpan={5}
+                  className="px-4 py-10 text-center text-[12px] text-muted-foreground"
+                >
+                  Nenhuma assinatura.
+                </td>
+              </tr>
             )}
             {(subs as any[]).map((s) => (
               <tr key={s.id}>
-                <td className="px-4 py-3">{s.store?.name ?? "—"} <span className="ml-1 text-[11px] text-muted-foreground">/loja/{s.store?.slug}</span></td>
+                <td className="px-4 py-3">
+                  {s.store?.name ?? "—"}{" "}
+                  <span className="ml-1 text-[11px] text-muted-foreground">
+                    /loja/{s.store?.slug}
+                  </span>
+                </td>
                 <td className="px-4 py-3">{s.plan?.name ?? "—"}</td>
                 <td className="px-4 py-3">{LABEL[s.status] ?? s.status}</td>
-                <td className="px-4 py-3 text-muted-foreground">{new Date(s.starts_at).toLocaleDateString("pt-BR")}</td>
-                <td className="px-4 py-3 text-muted-foreground">{s.ends_at ? new Date(s.ends_at).toLocaleDateString("pt-BR") : "—"}</td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {new Date(s.starts_at).toLocaleDateString("pt-BR")}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {s.ends_at ? new Date(s.ends_at).toLocaleDateString("pt-BR") : "—"}
+                </td>
               </tr>
             ))}
           </tbody>

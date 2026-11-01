@@ -86,7 +86,8 @@ function ContactStorePage() {
           </h1>
           <div className="mt-6 h-0.5 w-12 bg-[var(--shop-primary)]" />
           <p className="mt-6 max-w-xl text-[15px] leading-7 text-[var(--shop-secondary)] md:text-[17px]">
-            Tem dúvidas, sugestões ou precisa de ajuda com seu pedido? Entre em contato com a gente pelos canais abaixo. Será um prazer atender você!
+            Tem dúvidas, sugestões ou precisa de ajuda com seu pedido? Entre em contato com a gente
+            pelos canais abaixo. Será um prazer atender você!
           </p>
         </div>
 
@@ -108,12 +109,21 @@ function ContactStorePage() {
                 </span>
                 <span className="min-w-0 flex-1 md:grid md:grid-cols-[minmax(0,1fr)_minmax(180px,0.8fr)] md:items-center md:gap-6">
                   <span className="block">
-                    <strong className="block text-[14px] font-semibold text-[var(--shop-surface-text)]">{channel.title}</strong>
-                    <span className="mt-1 block text-[12px] text-[color-mix(in_srgb,var(--shop-surface-text)_65%,transparent)]">{channel.description}</span>
+                    <strong className="block text-[14px] font-semibold text-[var(--shop-surface-text)]">
+                      {channel.title}
+                    </strong>
+                    <span className="mt-1 block text-[12px] text-[color-mix(in_srgb,var(--shop-surface-text)_65%,transparent)]">
+                      {channel.description}
+                    </span>
                   </span>
-                  <span className="mt-2 block break-words text-[13px] font-medium text-[var(--shop-surface-text)] md:mt-0 md:text-right">{channel.value}</span>
+                  <span className="mt-2 block break-words text-[13px] font-medium text-[var(--shop-surface-text)] md:mt-0 md:text-right">
+                    {channel.value}
+                  </span>
                 </span>
-                <ChevronRight className="h-4 w-4 shrink-0 text-[var(--shop-surface-text)] opacity-45 transition-transform group-hover:translate-x-1 group-hover:opacity-100" strokeWidth={1.8} />
+                <ChevronRight
+                  className="h-4 w-4 shrink-0 text-[var(--shop-surface-text)] opacity-45 transition-transform group-hover:translate-x-1 group-hover:opacity-100"
+                  strokeWidth={1.8}
+                />
               </a>
             ))}
           </div>
@@ -121,8 +131,12 @@ function ContactStorePage() {
 
         <div className="mt-8 flex flex-col items-start justify-between gap-5 rounded-lg border border-[color-mix(in_srgb,var(--shop-surface-text)_10%,transparent)] bg-[var(--shop-surface)] p-6 md:flex-row md:items-center md:p-8">
           <div>
-            <h2 className="text-2xl font-semibold text-[var(--shop-surface-text)]">Ficou com alguma dúvida?</h2>
-            <p className="mt-1 text-[13px] text-[color-mix(in_srgb,var(--shop-surface-text)_65%,transparent)]">Nossa equipe está pronta para te atender!</p>
+            <h2 className="text-2xl font-semibold text-[var(--shop-surface-text)]">
+              Ficou com alguma dúvida?
+            </h2>
+            <p className="mt-1 text-[13px] text-[color-mix(in_srgb,var(--shop-surface-text)_65%,transparent)]">
+              Nossa equipe está pronta para te atender!
+            </p>
           </div>
           {whatsappDigits && (
             <a
@@ -159,10 +173,12 @@ function formatAddress(store: ReturnType<typeof useStorefront>) {
   const street = [store.address, store.address_number].filter(Boolean).join(", ");
   const cityState = [store.city, store.state].filter(Boolean).join(" - ");
   const zipCode = formatZipCode(store.zip_code);
-  return [street, store.complement, cityState, zipCode && `CEP ${zipCode}`].filter(Boolean).join(" · ");
+  return [street, store.complement, cityState, zipCode && `CEP ${zipCode}`]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function formatZipCode(value: string | null) {
   const digits = value?.replace(/\D/g, "") ?? "";
-  return digits.length === 8 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : value?.trim() ?? "";
+  return digits.length === 8 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : (value?.trim() ?? "");
 }

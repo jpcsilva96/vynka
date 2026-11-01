@@ -540,10 +540,7 @@ function filterViewsByPeriod(
   });
 }
 
-function buildViewRanking(
-  rows: ProductViewRow[],
-  sold: { id: string; quantity: number }[],
-) {
+function buildViewRanking(rows: ProductViewRow[], sold: { id: string; quantity: number }[]) {
   const map = new Map<string, { id: string; name: string; views: number }>();
   for (const row of rows) {
     const current = map.get(row.product_id) ?? { id: row.product_id, name: row.name, views: 0 };
@@ -553,7 +550,11 @@ function buildViewRanking(
   const soldById = new Map(sold.map((item) => [item.id, item.quantity]));
   const max = Math.max(1, ...[...map.values()].map((item) => item.views));
   return [...map.values()]
-    .map((item) => ({ ...item, sold: soldById.get(item.id) ?? 0, percent: (item.views / max) * 100 }))
+    .map((item) => ({
+      ...item,
+      sold: soldById.get(item.id) ?? 0,
+      percent: (item.views / max) * 100,
+    }))
     .sort((a, b) => b.views - a.views);
 }
 

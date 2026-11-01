@@ -15,7 +15,10 @@ export const Route = createFileRoute("/admin/usuarios")({
 });
 
 type PermissionKey =
-  "view_all_transactions" | "discount_sales" | "manage_products" | "manage_stock";
+  | "view_all_transactions"
+  | "discount_sales"
+  | "manage_products"
+  | "manage_stock";
 
 type PermissionState = Record<PermissionKey, boolean>;
 
@@ -226,9 +229,7 @@ function NewUserModal({
               {editing ? "Detalhes do usuário" : "Novo usuário"}
             </h2>
             <p className="mt-1 text-[12px] text-muted-foreground">
-              {editing
-                ? "Altere os dados do usuário."
-                : "Cadastre um usuário para esta loja."}
+              {editing ? "Altere os dados do usuário." : "Cadastre um usuário para esta loja."}
             </p>
           </div>
           <button

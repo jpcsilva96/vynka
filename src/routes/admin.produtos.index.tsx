@@ -135,7 +135,10 @@ function ProdutosPage() {
           onChange={setCategoryFilter}
           options={[
             { value: "all", label: "Todas categorias" },
-            ...categories.map((c) => ({ value: c.id, label: `${c.parent_id ? "— " : ""}${c.name}` })),
+            ...categories.map((c) => ({
+              value: c.id,
+              label: `${c.parent_id ? "— " : ""}${c.name}`,
+            })),
           ]}
         />
         <button

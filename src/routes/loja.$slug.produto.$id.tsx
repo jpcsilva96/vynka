@@ -11,7 +11,12 @@ import { listFavoriteProductIds, toggleFavorite, useStoreCustomer } from "@/lib/
 import { openCustomerAuth } from "@/lib/customer-auth-dialog";
 import { thumbUrl } from "@/lib/image-resize";
 import { formatBRL, skuKey } from "@/lib/products";
-import { getPublicProduct, isOnSale, listRelatedProducts, type PublicProductDetail } from "@/lib/public-shop";
+import {
+  getPublicProduct,
+  isOnSale,
+  listRelatedProducts,
+  type PublicProductDetail,
+} from "@/lib/public-shop";
 import { useStorefront } from "@/lib/storefront-context";
 import { isPreviewFrame } from "@/lib/storefront-preview";
 import { ProductImageViewer } from "@/components/loja/product-image-viewer";
@@ -70,12 +75,19 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   const options = useMemo(
     () =>
       product.options
-        .map((option) => ({ ...option, values: option.values.filter((value) => !hiddenValues.has(`${option.name}:${value.value}`)) }))
+        .map((option) => ({
+          ...option,
+          values: option.values.filter(
+            (value) => !hiddenValues.has(`${option.name}:${value.value}`),
+          ),
+        }))
         .filter((option) => option.values.length > 0),
     [product.options, hiddenValues],
   );
 
-  const [selected, setSelected] = useState<Record<string, string>>(() => initialSelection(product, options));
+  const [selected, setSelected] = useState<Record<string, string>>(() =>
+    initialSelection(product, options),
+  );
   const [qty, setQty] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   // Prévia do editor: sem cálculo de frete (decide no navegador, como o resto da prévia).
@@ -96,7 +108,9 @@ function ProductView({ product }: { product: PublicProductDetail }) {
       Object.entries(selected).every(([name, value]) => variant.options[name] === value),
   );
   const missingOption =
-    options.length > 0 && selectionHasStock ? (options.find((option) => !selected[option.name]) ?? null) : null;
+    options.length > 0 && selectionHasStock
+      ? (options.find((option) => !selected[option.name]) ?? null)
+      : null;
 
   // Frete antes de escolher a opção: calcula com a primeira que tem estoque (peso e medidas são do
   // produto; o preço pode mudar o frete grátis).
@@ -111,13 +125,30 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   const canBuy =
     product.options.length === 0
       ? !product.manage_stock || product.stock_quantity > 0
-      : !!currentVariant && currentVariant.available && (!product.manage_stock || currentVariant.stock_quantity > 0);
+      : !!currentVariant &&
+        currentVariant.available &&
+        (!product.manage_stock || currentVariant.stock_quantity > 0);
   // Ocultar: foto marcada só para cores ocultas sai da galeria.
   const hiddenPhotos = new Set(
     product.variants
-      .filter((variant) => variant.image_url && Object.entries(variant.options).some(([name, value]) => hiddenValues.has(`${name}:${value}`)))
+      .filter(
+        (variant) =>
+          variant.image_url &&
+          Object.entries(variant.options).some(([name, value]) =>
+            hiddenValues.has(`${name}:${value}`),
+          ),
+      )
       .map((variant) => variant.image_url!)
-      .filter((url) => !product.variants.some((variant) => variant.image_url === url && !Object.entries(variant.options).some(([name, value]) => hiddenValues.has(`${name}:${value}`)))),
+      .filter(
+        (url) =>
+          !product.variants.some(
+            (variant) =>
+              variant.image_url === url &&
+              !Object.entries(variant.options).some(([name, value]) =>
+                hiddenValues.has(`${name}:${value}`),
+              ),
+          ),
+      ),
   );
   const gallery = product.images.filter((item) => !hiddenPhotos.has(item.url));
   const images = gallery.length ? gallery : [{ url: "", position: 0 }];
@@ -126,9 +157,12 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   // para ela, mesmo sem tamanho escolhido.
   const colorOption = product.options.find((option) => normalize(option.name) === "cor");
   const selectedColor = colorOption ? selected[colorOption.name] : undefined;
-  const colorImageUrl = colorOption && selectedColor
-    ? product.variants.find((variant) => variant.options[colorOption.name] === selectedColor && variant.image_url)?.image_url ?? null
-    : null;
+  const colorImageUrl =
+    colorOption && selectedColor
+      ? (product.variants.find(
+          (variant) => variant.options[colorOption.name] === selectedColor && variant.image_url,
+        )?.image_url ?? null)
+      : null;
   useEffect(() => {
     if (!colorImageUrl) return;
     const index = images.findIndex((item) => item.url === colorImageUrl);
@@ -140,7 +174,8 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   // Esgotado) e o tamanho fica. Ocultar: valor sem estoque na combinação não é escolhido e o tamanho
   // que não existe na cor nova sai.
   const choose = (optionName: string, value: string, fromPhoto = false) => {
-    if (hideSoldOut && !fromPhoto && !isValueAvailable(product, optionName, value, selected)) return;
+    if (hideSoldOut && !fromPhoto && !isValueAvailable(product, optionName, value, selected))
+      return;
     setSelected((current) => {
       const next = { ...current, [optionName]: value };
       return hideSoldOut ? clearUnavailableSize(product, optionName, next) : next;
@@ -154,7 +189,9 @@ function ProductView({ product }: { product: PublicProductDetail }) {
     if (!colorOption) return;
     const url = images[index]?.url;
     const color = url
-      ? product.variants.find((variant) => variant.image_url === url && variant.options[colorOption.name])?.options[colorOption.name]
+      ? product.variants.find(
+          (variant) => variant.image_url === url && variant.options[colorOption.name],
+        )?.options[colorOption.name]
       : undefined;
     if (!color || color === selectedColor) return;
     if (hideSoldOut && !isValueAvailable(product, colorOption.name, color, {})) return;
@@ -162,9 +199,15 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   };
   // Foto de variação fora da galeria (cadastro antigo) ainda aparece.
   const offGalleryImage =
-    currentVariant?.image_url && !images.some((item) => item.url === currentVariant.image_url) ? currentVariant.image_url : null;
+    currentVariant?.image_url && !images.some((item) => item.url === currentVariant.image_url)
+      ? currentVariant.image_url
+      : null;
   const image = offGalleryImage || images[activeImage]?.url || product.primary_image || "";
-  const variantLabel = product.options.length ? Object.entries(selected).map(([key, value]) => `${key}: ${value}`).join(" / ") : null;
+  const variantLabel = product.options.length
+    ? Object.entries(selected)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(" / ")
+    : null;
   const favorite = favoriteIds.includes(product.id);
 
   // Quantidade limitada ao estoque, descontando o que já está no carrinho (mesmo produto e opções).
@@ -242,7 +285,11 @@ function ProductView({ product }: { product: PublicProductDetail }) {
   return (
     <div>
       <div className="mx-auto max-w-[1280px] px-4 py-8 md:px-8">
-        <Link to="/loja/$slug" params={{ slug }} className="inline-flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.16em] text-neutral-500 hover:text-black">
+        <Link
+          to="/loja/$slug"
+          params={{ slug }}
+          className="inline-flex items-center gap-2 text-[12px] font-medium uppercase tracking-[0.16em] text-neutral-500 hover:text-black"
+        >
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Link>
       </div>
@@ -255,7 +302,10 @@ function ProductView({ product }: { product: PublicProductDetail }) {
                 key={`${item.url}-${index}`}
                 type="button"
                 onClick={() => showImage(index)}
-                className={cn("h-20 w-16 shrink-0 overflow-hidden border bg-neutral-100", activeImage === index ? "border-black" : "border-transparent")}
+                className={cn(
+                  "h-20 w-16 shrink-0 overflow-hidden border bg-neutral-100",
+                  activeImage === index ? "border-black" : "border-transparent",
+                )}
               >
                 {item.url && (
                   <img src={thumbUrl(item.url)} alt="" className="h-full w-full object-cover" />
@@ -303,8 +353,14 @@ function ProductView({ product }: { product: PublicProductDetail }) {
         )}
 
         <aside className="md:sticky md:top-24 md:self-start">
-          {product.category?.name && <div className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">{product.category.name}</div>}
-          <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight text-black md:text-5xl">{product.name}</h1>
+          {product.category?.name && (
+            <div className="text-[11px] uppercase tracking-[0.24em] text-neutral-500">
+              {product.category.name}
+            </div>
+          )}
+          <h1 className="mt-3 text-3xl font-semibold leading-tight tracking-tight text-black md:text-5xl">
+            {product.name}
+          </h1>
           <button
             type="button"
             onClick={handleFavorite}
@@ -315,7 +371,11 @@ function ProductView({ product }: { product: PublicProductDetail }) {
           </button>
           <div className="mt-5 flex items-baseline gap-3">
             <span className="text-xl font-semibold text-black">{formatBRL(price)}</span>
-            {sale && !currentVariant?.price && <span className="text-[14px] text-neutral-400 line-through">{formatBRL(product.price)}</span>}
+            {sale && !currentVariant?.price && (
+              <span className="text-[14px] text-neutral-400 line-through">
+                {formatBRL(product.price)}
+              </span>
+            )}
           </div>
           {options.length > 0 && (
             <div className="mt-8 space-y-5">
@@ -324,12 +384,19 @@ function ProductView({ product }: { product: PublicProductDetail }) {
                   {/* Valor escolhido junto do nome ("Tamanho: P"): sozinho à direita parecia um botão repetido. */}
                   <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
                     {option.name}
-                    {selected[option.name] && <span className="text-black">: {selected[option.name]}</span>}
+                    {selected[option.name] && (
+                      <span className="text-black">: {selected[option.name]}</span>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {option.values.map((value) => {
                       const active = selected[option.name] === value.value;
-                      const soldOut = !isValueAvailable(product, option.name, value.value, selected);
+                      const soldOut = !isValueAvailable(
+                        product,
+                        option.name,
+                        value.value,
+                        selected,
+                      );
                       // Mostrar como esgotado: riscado, mas dá para escolher. Ocultar: travado.
                       const disabled = soldOut && hideSoldOut;
                       return (
@@ -341,9 +408,13 @@ function ProductView({ product }: { product: PublicProductDetail }) {
                           aria-label={soldOut ? `${value.value} (esgotado)` : undefined}
                           className={cn(
                             "min-w-11 border px-3 py-2 text-[12px] font-medium uppercase tracking-[0.12em]",
-                            active ? "border-black bg-black text-white" : "border-black/15 text-black hover:border-black",
+                            active
+                              ? "border-black bg-black text-white"
+                              : "border-black/15 text-black hover:border-black",
                             soldOut && "line-through",
-                            soldOut && !active && "border-neutral-200 bg-neutral-100 text-neutral-400",
+                            soldOut &&
+                              !active &&
+                              "border-neutral-200 bg-neutral-100 text-neutral-400",
                             disabled && "cursor-not-allowed hover:border-neutral-200",
                           )}
                         >
@@ -359,33 +430,75 @@ function ProductView({ product }: { product: PublicProductDetail }) {
 
           <div className="mt-8 space-y-3">
             {missingOption ? (
-              <button type="button" disabled className="w-full cursor-not-allowed border border-black/15 px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-neutral-500">
+              <button
+                type="button"
+                disabled
+                className="w-full cursor-not-allowed border border-black/15 px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-neutral-500"
+              >
                 {chooseLabel(missingOption.name)}
               </button>
             ) : !canBuy ? (
               // Esgotado no lugar dos dois botões (João, 14/10).
-              <button type="button" disabled className="w-full cursor-not-allowed bg-neutral-200 px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-neutral-500">
+              <button
+                type="button"
+                disabled
+                className="w-full cursor-not-allowed bg-neutral-200 px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-neutral-500"
+              >
                 Esgotado
               </button>
-            ) : <>
-            <div className="flex gap-3">
-              <div className="inline-flex border border-black/15">
-                <button type="button" onClick={() => setQty(Math.max(1, quantity - 1))} disabled={!canBuy || quantity <= 1} className="grid h-12 w-12 place-items-center hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30" aria-label="Diminuir">
-                  <Minus className="h-4 w-4" />
+            ) : (
+              <>
+                <div className="flex gap-3">
+                  <div className="inline-flex border border-black/15">
+                    <button
+                      type="button"
+                      onClick={() => setQty(Math.max(1, quantity - 1))}
+                      disabled={!canBuy || quantity <= 1}
+                      className="grid h-12 w-12 place-items-center hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30"
+                      aria-label="Diminuir"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <span
+                      className="grid h-12 w-10 place-items-center text-[13px]"
+                      aria-live="polite"
+                    >
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQty(quantity + 1)}
+                      disabled={!canBuy || quantity >= maxQty}
+                      className="grid h-12 w-12 place-items-center hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30"
+                      aria-label="Aumentar"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAdd}
+                    disabled={allInCart}
+                    className="inline-flex flex-1 items-center justify-center gap-2 border border-black bg-white px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-black hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {added ? (
+                      <>
+                        <Check className="h-4 w-4" /> Adicionado
+                      </>
+                    ) : (
+                      "Adicionar ao carrinho"
+                    )}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleBuyNow}
+                  className="w-full bg-black px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800"
+                >
+                  Comprar agora
                 </button>
-                <span className="grid h-12 w-10 place-items-center text-[13px]" aria-live="polite">{quantity}</span>
-                <button type="button" onClick={() => setQty(quantity + 1)} disabled={!canBuy || quantity >= maxQty} className="grid h-12 w-12 place-items-center hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-30" aria-label="Aumentar">
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-              <button type="button" onClick={handleAdd} disabled={allInCart} className="inline-flex flex-1 items-center justify-center gap-2 border border-black bg-white px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.16em] text-black hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40">
-                {added ? <><Check className="h-4 w-4" /> Adicionado</> : "Adicionar ao carrinho"}
-              </button>
-            </div>
-            <button type="button" onClick={handleBuyNow} className="w-full bg-black px-5 py-3.5 text-[12px] font-semibold uppercase tracking-[0.16em] text-white hover:bg-neutral-800">
-              Comprar agora
-            </button>
-            </>}
+              </>
+            )}
             <p className="min-h-[18px] text-[12px] text-neutral-500" aria-live="polite">
               {allInCart
                 ? "Todo o estoque disponível deste item já está no seu carrinho."
@@ -407,7 +520,9 @@ function ProductView({ product }: { product: PublicProductDetail }) {
 
           {product.description && (
             <div className="mt-6 border-t border-black/10 pt-6">
-              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">Descrição</div>
+              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-500">
+                Descrição
+              </div>
               <div
                 className="mt-3 text-[14px] leading-relaxed text-neutral-700 [&_a]:underline [&_h1]:mt-4 [&_h1]:font-semibold [&_h1]:text-black [&_h2]:mt-4 [&_h2]:font-semibold [&_h2]:text-black [&_h3]:mt-4 [&_h3]:font-semibold [&_h3]:text-black [&_li]:mt-1 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p+p]:mt-3 [&_strong]:text-black [&_table]:mt-3 [&_table]:w-full [&_td]:border [&_td]:border-black/10 [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-black/10 [&_th]:px-2 [&_th]:py-1 [&_th]:text-left [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
                 dangerouslySetInnerHTML={{ __html: sanitizeRichText(product.description) }}
@@ -422,7 +537,9 @@ function ProductView({ product }: { product: PublicProductDetail }) {
           <div className="mx-auto max-w-[1280px] px-4 py-12 md:px-8">
             <h2 className="text-2xl font-semibold text-black">Produtos relacionados</h2>
             <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4">
-              {related.map((item) => <ProductCard key={item.id} product={item} />)}
+              {related.map((item) => (
+                <ProductCard key={item.id} product={item} />
+              ))}
             </div>
           </div>
         </section>
@@ -432,14 +549,21 @@ function ProductView({ product }: { product: PublicProductDetail }) {
 }
 
 function normalize(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
 }
 
 // Abre no primeiro valor com estoque (ou no primeiro, se nada tiver), entre os valores visíveis.
 function initialSelection(product: PublicProductDetail, options: PublicProductDetail["options"]) {
   const selected: Record<string, string> = {};
   const pick = (option: PublicProductDetail["options"][number]) =>
-    (option.values.find((value) => isValueAvailable(product, option.name, value.value, {})) ?? option.values[0])?.value;
+    (
+      option.values.find((value) => isValueAvailable(product, option.name, value.value, {})) ??
+      option.values[0]
+    )?.value;
   const color = options.find((option) => normalize(option.name) === "cor");
   const first = color ? [color] : options;
   for (const option of first) {
@@ -449,7 +573,10 @@ function initialSelection(product: PublicProductDetail, options: PublicProductDe
   return selected;
 }
 
-function variantBuyable(product: PublicProductDetail, variant: PublicProductDetail["variants"][number]) {
+function variantBuyable(
+  product: PublicProductDetail,
+  variant: PublicProductDetail["variants"][number],
+) {
   return variant.available && (!product.manage_stock || variant.stock_quantity > 0);
 }
 
@@ -459,7 +586,8 @@ function soldOutValueKeys(product: PublicProductDetail) {
   for (const option of product.options) {
     for (const value of option.values) {
       const buyable = product.variants.some(
-        (variant) => variant.options[option.name] === value.value && variantBuyable(product, variant),
+        (variant) =>
+          variant.options[option.name] === value.value && variantBuyable(product, variant),
       );
       if (!buyable) keys.add(`${option.name}:${value.value}`);
     }
@@ -474,18 +602,35 @@ function chooseLabel(optionName: string) {
   return `Escolha: ${optionName}`;
 }
 
-function isValueAvailable(product: PublicProductDetail, optionName: string, value: string, selected: Record<string, string>) {
+function isValueAvailable(
+  product: PublicProductDetail,
+  optionName: string,
+  value: string,
+  selected: Record<string, string>,
+) {
   if (normalize(optionName) === "tamanho") {
     const color = product.options.find((option) => normalize(option.name) === "cor");
     if (color && !selected[color.name]) return false;
   }
   return product.variants.some((variant) => {
-    if (variant.options[optionName] !== value || !variant.available || (product.manage_stock && variant.stock_quantity <= 0)) return false;
-    return Object.entries(selected).every(([key, selectedValue]) => key === optionName || !selectedValue || variant.options[key] === selectedValue);
+    if (
+      variant.options[optionName] !== value ||
+      !variant.available ||
+      (product.manage_stock && variant.stock_quantity <= 0)
+    )
+      return false;
+    return Object.entries(selected).every(
+      ([key, selectedValue]) =>
+        key === optionName || !selectedValue || variant.options[key] === selectedValue,
+    );
   });
 }
 
-function clearUnavailableSize(product: PublicProductDetail, optionName: string, selected: Record<string, string>) {
+function clearUnavailableSize(
+  product: PublicProductDetail,
+  optionName: string,
+  selected: Record<string, string>,
+) {
   if (normalize(optionName) !== "cor") return selected;
   const size = product.options.find((option) => normalize(option.name) === "tamanho");
   if (!size || !selected[size.name]) return selected;
