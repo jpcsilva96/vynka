@@ -29,15 +29,49 @@ const updateStoreUserSchema = z.object({
   permissions: permissionsSchema,
 });
 
+// Usuários da loja: só o dono (e o master). Administrador e vendedor ficam de fora, senão um
+// administrador trocaria o e-mail e a senha do dono e assumiria a conta.
 async function assertCanManageStoreUsers(
   context: { supabase: any; userId: string },
   storeId: string,
 ) {
-  const [{ data: isStoreAdmin }, { data: isPlatformAdmin }] = await Promise.all([
-    context.supabase.rpc("is_store_admin", { _store_id: storeId, _user_id: context.userId }),
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const [{ data: ownerRow, error: ownerError }, { data: isPlatformAdmin }] = await Promise.all([
+    supabaseAdmin
+      .from("store_members")
+      .select("id")
+      .eq("store_id", storeId)
+      .eq("user_id", context.userId)
+      .eq("role", "owner")
+      .eq("active", true)
+      .maybeSingle(),
     context.supabase.rpc("is_platform_admin", { _user_id: context.userId }),
   ]);
-  if (!isStoreAdmin && !isPlatformAdmin) throw new Error("Forbidden");
+  if (ownerError) throw ownerError;
+  if (!ownerRow && !isPlatformAdmin) throw new Error("Forbidden");
+}
+
+/**
+ * E-mail e senha de outra pessoa só mudam se a conta for só desta loja. Conta que também é de outra
+ * loja, do master ou de cliente fica intocada: senão o dono de uma loja cadastraria o e-mail do dono
+ * de outra como vendedor e trocaria a senha dele.
+ */
+async function loginBelongsOnlyToStore(userId: string, storeId: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const [members, platform, authUser] = await Promise.all([
+    supabaseAdmin
+      .from("store_members")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .neq("store_id", storeId),
+    supabaseAdmin.from("platform_users").select("id").eq("user_id", userId).maybeSingle(),
+    supabaseAdmin.auth.admin.getUserById(userId),
+  ]);
+  if (members.error) throw members.error;
+  if (platform.error) throw platform.error;
+  if (authUser.error) throw authUser.error;
+  const isCustomer = authUser.data.user?.app_metadata?.role === "customer";
+  return (members.count ?? 0) === 0 && !platform.data && !isCustomer;
 }
 
 export const listStoreUsers = createServerFn({ method: "GET" })
@@ -122,6 +156,25 @@ export const createStoreUser = createServerFn({ method: "POST" })
 
     const userAlreadyExisted = !!userId;
 
+    if (userId) {
+      const [{ data: existingMember, error: existingError }, authUser] = await Promise.all([
+        supabaseAdmin
+          .from("store_members")
+          .select("role")
+          .eq("store_id", data.store_id)
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabaseAdmin.auth.admin.getUserById(userId),
+      ]);
+      if (existingError) throw existingError;
+      if (authUser.error) throw authUser.error;
+      // O upsert abaixo rebaixaria o dono a vendedor.
+      if (existingMember?.role === "owner") throw new Error("Este e-mail é do dono da loja.");
+      if (authUser.data.user?.app_metadata?.role === "customer") {
+        throw new Error("Este e-mail é de uma conta de cliente. Use outro e-mail para o usuário.");
+      }
+    }
+
     if (!userId) {
       const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
         email,
@@ -167,28 +220,46 @@ export const updateStoreUser = createServerFn({ method: "POST" })
     if (memberLookupError) throw memberLookupError;
     if (!member || member.user_id !== data.user_id) throw new Error("Usuario nao encontrado.");
 
-    const authUpdate: {
-      email: string;
-      email_confirm: true;
-      user_metadata: { full_name: string };
-      password?: string;
-    } = {
-      email: data.email.trim().toLowerCase(),
-      email_confirm: true,
-      user_metadata: { full_name: data.name.trim() },
-    };
-    if (data.password.trim()) {
-      if (data.password.trim().length < 6) {
-        throw new Error("A senha precisa ter ao menos 6 caracteres.");
-      }
-      authUpdate.password = data.password.trim();
+    const email = data.email.trim().toLowerCase();
+    const { data: current, error: currentError } = await supabaseAdmin.auth.admin.getUserById(
+      data.user_id,
+    );
+    if (currentError) throw currentError;
+    const loginChanged =
+      email !== (current.user?.email ?? "").toLowerCase() || !!data.password.trim();
+    const canEditLogin =
+      data.user_id === context.userId ||
+      (await loginBelongsOnlyToStore(data.user_id, data.store_id));
+    if (loginChanged && !canEditLogin) {
+      throw new Error(
+        "Esta conta também é usada fora desta loja. Só a própria pessoa pode trocar o e-mail e a senha.",
+      );
     }
 
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
-      data.user_id,
-      authUpdate,
-    );
-    if (authError) throw authError;
+    if (canEditLogin) {
+      const authUpdate: {
+        email: string;
+        email_confirm: true;
+        user_metadata: { full_name: string };
+        password?: string;
+      } = {
+        email,
+        email_confirm: true,
+        user_metadata: { full_name: data.name.trim() },
+      };
+      if (data.password.trim()) {
+        if (data.password.trim().length < 6) {
+          throw new Error("A senha precisa ter ao menos 6 caracteres.");
+        }
+        authUpdate.password = data.password.trim();
+      }
+
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+        data.user_id,
+        authUpdate,
+      );
+      if (authError) throw authError;
+    }
 
     const role = member.role === "owner" ? "owner" : data.administrator ? "admin" : "seller";
     const { error: updateError } = await supabaseAdmin

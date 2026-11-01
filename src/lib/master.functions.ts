@@ -8,65 +8,6 @@ import {
 } from "@/lib/provisional-store";
 
 /**
- * Provisiona o primeiro usuário Master a partir de MASTER_EMAIL / MASTER_PASSWORD.
- * Idempotente: se já existir, apenas garante o vínculo em platform_users.
- * Pública por design (executada uma vez pelo próprio operador da plataforma).
- */
-export const bootstrapMaster = createServerFn({ method: "POST" }).handler(async () => {
-  const email = process.env.MASTER_EMAIL || process.env.EMAIL_MASTER;
-  const password = process.env.MASTER_PASSWORD || process.env.SENHA_MASTER;
-  if (!email || !password) {
-    throw new Error("Defina MASTER_EMAIL/MASTER_PASSWORD ou EMAIL_MASTER/SENHA_MASTER nos secrets antes de continuar.");
-  }
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-  // procura usuário pelo email
-  let userId: string | null = null;
-  const perPage = 200;
-  for (let page = 1; page <= 5; page++) {
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
-    if (error) throw error;
-    const found = data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
-    if (found) {
-      userId = found.id;
-      break;
-    }
-    if (data.users.length < perPage) break;
-  }
-
-  if (!userId) {
-    const { data, error } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name: "VYNKA Master" },
-    });
-    if (error) throw error;
-    userId = data.user!.id;
-  }
-
-  const { data: existing } = await supabaseAdmin
-    .from("platform_users")
-    .select("id, active, role")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (!existing) {
-    const { error } = await supabaseAdmin
-      .from("platform_users")
-      .insert({ user_id: userId, role: "platform_owner", active: true });
-    if (error) throw error;
-  } else if (!existing.active) {
-    await supabaseAdmin
-      .from("platform_users")
-      .update({ active: true, role: "platform_owner" })
-      .eq("id", existing.id);
-  }
-
-  return { ok: true, email, userId, created: !existing };
-});
-
-/**
  * Status exibido ao Master (o banco guarda só trial/active/suspended/cancelled):
  * - "invited": loja no ar cujo dono ainda não concluiu o cadastro em /boas-vindas;
  * - "active": loja no ar com cadastro concluído (trial antigo conta como ativa);
