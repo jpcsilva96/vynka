@@ -41,7 +41,7 @@ function AssinaturasPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {(subs as any[]).length === 0 && (
+            {subs.length === 0 && (
               <tr>
                 <td
                   colSpan={5}
@@ -51,7 +51,7 @@ function AssinaturasPage() {
                 </td>
               </tr>
             )}
-            {(subs as any[]).map((s) => (
+            {subs.map((s) => (
               <tr key={s.id}>
                 <td className="px-4 py-3">
                   {s.store?.name ?? "—"}{" "}

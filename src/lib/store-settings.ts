@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { canResize, resizeImage, type ResizeOptions } from "@/lib/image-resize";
 
 export interface GeneralSettingsForm {
@@ -407,7 +408,7 @@ export async function updateReceiptSettings(storeId: string, settings: ReceiptSe
     {
       store_id: storeId,
       setting_key: "receipt",
-      setting_value: settings as any,
+      setting_value: settings as unknown as Json,
     },
     { onConflict: "store_id,setting_key" },
   );
@@ -433,7 +434,7 @@ export async function updateCatalogVisualSettings(
     {
       store_id: storeId,
       setting_key: "catalog_visual",
-      setting_value: normalizeCatalogVisualSettings(settings) as any,
+      setting_value: normalizeCatalogVisualSettings(settings) as unknown as Json,
     },
     { onConflict: "store_id,setting_key" },
   );

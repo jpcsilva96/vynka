@@ -26,7 +26,7 @@ async function assertStoreAccess(
 async function server() {
   const me = await import("./melhor-envio.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return { ...me, supabaseAdmin: supabaseAdmin as any };
+  return { ...me, supabaseAdmin };
 }
 
 const friendly = (err: unknown) => {

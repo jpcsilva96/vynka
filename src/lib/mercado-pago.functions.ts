@@ -26,7 +26,7 @@ async function assertStoreAccess(
 async function server() {
   const mp = await import("./mercado-pago.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return { ...mp, supabaseAdmin: supabaseAdmin as any };
+  return { ...mp, supabaseAdmin };
 }
 
 const storeInput = z.object({ store_id: z.string().uuid() });

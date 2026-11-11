@@ -18,6 +18,7 @@ export const Route = createFileRoute("/api/mercado-pago/webhook")({
 async function handleWebhook(request: Request) {
   const mp = await import("@/lib/mercado-pago.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  // mp_user_id é bigint (tipo gerado: number); o aviso o grava como texto para não perder dígitos.
   const db = supabaseAdmin as any;
   const url = new URL(request.url);
   const body = (await request.json().catch(() => ({}))) as {

@@ -11,7 +11,7 @@ const TECH_DOMAIN = "clientes.vynka.invalid";
 
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin as any;
+  return supabaseAdmin;
 }
 
 const digits = (value: string) => value.replace(/\D/g, "");

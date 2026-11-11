@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type { OrderStatus } from "@/lib/orders";
 
 // "boleto": só em pedido do site, vindo do Mercado Pago (não aparece na venda manual).
@@ -64,19 +65,19 @@ export async function saveSale(p: SavePayload): Promise<SavedSale> {
       surcharge: p.surcharge,
       total: p.total,
       payment_method: p.paymentMethod,
-      payment_details: p.paymentDetails,
+      payment_details: p.paymentDetails as Json,
       paid_amount: p.paidAmount,
       change_due: p.changeDue,
       created_by: p.userId,
       notes: p.notes ?? null,
-    } as any)
+    })
     .select("id, number, created_at")
     .single();
   if (error || !order) throw error ?? new Error("Falha ao registrar a venda.");
 
   const rows = p.items.map((i) => ({
     store_id: p.storeId,
-    order_id: (order as any).id as string,
+    order_id: order.id as string,
     product_id: i.product_id,
     variant_id: i.variant_id,
     product_name: i.product_name,
@@ -89,17 +90,14 @@ export async function saveSale(p: SavePayload): Promise<SavedSale> {
   }));
   const { error: itemsErr } = await supabase.from("order_items").insert(rows);
   if (itemsErr) {
-    await supabase
-      .from("orders")
-      .delete()
-      .eq("id", (order as any).id);
+    await supabase.from("orders").delete().eq("id", order.id);
     throw itemsErr;
   }
 
   return {
-    id: (order as any).id,
-    number: Number((order as any).number ?? 0),
-    created_at: (order as any).created_at,
+    id: order.id,
+    number: Number(order.number ?? 0),
+    created_at: order.created_at,
   };
 }
 
@@ -187,7 +185,7 @@ export async function createCustomerDetailed(
       neighborhood: clean(input.neighborhood),
       city: clean(input.city),
       state: clean(input.state),
-    } as any)
+    })
     .select("id,name,phone,email")
     .single();
   if (error || !data) throw error ?? new Error("Falha ao criar cliente.");
