@@ -37,10 +37,9 @@ export const getPaymentIntegration = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { mercadoPagoConfig } = await server();
     const cfg = mercadoPagoConfig();
-    const { data: rows, error } = await (context.supabase as any).rpc(
-      "store_payment_connection_status",
-      { _store_id: data.store_id },
-    );
+    const { data: rows, error } = await context.supabase.rpc("store_payment_connection_status", {
+      _store_id: data.store_id,
+    });
     if (error) throw error;
     const row = (rows ?? [])[0] ?? null;
     return {

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- tabelas novas ainda fora do types.ts gerado (regenerar e pendencia) */
 import { supabase } from "@/integrations/supabase/client";
 
 // Configurações de checkout da loja (escopo checkout/entrega/pagamento, lote A). Só guarda as
@@ -105,7 +104,7 @@ export function normalizeCheckoutSettings(value: unknown): CheckoutSettings {
 }
 
 export async function getCheckoutSettings(storeId: string): Promise<CheckoutSettings> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("store_checkout_settings")
     .select(SETTINGS_COLUMNS)
     .eq("store_id", storeId)
@@ -120,14 +119,14 @@ export async function saveCheckoutSettings(storeId: string, patch: Partial<Check
   for (const key of ["pickup_address", "pickup_instructions"] as const) {
     if (key in clean) clean[key] = String(clean[key] ?? "").trim() || null;
   }
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from("store_checkout_settings")
     .upsert({ store_id: storeId, ...clean }, { onConflict: "store_id" });
   if (error) throw error;
 }
 
 export async function listDeliveryCities(storeId: string): Promise<DeliveryCity[]> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("store_delivery_cities")
     .select("ibge_code,city_name,state,price")
     .eq("store_id", storeId)
@@ -144,7 +143,7 @@ export async function listDeliveryCities(storeId: string): Promise<DeliveryCity[
 
 // Substitui a lista de cidades da loja pela da tela (apaga as removidas, grava as demais).
 export async function saveDeliveryCities(storeId: string, cities: DeliveryCity[]) {
-  const { data: existing, error: listError } = await (supabase as any)
+  const { data: existing, error: listError } = await supabase
     .from("store_delivery_cities")
     .select("ibge_code")
     .eq("store_id", storeId);
@@ -154,7 +153,7 @@ export async function saveDeliveryCities(storeId: string, cities: DeliveryCity[]
     .map((row: { ibge_code: string }) => row.ibge_code)
     .filter((code: string) => !keep.has(code));
   if (removed.length > 0) {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("store_delivery_cities")
       .delete()
       .eq("store_id", storeId)
@@ -162,7 +161,7 @@ export async function saveDeliveryCities(storeId: string, cities: DeliveryCity[]
     if (error) throw error;
   }
   if (cities.length > 0) {
-    const { error } = await (supabase as any).from("store_delivery_cities").upsert(
+    const { error } = await supabase.from("store_delivery_cities").upsert(
       cities.map((city) => ({
         store_id: storeId,
         ibge_code: city.ibge_code,
