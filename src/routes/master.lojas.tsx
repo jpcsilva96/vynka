@@ -117,7 +117,7 @@ function LojasPage() {
     planMutation.mutate({ store_id: store.id, plan_id: planId });
   };
 
-  const filtered = (stores as any[]).filter((s) => {
+  const filtered = stores.filter((s) => {
     const q = search.toLowerCase();
     if (statusFilter && s.display_status !== statusFilter) return false;
     if (!q) return true;
@@ -227,7 +227,7 @@ function LojasPage() {
                     className="rounded-md border border-border bg-background px-2 py-1 text-[12px] outline-none"
                   >
                     {!s.plan_id && <option value="">—</option>}
-                    {(plans as any[]).map((p) => (
+                    {plans.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name}
                       </option>
@@ -293,7 +293,7 @@ function LojasPage() {
         </table>
       </div>
 
-      {showNew && <NewStoreDialog plans={plans as any[]} onClose={() => setShowNew(false)} />}
+      {showNew && <NewStoreDialog plans={plans} onClose={() => setShowNew(false)} />}
 
       {toDelete && <DeleteStoreDialog store={toDelete} onClose={() => setToDelete(null)} />}
 

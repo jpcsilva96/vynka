@@ -337,7 +337,7 @@ export async function createCategory(storeId: string, form: CategoryFormState): 
       active: form.active,
       display_order: form.position,
       position: form.position,
-    } as any)
+    })
     .select("id")
     .single();
   if (error || !data) throw error;
@@ -377,7 +377,7 @@ export async function updateCategory(
       active: form.active,
       display_order: form.position,
       position: form.position,
-    } as any)
+    })
     .eq("store_id", storeId)
     .eq("id", categoryId);
   if (error) throw error;

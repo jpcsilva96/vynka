@@ -12,7 +12,7 @@ import { assertStoreCustomer, attachStoreCustomerAuth } from "@/lib/store-auth";
 async function server() {
   const me = await import("./melhor-envio.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return { ...me, supabaseAdmin: supabaseAdmin as any };
+  return { ...me, supabaseAdmin };
 }
 
 const itemsSchema = z
@@ -100,7 +100,7 @@ async function computeOptions(
   });
   if (linesError) throw dbMessage(linesError, "Não foi possível conferir o carrinho.");
   // Em centavos, como o banco (round por linha), para o frete grátis bater no limite.
-  const subtotalCents = ((lines ?? []) as any[]).reduce(
+  const subtotalCents = (lines ?? []).reduce(
     (sum, line) => sum + Math.round(Number(line.unit_price) * line.quantity * 100),
     0,
   );
@@ -131,7 +131,7 @@ async function computeOptions(
           body: {
             from: { postal_code: fromZip },
             to: { postal_code: toZip },
-            products: ((lines ?? []) as any[]).map((line, index) => ({
+            products: (lines ?? []).map((line, index) => ({
               id: String(index + 1),
               weight: Number(line.weight_kg),
               height: Number(line.height_cm),
@@ -167,7 +167,9 @@ async function computeOptions(
     }
   }
 
-  const { data: options, error: optionsError } = await supabaseAdmin.rpc(
+  // Tipos gerados não aceitam nulo nos parâmetros opcionais nem os formatos próprios (cotações,
+  // endereço) que o banco guarda como JSON; o cast fica só nesta chamada.
+  const { data: options, error: optionsError } = await (supabaseAdmin as any).rpc(
     "checkout_delivery_options",
     { _store_id: storeId, _ibge_code: ibgeCode, _subtotal: subtotal, _quotes: quotes },
   );
@@ -335,7 +337,8 @@ export const placeCheckoutOrder = createServerFn({ method: "POST" })
       );
     }
 
-    const { data: orderId, error } = await supabaseAdmin.rpc("create_checkout_order", {
+    // Mesmo motivo de checkout_delivery_options: nulo e JSON próprio nos parâmetros.
+    const { data: orderId, error } = await (supabaseAdmin as any).rpc("create_checkout_order", {
       _user_id: context.userId,
       _store_id: data.store_id,
       _items: data.items,

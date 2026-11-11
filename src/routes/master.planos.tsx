@@ -28,7 +28,7 @@ function PlanosPage() {
       </header>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {(plans as any[]).map((p) => (
+        {plans.map((p) => (
           <div key={p.id} className="rounded-lg border border-border bg-surface p-6">
             <h3 className="text-[15px] font-medium">{p.name}</h3>
             <p className="mt-1 text-[12px] text-muted-foreground">{p.description}</p>

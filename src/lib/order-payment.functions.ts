@@ -13,7 +13,7 @@ import { assertStoreCustomer, attachStoreCustomerAuth } from "@/lib/store-auth";
 async function server() {
   const mp = await import("./mercado-pago.server");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return { ...mp, supabaseAdmin: supabaseAdmin as any };
+  return { ...mp, supabaseAdmin };
 }
 
 // store_id: escolhe a sessão da loja no navegador (login por loja, L3) e é conferido com o pedido.
