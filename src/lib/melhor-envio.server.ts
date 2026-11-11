@@ -108,6 +108,30 @@ export class ShippingNotConnectedError extends Error {
   }
 }
 
+// Erro da API com a resposta junto: a etiqueta mostra ao lojista o motivo (saldo, CPF, endereço).
+export class MelhorEnvioError extends Error {
+  constructor(
+    public status: number,
+    public body: unknown,
+  ) {
+    super(`melhor_envio_${status}`);
+  }
+}
+
+/** Texto do erro que a API devolveu (`error`, `message` ou o primeiro de `errors`). */
+export function melhorEnvioErrorText(err: unknown): string | null {
+  if (!(err instanceof MelhorEnvioError)) return null;
+  const body = err.body as { error?: unknown; message?: unknown; errors?: unknown } | null;
+  if (!body) return null;
+  if (typeof body.error === "string" && body.error) return body.error;
+  if (body.errors && typeof body.errors === "object") {
+    const first = Object.values(body.errors as Record<string, unknown>).flat()[0];
+    if (typeof first === "string" && first) return first;
+  }
+  if (typeof body.message === "string" && body.message) return body.message;
+  return null;
+}
+
 const expiresAt = (seconds: number) => new Date(Date.now() + seconds * 1000).toISOString();
 
 export async function saveConnection(
@@ -196,7 +220,7 @@ export async function melhorEnvioFetch(
   cfg: MelhorEnvioConfig,
   storeId: string,
   path: string,
-  init: { method?: "GET" | "POST"; body?: unknown } = {},
+  init: { method?: "GET" | "POST" | "DELETE"; body?: unknown } = {},
 ) {
   let row = await loadConnection(cfg, storeId);
   if (new Date(row.expires_at).getTime() - Date.now() < 24 * 60 * 60 * 1000) {
@@ -214,6 +238,6 @@ export async function melhorEnvioFetch(
     response = await call(row.access_token);
   }
   const json = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(`melhor_envio_${response.status}`);
+  if (!response.ok) throw new MelhorEnvioError(response.status, json);
   return json;
 }
