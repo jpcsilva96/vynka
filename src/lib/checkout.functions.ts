@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertStoreCustomer, attachStoreCustomerAuth } from "@/lib/store-auth";
+import { isValidCpf, onlyDigits } from "@/lib/br-documents";
 
 // Checkout em etapas (lote C2): opções de entrega e criação do pedido, sempre pelo servidor.
 // O navegador manda só itens, CEP e a opção escolhida. A cidade (código IBGE) vem do CEP, consultado
@@ -137,7 +138,8 @@ async function computeOptions(
               height: Number(line.height_cm),
               width: Number(line.width_cm),
               length: Number(line.length_cm),
-              insurance_value: Number(line.unit_price),
+              // Sem seguro (João, 11/11): a etiqueta sai sem valor declarado e o cliente paga o mesmo.
+              insurance_value: 0,
               quantity: line.quantity,
             })),
             services: services.join(","),
@@ -279,6 +281,8 @@ const placeInput = z.object({
     })
     .optional(),
   notes: z.string().max(1000).optional(),
+  // CPF sempre (João, 11/11): o Melhor Envio exige o do destinatário na etiqueta.
+  document: z.string().transform(onlyDigits).refine(isValidCpf, "Informe um CPF válido."),
 });
 
 const money = (value: number) =>
@@ -337,13 +341,22 @@ export const placeCheckoutOrder = createServerFn({ method: "POST" })
       );
     }
 
+    // CPF na ficha (vem preenchido na próxima compra) e no endereço do pedido (a etiqueta usa o da
+    // compra, mesmo que a ficha mude depois).
+    const { error: documentError } = await supabaseAdmin
+      .from("customers")
+      .update({ document: data.document })
+      .eq("store_id", data.store_id)
+      .eq("user_id", context.userId);
+    if (documentError) throw dbMessage(documentError, "Não foi possível salvar o CPF.");
+
     // Mesmo motivo de checkout_delivery_options: nulo e JSON próprio nos parâmetros.
     const { data: orderId, error } = await (supabaseAdmin as any).rpc("create_checkout_order", {
       _user_id: context.userId,
       _store_id: data.store_id,
       _items: data.items,
       _delivery: { method: data.delivery.method, service_id: serviceId },
-      _address: address,
+      _address: address ? { ...address, document: data.document } : null,
       _quotes: result.quotes,
       _notes: data.notes || null,
     });
