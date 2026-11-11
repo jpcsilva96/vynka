@@ -8,6 +8,8 @@ const permissionsSchema = z.object({
   discount_sales: z.boolean().default(false),
   manage_products: z.boolean().default(false),
   manage_stock: z.boolean().default(false),
+  // Respeitada no servidor das etiquetas (shipping-labels.functions.ts): vendedor gera/cancela.
+  generate_labels: z.boolean().default(false),
 });
 
 const createStoreUserSchema = z.object({

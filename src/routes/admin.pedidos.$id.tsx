@@ -47,6 +47,7 @@ import {
   type OrderStatus,
 } from "@/lib/orders";
 import { confirmAction } from "@/lib/confirm-dialog";
+import { OrderShipmentCard } from "@/components/admin/order-shipment-card";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   head: () => ({ meta: [{ title: "Pedido - VYNKA" }] }),
@@ -563,8 +564,8 @@ function PedidoDetalhe() {
             <div className="mt-3 rounded-md border border-border bg-surface px-4 py-3 text-[12.5px] text-foreground">
               <span className="font-medium">Envio por Correios/transportadora.</span>{" "}
               <span className="text-muted-foreground">
-                Você marca "Em separação"; "Enviado" e "Entregue" são atualizados automaticamente
-                pelo Melhor Envio quando a etiqueta for gerada pelo Vynka.
+                Você marca "Em separação" e gera a etiqueta no quadro "Etiqueta de envio"; "Enviado"
+                e "Entregue" vêm do Melhor Envio.
               </span>
             </div>
           )}
@@ -666,6 +667,10 @@ function PedidoDetalhe() {
                     </div>
                   </div>
                 </InfoCard>
+              )}
+
+              {isWebsite && order.delivery_method === "shipping" && (
+                <OrderShipmentCard storeId={storeId} orderId={order.id} />
               )}
 
               <InfoCard

@@ -549,6 +549,7 @@ export type Database = {
           delivered_at: string | null;
           document_type: string;
           environment: string;
+          finance_entry_id: string | null;
           generated_at: string | null;
           id: string;
           invoice_key: string | null;
@@ -576,6 +577,7 @@ export type Database = {
           delivered_at?: string | null;
           document_type?: string;
           environment: string;
+          finance_entry_id?: string | null;
           generated_at?: string | null;
           id?: string;
           invoice_key?: string | null;
@@ -603,6 +605,7 @@ export type Database = {
           delivered_at?: string | null;
           document_type?: string;
           environment?: string;
+          finance_entry_id?: string | null;
           generated_at?: string | null;
           id?: string;
           invoice_key?: string | null;
@@ -624,6 +627,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "order_shipments_finance_entry_id_fkey";
+            columns: ["finance_entry_id"];
+            isOneToOne: false;
+            referencedRelation: "finance_entries";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "order_shipments_order_id_fkey";
             columns: ["order_id"];

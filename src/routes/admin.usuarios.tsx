@@ -18,7 +18,8 @@ type PermissionKey =
   | "view_all_transactions"
   | "discount_sales"
   | "manage_products"
-  | "manage_stock";
+  | "manage_stock"
+  | "generate_labels";
 
 type PermissionState = Record<PermissionKey, boolean>;
 
@@ -214,8 +215,11 @@ function NewUserModal({
   const [administrator, setAdministrator] = useState(
     user?.role === "owner" || user?.role === "admin",
   );
-  // Permissões detalhadas ficam escondidas até o sistema respeitá-las; as gravadas seguem como estão.
-  const [permissions] = useState<PermissionState>(() => normalizePermissions(user?.permissions));
+  // Só aparece a permissão que o sistema respeita (Gerar etiquetas, lote E3); as outras ficam
+  // escondidas e as gravadas seguem como estão.
+  const [permissions, setPermissions] = useState<PermissionState>(() =>
+    normalizePermissions(user?.permissions),
+  );
 
   const canSave =
     !!storeId && name.trim() && email.trim() && (editing || password.length >= 6) && !saving;
@@ -283,6 +287,19 @@ function NewUserModal({
                 checked={administrator}
                 onChange={() => setAdministrator((current) => !current)}
               />
+              {!administrator && (
+                <PermissionToggle
+                  label="Gerar etiquetas"
+                  description="Deixa o vendedor gerar, imprimir e cancelar etiquetas do Melhor Envio (pagas com o saldo da loja). Dono e administrador já podem."
+                  checked={permissions.generate_labels}
+                  onChange={() =>
+                    setPermissions((current) => ({
+                      ...current,
+                      generate_labels: !current.generate_labels,
+                    }))
+                  }
+                />
+              )}
             </div>
           )}
 
@@ -397,5 +414,6 @@ function normalizePermissions(value: Partial<PermissionState> | null | undefined
     discount_sales: !!value?.discount_sales,
     manage_products: !!value?.manage_products,
     manage_stock: !!value?.manage_stock,
+    generate_labels: !!value?.generate_labels,
   };
 }
