@@ -541,6 +541,112 @@ export type Database = {
           },
         ];
       };
+      order_shipments: {
+        Row: {
+          cancelled_at: string | null;
+          created_at: string;
+          created_by: string | null;
+          delivered_at: string | null;
+          document_type: string;
+          environment: string;
+          generated_at: string | null;
+          id: string;
+          invoice_key: string | null;
+          last_error: string | null;
+          last_error_at: string | null;
+          me_order_id: string;
+          order_id: string;
+          paid_at: string | null;
+          posted_at: string | null;
+          price: number | null;
+          protocol: string | null;
+          provider: string;
+          service_id: number | null;
+          service_name: string | null;
+          status: string;
+          store_id: string;
+          tracking: string | null;
+          tracking_url: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          cancelled_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          delivered_at?: string | null;
+          document_type?: string;
+          environment: string;
+          generated_at?: string | null;
+          id?: string;
+          invoice_key?: string | null;
+          last_error?: string | null;
+          last_error_at?: string | null;
+          me_order_id: string;
+          order_id: string;
+          paid_at?: string | null;
+          posted_at?: string | null;
+          price?: number | null;
+          protocol?: string | null;
+          provider?: string;
+          service_id?: number | null;
+          service_name?: string | null;
+          status?: string;
+          store_id: string;
+          tracking?: string | null;
+          tracking_url?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          cancelled_at?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          delivered_at?: string | null;
+          document_type?: string;
+          environment?: string;
+          generated_at?: string | null;
+          id?: string;
+          invoice_key?: string | null;
+          last_error?: string | null;
+          last_error_at?: string | null;
+          me_order_id?: string;
+          order_id?: string;
+          paid_at?: string | null;
+          posted_at?: string | null;
+          price?: number | null;
+          protocol?: string | null;
+          provider?: string;
+          service_id?: number | null;
+          service_name?: string | null;
+          status?: string;
+          store_id?: string;
+          tracking?: string | null;
+          tracking_url?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_shipments_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_shipments_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "storefront_stores";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_shipments_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       order_status_events: {
         Row: {
           actor: string;
@@ -1257,6 +1363,61 @@ export type Database = {
           },
           {
             foreignKeyName: "shipping_oauth_states_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      shipping_webhook_events: {
+        Row: {
+          event: string | null;
+          id: number;
+          me_order_id: string | null;
+          order_id: string | null;
+          received_at: string;
+          result: string | null;
+          signature_ok: boolean | null;
+          store_id: string | null;
+        };
+        Insert: {
+          event?: string | null;
+          id?: never;
+          me_order_id?: string | null;
+          order_id?: string | null;
+          received_at?: string;
+          result?: string | null;
+          signature_ok?: boolean | null;
+          store_id?: string | null;
+        };
+        Update: {
+          event?: string | null;
+          id?: never;
+          me_order_id?: string | null;
+          order_id?: string | null;
+          received_at?: string;
+          result?: string | null;
+          signature_ok?: boolean | null;
+          store_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "shipping_webhook_events_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "shipping_webhook_events_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "storefront_stores";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "shipping_webhook_events_store_id_fkey";
             columns: ["store_id"];
             isOneToOne: false;
             referencedRelation: "stores";
@@ -2126,6 +2287,16 @@ export type Database = {
           _status_detail: string;
           _store_id: string;
           _updated_at: string;
+        };
+        Returns: string;
+      };
+      record_shipment_status: {
+        Args: {
+          _at?: string;
+          _me_order_id: string;
+          _status: string;
+          _tracking?: string;
+          _tracking_url?: string;
         };
         Returns: string;
       };
