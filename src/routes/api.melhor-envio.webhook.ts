@@ -4,9 +4,9 @@ import { createFileRoute } from "@tanstack/react-router";
 // "Integrações > Área Dev" (só chega aviso de etiqueta gerada pelo próprio aplicativo). O corpo só
 // diz QUAL etiqueta mudou: a situação é consultada na API com a conta da loja dona da etiqueta e
 // gravada por record_shipment_status (postado -> Enviado; entregue -> Entregue).
-// Assinatura X-ME-Signature = HMAC-SHA256 do corpo com o segredo do aplicativo (doc, 11/11). O
-// formato (hex ou base64) ainda não foi medido num aviso real: o resultado fica registrado
-// (signature_ok) e o aviso é processado mesmo assim, o que é seguro porque o corpo nunca é confiado.
+// Assinatura X-ME-Signature = HMAC-SHA256 do corpo com o segredo do aplicativo (doc, 11/11), aceita
+// em hex ou base64. Medido em 11/11: 5 de 5 avisos reais fecharam; sem assinatura válida = 401
+// (registrado como bad_signature).
 // Resposta rápida (o Melhor Envio espera até 6 s); erro inesperado = 500 para ele tentar de novo.
 export const Route = createFileRoute("/api/melhor-envio/webhook")({
   server: {
@@ -78,6 +78,11 @@ async function handleWebhook(request: Request) {
       .update({ ...fields, result: fields.result.slice(0, 200) })
       .eq("id", logRow.id);
   };
+
+  if (signatureOk !== true) {
+    await finish({ result: secret ? "bad_signature" : "not_configured" });
+    return new Response("invalid signature", { status: 401 });
+  }
 
   if (!meOrderId) {
     await finish({ result: "ignored" });
