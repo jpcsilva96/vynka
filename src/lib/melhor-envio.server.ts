@@ -241,3 +241,65 @@ export async function melhorEnvioFetch(
   if (!response.ok) throw new MelhorEnvioError(response.status, json);
   return json;
 }
+
+// Situação da etiqueta consultada na API (aviso e botão "Atualizar" nunca confiam no corpo do aviso).
+// Datas da API vêm em UTC sem fuso ("2026-11-11 17:37:19", medido em 11/11).
+export interface ShipmentState {
+  status: string | null;
+  tracking: string | null;
+  at: string | null;
+}
+
+const utc = (value: unknown) =>
+  typeof value === "string" && value ? new Date(`${value.replace(" ", "T")}Z`).toISOString() : null;
+
+export async function fetchShipmentState(
+  cfg: MelhorEnvioConfig,
+  storeId: string,
+  meOrderId: string,
+): Promise<ShipmentState> {
+  const order = (await melhorEnvioFetch(cfg, storeId, `/api/v2/me/orders/${meOrderId}`)) as {
+    status?: string;
+    tracking?: string | null;
+    paid_at?: string | null;
+    generated_at?: string | null;
+    posted_at?: string | null;
+    delivered_at?: string | null;
+    canceled_at?: string | null;
+  } | null;
+  const raw = order?.status ?? null;
+  // A API escreve "canceled" e "pending"; aqui é "cancelled" e "cart", como nos avisos.
+  const status = raw === "canceled" ? "cancelled" : raw === "pending" ? "cart" : raw;
+  const at =
+    status === "delivered"
+      ? order?.delivered_at
+      : status === "posted"
+        ? order?.posted_at
+        : status === "cancelled"
+          ? order?.canceled_at
+          : status === "generated"
+            ? order?.generated_at
+            : status === "released"
+              ? order?.paid_at
+              : null;
+  return { status, tracking: order?.tracking ?? null, at: utc(at) };
+}
+
+const RANK: Record<string, number> = {
+  cart: 0,
+  released: 1,
+  generated: 2,
+  posted: 3,
+  undelivered: 3,
+  paused: 3,
+  suspended: 3,
+  delivered: 4,
+};
+
+/** Aviso fora de ordem não faz a etiqueta voltar (pago depois de gerado); cancelado sempre vale. */
+export function shipmentMovesForward(current: string, next: string | null) {
+  if (!next || next === current) return false;
+  if (next === "cancelled") return true;
+  if (current === "cancelled") return false;
+  return (RANK[next] ?? -1) >= (RANK[current] ?? -1);
+}
