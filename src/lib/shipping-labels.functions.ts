@@ -564,25 +564,22 @@ export const refreshShipment = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => orderInput.parse(data))
   .handler(async ({ data, context }) => {
     await access(context, data.store_id);
-    const { supabaseAdmin, melhorEnvioConfig, melhorEnvioFetch } = await server();
+    const { supabaseAdmin, melhorEnvioConfig, fetchShipmentState, shipmentMovesForward } =
+      await server();
     const cfg = melhorEnvioConfig();
     if (!cfg) throw new Error("Melhor Envio não configurado no servidor.");
     const order = await loadOrder(supabaseAdmin, data.store_id, data.order_id);
     const row = await activeShipment(supabaseAdmin, order.id);
     if (!row) return { shipment: null };
     try {
-      const state = tracking(
-        await melhorEnvioFetch(cfg, data.store_id, "/api/v2/me/shipment/tracking", {
-          method: "POST",
-          body: { orders: [row.me_order_id] },
-        }),
-        row.me_order_id,
-      );
-      if (state.status && state.status !== "released") {
+      // Mesma consulta e mesma regra do aviso do Melhor Envio (api.melhor-envio.webhook.ts).
+      const state = await fetchShipmentState(cfg, data.store_id, row.me_order_id);
+      if (shipmentMovesForward(row.status, state.status)) {
         await supabaseAdmin.rpc("record_shipment_status", {
           _me_order_id: row.me_order_id,
-          _status: state.status,
+          _status: state.status as string,
           _tracking: state.tracking ?? undefined,
+          _at: state.at ?? undefined,
         });
       }
     } catch (err) {

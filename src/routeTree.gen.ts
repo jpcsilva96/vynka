@@ -45,6 +45,7 @@ import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 import { Route as AdminProdutosIndexRouteImport } from './routes/admin.produtos.index'
 import { Route as AdminProdutosIdRouteImport } from './routes/admin.produtos.$id'
 import { Route as AdminProdutosNovoRouteImport } from './routes/admin.produtos.novo'
+import { Route as ApiMelhorEnvioWebhookRouteImport } from './routes/api.melhor-envio.webhook'
 import { Route as ApiMercadoPagoWebhookRouteImport } from './routes/api.mercado-pago.webhook'
 import { Route as LojaSlugIndexRouteImport } from './routes/loja.$slug.index'
 import { Route as LojaSlugBuscaRouteImport } from './routes/loja.$slug.busca'
@@ -249,6 +250,11 @@ const AdminProdutosNovoRoute = AdminProdutosNovoRouteImport.update({
   path: '/novo',
   getParentRoute: () => AdminProdutosRoute,
 } as any)
+const ApiMelhorEnvioWebhookRoute = ApiMelhorEnvioWebhookRouteImport.update({
+  id: '/api/melhor-envio/webhook',
+  path: '/api/melhor-envio/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMercadoPagoWebhookRoute = ApiMercadoPagoWebhookRouteImport.update({
   id: '/api/mercado-pago/webhook',
   path: '/api/mercado-pago/webhook',
@@ -406,6 +412,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
+  '/api/melhor-envio/webhook': typeof ApiMelhorEnvioWebhookRoute
   '/api/mercado-pago/webhook': typeof ApiMercadoPagoWebhookRoute
   '/loja/$slug/busca': typeof LojaSlugBuscaRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
@@ -461,6 +468,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
+  '/api/melhor-envio/webhook': typeof ApiMelhorEnvioWebhookRoute
   '/api/mercado-pago/webhook': typeof ApiMercadoPagoWebhookRoute
   '/loja/$slug/busca': typeof LojaSlugBuscaRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
@@ -523,6 +531,7 @@ export interface FileRoutesById {
   '/admin/pedidos/$id': typeof AdminPedidosIdRoute
   '/admin/produtos/$id': typeof AdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminProdutosNovoRoute
+  '/api/melhor-envio/webhook': typeof ApiMelhorEnvioWebhookRoute
   '/api/mercado-pago/webhook': typeof ApiMercadoPagoWebhookRoute
   '/loja/$slug/busca': typeof LojaSlugBuscaRoute
   '/loja/$slug/checkout': typeof LojaSlugCheckoutRoute
@@ -586,6 +595,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/melhor-envio/webhook'
     | '/api/mercado-pago/webhook'
     | '/loja/$slug/busca'
     | '/loja/$slug/checkout'
@@ -641,6 +651,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/melhor-envio/webhook'
     | '/api/mercado-pago/webhook'
     | '/loja/$slug/busca'
     | '/loja/$slug/checkout'
@@ -702,6 +713,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$id'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/melhor-envio/webhook'
     | '/api/mercado-pago/webhook'
     | '/loja/$slug/busca'
     | '/loja/$slug/checkout'
@@ -738,6 +750,7 @@ export interface RootRouteChildren {
   MasterRoute: typeof MasterRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   LojaSlugRoute: typeof LojaSlugRouteWithChildren
+  ApiMelhorEnvioWebhookRoute: typeof ApiMelhorEnvioWebhookRoute
   ApiMercadoPagoWebhookRoute: typeof ApiMercadoPagoWebhookRoute
 }
 
@@ -994,6 +1007,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/produtos/novo'
       preLoaderRoute: typeof AdminProdutosNovoRouteImport
       parentRoute: typeof AdminProdutosRoute
+    }
+    '/api/melhor-envio/webhook': {
+      id: '/api/melhor-envio/webhook'
+      path: '/api/melhor-envio/webhook'
+      fullPath: '/api/melhor-envio/webhook'
+      preLoaderRoute: typeof ApiMelhorEnvioWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/mercado-pago/webhook': {
       id: '/api/mercado-pago/webhook'
@@ -1351,6 +1371,7 @@ const rootRouteChildren: RootRouteChildren = {
   MasterRoute: MasterRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   LojaSlugRoute: LojaSlugRouteWithChildren,
+  ApiMelhorEnvioWebhookRoute: ApiMelhorEnvioWebhookRoute,
   ApiMercadoPagoWebhookRoute: ApiMercadoPagoWebhookRoute,
 }
 export const routeTree = rootRouteImport
