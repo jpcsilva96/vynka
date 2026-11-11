@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { clearCart, useCart, useCartTotals } from "@/lib/cart";
 import { cepDigits, formatCep } from "@/lib/cep";
+import { isValidCpf, maskCpf } from "@/lib/br-documents";
 import {
   getCheckoutOptions,
   placeCheckoutOrder,
@@ -105,6 +106,11 @@ function CheckoutPage() {
   const [choice, setChoice] = useState<string>("");
   const [street, setStreet] = useState(emptyStreet);
   const [notes, setNotes] = useState("");
+  // CPF sempre (etiquetas E2): vem da ficha; o cliente confirma ou digita.
+  const [cpf, setCpf] = useState("");
+  useEffect(() => {
+    if (account?.document) setCpf((current) => current || maskCpf(account.document ?? ""));
+  }, [account?.document]);
 
   const cartItems = useMemo(
     () =>
@@ -280,6 +286,11 @@ function CheckoutPage() {
       setError(missing || "Confira a entrega.");
       return;
     }
+    if (!isValidCpf(cpf)) {
+      setOpen(3);
+      setError("Informe um CPF válido.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -292,6 +303,7 @@ function CheckoutPage() {
           zip: isPickup ? undefined : validQuote.zip,
           address: isPickup ? undefined : street,
           notes: notes.trim() || undefined,
+          document: cpf,
         },
       });
       // Pedido gravado: o carrinho sai já, para um novo clique não duplicar o pedido.
@@ -592,6 +604,22 @@ function CheckoutPage() {
               <p className="mt-3 text-[13px] leading-relaxed text-neutral-600">
                 Você escolhe a forma e paga na página segura do Mercado Pago.
               </p>
+              <label className="mt-5 grid gap-2">
+                <span className="text-[12px] font-medium uppercase tracking-[0.14em] text-neutral-500">
+                  CPF
+                </span>
+                <input
+                  value={cpf}
+                  onChange={(event) => setCpf(maskCpf(event.target.value))}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="000.000.000-00"
+                  className="w-full min-w-0 border border-black/10 bg-white px-3 py-3 text-[16px] outline-none focus:border-black md:text-[14px]"
+                />
+                <span className="text-[12px] leading-relaxed text-neutral-500">
+                  Usado na nota/declaração do envio. Fica salvo para as próximas compras.
+                </span>
+              </label>
               <label className="mt-5 grid gap-2">
                 <span className="text-[12px] font-medium uppercase tracking-[0.14em] text-neutral-500">
                   Observações (opcional)

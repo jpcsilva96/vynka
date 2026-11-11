@@ -23,6 +23,8 @@ export interface StoreCustomer {
   neighborhood: string | null;
   city: string | null;
   state: string | null;
+  /** CPF (só dígitos), pedido no checkout desde as etiquetas (E2). */
+  document: string | null;
 }
 
 export interface CustomerAddressForm {
@@ -86,7 +88,7 @@ export async function getStoreCustomer(storeId: string): Promise<StoreCustomer |
   const { data, error } = await dbFor(storeId)
     .from("customers")
     .select(
-      "id,store_id,user_id,name,phone,email,zip_code,street,address_number,complement,neighborhood,city,state",
+      "id,store_id,user_id,name,phone,email,zip_code,street,address_number,complement,neighborhood,city,state,document",
     )
     .eq("store_id", storeId)
     .eq("user_id", user.id)
