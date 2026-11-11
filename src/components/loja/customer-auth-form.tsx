@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { signInCustomer, signUpCustomer } from "@/lib/customer-account";
 import type { CustomerAuthMode } from "@/lib/customer-auth-dialog";
-import { formatPhone, isValidPhone, onlyDigits } from "@/lib/br-documents";
+import { formatPhone, isValidCpf, isValidPhone, maskCpf, onlyDigits } from "@/lib/br-documents";
 import { useStorefront } from "@/lib/storefront-context";
 
 // Formulário de entrar / criar conta da loja: o mesmo na janela (cabeçalho,
@@ -22,7 +22,13 @@ export function CustomerAuthForm({
   const store = useStorefront();
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<CustomerAuthMode>(initialMode);
-  const [form, setForm] = useState({ name: "", phone: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    document: "",
+    email: "",
+    password: "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => setMode(initialMode), [initialMode]);
@@ -37,6 +43,10 @@ export function CustomerAuthForm({
     setError("");
     if (mode === "signup" && !isValidPhone(form.phone)) {
       setError("Informe seu telefone com DDD.");
+      return;
+    }
+    if (mode === "signup" && !isValidCpf(form.document)) {
+      setError("Informe um CPF válido.");
       return;
     }
     setLoading(true);
@@ -94,6 +104,15 @@ export function CustomerAuthForm({
               autoComplete="tel"
               value={formatPhone(form.phone)}
               onChange={(value) => set("phone")(onlyDigits(value).slice(0, 11))}
+              required
+            />
+            <Field
+              label="CPF"
+              inputMode="numeric"
+              autoComplete="off"
+              value={maskCpf(form.document)}
+              onChange={(value) => set("document")(onlyDigits(value).slice(0, 11))}
+              hint="Usado na nota/declaração do envio. Não pode ser trocado depois."
               required
             />
           </>
@@ -165,12 +184,14 @@ function Field({
   inputMode,
   autoComplete,
   required = false,
+  hint,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
-  inputMode?: "tel" | "email";
+  inputMode?: "tel" | "email" | "numeric";
+  hint?: string;
   autoComplete?: string;
   required?: boolean;
 }) {
@@ -188,6 +209,7 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         className="h-12 border border-black/10 px-3 text-[16px] outline-none focus:border-black md:h-11 md:text-[14px]"
       />
+      {hint && <span className="text-[12px] leading-relaxed text-neutral-500">{hint}</span>}
     </label>
   );
 }

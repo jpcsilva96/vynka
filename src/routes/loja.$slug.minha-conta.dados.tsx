@@ -7,7 +7,7 @@ import {
   PrimaryButton,
   StatusMessage,
 } from "@/components/loja/account-ui";
-import { formatPhone, isValidPhone, onlyDigits } from "@/lib/br-documents";
+import { formatPhone, isValidPhone, maskCpf, onlyDigits } from "@/lib/br-documents";
 import {
   changeCustomerPassword,
   updateCustomerProfile,
@@ -16,7 +16,8 @@ import {
 import { useStorefront } from "@/lib/storefront-context";
 import { storeErrorMessage } from "@/lib/store-errors";
 
-// Meus dados: nome e telefone editáveis; e-mail só leitura (João, 20/10); troca de senha com a atual.
+// Meus dados: nome e telefone editáveis; e-mail (João, 20/10) e CPF (João, 11/11) só leitura; troca
+// de senha com a atual.
 export const Route = createFileRoute("/loja/$slug/minha-conta/dados")({
   component: CustomerDataPage,
 });
@@ -112,7 +113,16 @@ function CustomerDataPage() {
             value={customer.email ?? ""}
             disabled
             hint="O e-mail identifica sua conta e não pode ser trocado por aqui."
-            className="sm:col-span-2"
+          />
+          <AccountField
+            label="CPF"
+            value={customer.document ? maskCpf(customer.document) : ""}
+            disabled
+            hint={
+              customer.document
+                ? "O CPF não pode ser trocado. Se estiver errado, fale com a loja."
+                : "Vamos pedir o CPF na sua próxima compra."
+            }
           />
         </div>
         <StatusMessage {...profileStatus} />

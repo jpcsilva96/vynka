@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- coluna store_login ainda fora do types.ts gerado (regenerar é pendência) */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { isValidCpf, onlyDigits } from "@/lib/br-documents";
 
 // Login do cliente separado por loja (escopo login-por-loja, L3). A conta de login do cliente usa um
 // e-mail técnico interno (o Supabase só aceita cada e-mail uma vez na plataforma); o e-mail real e o
@@ -84,6 +85,8 @@ export const signUpStoreCustomer = createServerFn({ method: "POST" })
             "Informe seu telefone com DDD.",
           ),
         email: z.string().trim().toLowerCase().email("Informe um e-mail válido.").max(200),
+        // CPF no cadastro e sem troca depois (João, 11/11): a etiqueta usa o do destinatário.
+        document: z.string().transform(onlyDigits).refine(isValidCpf, "Informe um CPF válido."),
         password: z.string().min(6, "A senha precisa ter pelo menos 6 caracteres.").max(72),
       })
       .parse(data),
@@ -96,6 +99,16 @@ export const signUpStoreCustomer = createServerFn({ method: "POST" })
     }
     if (await findStoreLogin(db, data.store_id, data.phone)) {
       throw new Error("Este telefone já tem conta nesta loja. Entre com sua senha.");
+    }
+    const { data: sameCpf } = await db
+      .from("customers")
+      .select("id")
+      .eq("store_id", data.store_id)
+      .eq("store_login", true)
+      .eq("document", data.document)
+      .limit(1);
+    if ((sameCpf ?? []).length > 0) {
+      throw new Error("Este CPF já tem conta nesta loja. Entre com sua senha.");
     }
 
     const techEmail = `c-${crypto.randomUUID()}@${TECH_DOMAIN}`;
@@ -115,6 +128,7 @@ export const signUpStoreCustomer = createServerFn({ method: "POST" })
       name: data.name,
       phone: data.phone,
       email: data.email,
+      document: data.document,
       store_login: true,
     });
     if (fichaError) {
