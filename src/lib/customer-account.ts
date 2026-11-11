@@ -109,6 +109,7 @@ export async function signUpCustomer(input: {
   name: string;
   phone: string;
   email: string;
+  document: string;
   password: string;
 }) {
   // Conta e ficha criadas juntas pelo servidor; depois o navegador entra (sem confirmação de e-mail
@@ -119,6 +120,7 @@ export async function signUpCustomer(input: {
       name: input.name,
       phone: input.phone,
       email: input.email,
+      document: input.document,
       password: input.password,
     },
   });

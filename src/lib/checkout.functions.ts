@@ -344,14 +344,23 @@ export const placeCheckoutOrder = createServerFn({ method: "POST" })
       );
     }
 
-    // CPF na ficha (vem preenchido na próxima compra) e no endereço do pedido (a etiqueta usa o da
-    // compra, mesmo que a ficha mude depois).
-    const { error: documentError } = await supabaseAdmin
+    // CPF: o da ficha manda (cadastro; não muda depois, João 11/11). Conta antiga sem CPF grava o
+    // digitado agora, uma vez. Vai também no endereço do pedido (a etiqueta usa o da compra).
+    const { data: ficha, error: fichaError } = await supabaseAdmin
       .from("customers")
-      .update({ document: data.document })
+      .select("id, document")
       .eq("store_id", data.store_id)
-      .eq("user_id", context.userId);
-    if (documentError) throw dbMessage(documentError, "Não foi possível salvar o CPF.");
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (fichaError) throw dbMessage(fichaError, "Não foi possível conferir o CPF.");
+    const document = ficha?.document && isValidCpf(ficha.document) ? ficha.document : data.document;
+    if (ficha && ficha.document !== document) {
+      const { error: documentError } = await supabaseAdmin
+        .from("customers")
+        .update({ document })
+        .eq("id", ficha.id);
+      if (documentError) throw dbMessage(documentError, "Não foi possível salvar o CPF.");
+    }
 
     // Mesmo motivo de checkout_delivery_options: nulo e JSON próprio nos parâmetros.
     const { data: orderId, error } = await (supabaseAdmin as any).rpc("create_checkout_order", {
@@ -359,7 +368,7 @@ export const placeCheckoutOrder = createServerFn({ method: "POST" })
       _store_id: data.store_id,
       _items: data.items,
       _delivery: { method: data.delivery.method, service_id: serviceId },
-      _address: address ? { ...address, document: data.document } : null,
+      _address: address ? { ...address, document } : null,
       _quotes: result.quotes,
       _notes: data.notes || null,
     });

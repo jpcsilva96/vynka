@@ -106,10 +106,12 @@ function CheckoutPage() {
   const [choice, setChoice] = useState<string>("");
   const [street, setStreet] = useState(emptyStreet);
   const [notes, setNotes] = useState("");
-  // CPF sempre (etiquetas E2): vem da ficha; o cliente confirma ou digita.
+  // CPF sempre (etiquetas E2). Com CPF na ficha (cadastro), vem travado (João, 11/11); conta antiga
+  // sem CPF digita uma vez e ele fica salvo.
   const [cpf, setCpf] = useState("");
+  const cpfLocked = !!account?.document;
   useEffect(() => {
-    if (account?.document) setCpf((current) => current || maskCpf(account.document ?? ""));
+    if (account?.document) setCpf(maskCpf(account.document));
   }, [account?.document]);
 
   const cartItems = useMemo(
@@ -611,13 +613,17 @@ function CheckoutPage() {
                 <input
                   value={cpf}
                   onChange={(event) => setCpf(maskCpf(event.target.value))}
+                  readOnly={cpfLocked}
+                  aria-readonly={cpfLocked}
                   inputMode="numeric"
                   autoComplete="off"
                   placeholder="000.000.000-00"
-                  className="w-full min-w-0 border border-black/10 bg-white px-3 py-3 text-[16px] outline-none focus:border-black md:text-[14px]"
+                  className={`w-full min-w-0 border border-black/10 px-3 py-3 text-[16px] outline-none focus:border-black md:text-[14px] ${cpfLocked ? "bg-neutral-50 text-neutral-600" : "bg-white"}`}
                 />
                 <span className="text-[12px] leading-relaxed text-neutral-500">
-                  Usado na nota/declaração do envio. Fica salvo para as próximas compras.
+                  {cpfLocked
+                    ? "CPF da sua conta. Se estiver errado, fale com a loja."
+                    : "Usado na nota/declaração do envio. Fica salvo na sua conta e não pode ser trocado depois."}
                 </span>
               </label>
               <label className="mt-5 grid gap-2">
