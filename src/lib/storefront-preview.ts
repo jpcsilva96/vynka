@@ -67,7 +67,10 @@ export function sendPreviewUpdate(frame: HTMLIFrameElement | null, overrides: Pr
   );
 }
 
-export function isFrameMessage(event: MessageEvent, frame: HTMLIFrameElement | null): event is MessageEvent<FrameMessage> {
+export function isFrameMessage(
+  event: MessageEvent,
+  frame: HTMLIFrameElement | null,
+): event is MessageEvent<FrameMessage> {
   return (
     event.origin === window.location.origin &&
     !!frame &&

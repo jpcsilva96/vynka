@@ -45,7 +45,9 @@ function OrderPage() {
   const syncPayment = useServerFn(syncOrderPayment);
   const payMutation = useMutation({
     mutationFn: () =>
-      startPayment({ data: { store_id: store.id, order_id: id, return_origin: window.location.origin } }),
+      startPayment({
+        data: { store_id: store.id, order_id: id, return_origin: window.location.origin },
+      }),
     onSuccess: ({ url }) => window.location.assign(url),
   });
   // Uma consulta por visita enquanto aguarda pagamento (volta do Mercado Pago, Pix pago depois...).

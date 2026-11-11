@@ -27,16 +27,19 @@ async function storeDisplayStatuses(stores: { id: string; name: string; status: 
     .from("store_members")
     .select("store_id, user_id")
     .eq("role", "owner")
-    .in("store_id", open.map((s) => s.id));
+    .in(
+      "store_id",
+      open.map((s) => s.id),
+    );
   if (error) throw error;
 
   const authById = await getAuthUsersByIds((owners ?? []).map((o) => o.user_id as string));
-  const signupDone = new Set(
-    [...authById].filter(([, u]) => u.signup_completed).map(([id]) => id),
-  );
+  const signupDone = new Set([...authById].filter(([, u]) => u.signup_completed).map(([id]) => id));
 
   for (const s of open) {
-    const ownerIds = (owners ?? []).filter((o) => o.store_id === s.id).map((o) => o.user_id as string);
+    const ownerIds = (owners ?? [])
+      .filter((o) => o.store_id === s.id)
+      .map((o) => o.user_id as string);
     const done = !isProvisionalName(s.name) || ownerIds.some((id) => signupDone.has(id));
     result.set(s.id, done ? "active" : "invited");
   }
@@ -47,11 +50,15 @@ async function storeDisplayStatuses(stores: { id: string; name: string; status: 
 export const listStoresForMaster = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", {
+      _user_id: context.userId,
+    });
     if (!isAdmin) throw new Error("Forbidden");
     const { data, error } = await context.supabase
       .from("stores")
-      .select("id, name, slug, email, whatsapp, status, plan_id, created_at, trial_ends_at, subscription_ends_at, plan:plans(name)")
+      .select(
+        "id, name, slug, email, whatsapp, status, plan_id, created_at, trial_ends_at, subscription_ends_at, plan:plans(name)",
+      )
       .order("created_at", { ascending: false });
     if (error) throw error;
     const statuses = await storeDisplayStatuses(data ?? []);
@@ -65,7 +72,9 @@ export const listStoresForMaster = createServerFn({ method: "GET" })
 export const masterStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", {
+      _user_id: context.userId,
+    });
     if (!isAdmin) throw new Error("Forbidden");
     const stores = await context.supabase.from("stores").select("id, name, status");
     const byStatus: Record<StoreDisplayStatus, number> = { invited: 0, active: 0, suspended: 0 };
@@ -97,7 +106,10 @@ const createStoreSchema = z.object({
 // Origem do app (ex. https://vynka.lovable.app) + página que o link abre: /boas-vindas (cadastro
 // completo do dono) ou /reset-password (só a senha).
 // O Supabase só aceita destinos presentes em Authentication > URL Configuration.
-function inviteRedirect(origin?: string, path: "/boas-vindas" | "/reset-password" = "/boas-vindas") {
+function inviteRedirect(
+  origin?: string,
+  path: "/boas-vindas" | "/reset-password" = "/boas-vindas",
+) {
   return origin ? { redirectTo: `${new URL(origin).origin}${path}` } : {};
 }
 
@@ -125,7 +137,9 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => createStoreSchema.parse(d))
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", {
+      _user_id: context.userId,
+    });
     if (!isAdmin) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -133,13 +147,19 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
     let slug = data.slug;
     if (slug) {
       const { data: slugConflict } = await supabaseAdmin
-        .from("stores").select("id").eq("slug", slug).maybeSingle();
+        .from("stores")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
       if (slugConflict) throw new Error(`O slug "${slug}" já está em uso.`);
     } else {
       for (let i = 0; i < 5 && !slug; i++) {
         const candidate = makeProvisionalSlug();
         const { data: taken } = await supabaseAdmin
-          .from("stores").select("id").eq("slug", candidate).maybeSingle();
+          .from("stores")
+          .select("id")
+          .eq("slug", candidate)
+          .maybeSingle();
         if (!taken) slug = candidate;
       }
       if (!slug) throw new Error("Não foi possível gerar o link da loja. Tente novamente.");
@@ -207,16 +227,23 @@ export const createStoreWithOwner = createServerFn({ method: "POST" })
 export const updateStoreStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({
-      store_id: z.string().uuid(),
-      status: z.enum(["active", "suspended"]),
-    }).parse(d),
+    z
+      .object({
+        store_id: z.string().uuid(),
+        status: z.enum(["active", "suspended"]),
+      })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", {
+      _user_id: context.userId,
+    });
     if (!isAdmin) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("stores").update({ status: data.status }).eq("id", data.store_id);
+    const { error } = await supabaseAdmin
+      .from("stores")
+      .update({ status: data.status })
+      .eq("id", data.store_id);
     if (error) throw error;
     await supabaseAdmin.from("audit_logs").insert({
       actor_user_id: context.userId,
@@ -356,13 +383,20 @@ export const updateStorePlan = createServerFn({ method: "POST" })
     z.object({ store_id: z.string().uuid(), plan_id: z.string().uuid() }).parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", {
+      _user_id: context.userId,
+    });
     if (!isAdmin) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("stores").update({ plan_id: data.plan_id }).eq("id", data.store_id);
+    const { error } = await supabaseAdmin
+      .from("stores")
+      .update({ plan_id: data.plan_id })
+      .eq("id", data.store_id);
     if (error) throw error;
     const { error: subErr } = await supabaseAdmin
-      .from("subscriptions").update({ plan_id: data.plan_id }).eq("store_id", data.store_id);
+      .from("subscriptions")
+      .update({ plan_id: data.plan_id })
+      .eq("store_id", data.store_id);
     if (subErr) throw subErr;
     await supabaseAdmin.from("audit_logs").insert({
       actor_user_id: context.userId,
@@ -384,10 +418,14 @@ export const updateStorePlan = createServerFn({ method: "POST" })
 export const resendStoreInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ store_id: z.string().uuid(), redirect_origin: z.string().url().optional() }).parse(d),
+    z
+      .object({ store_id: z.string().uuid(), redirect_origin: z.string().url().optional() })
+      .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", {
+      _user_id: context.userId,
+    });
     if (!isAdmin) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -402,14 +440,19 @@ export const resendStoreInvite = createServerFn({ method: "POST" })
     if (ownerErr) throw ownerErr;
     if (!owner) throw new Error("Esta loja não tem responsável vinculado.");
 
-    const { data: userRes, error: userErr } = await supabaseAdmin.auth.admin.getUserById(owner.user_id);
+    const { data: userRes, error: userErr } = await supabaseAdmin.auth.admin.getUserById(
+      owner.user_id,
+    );
     if (userErr) throw userErr;
     const email = userRes.user.email;
     if (!email) throw new Error("O responsável desta loja não tem e-mail cadastrado.");
 
     // Cadastro completo = marcado pela tela de boas-vindas, ou loja antiga que já tem nome definitivo.
     const { data: store } = await supabaseAdmin
-      .from("stores").select("name").eq("id", data.store_id).maybeSingle();
+      .from("stores")
+      .select("name")
+      .eq("id", data.store_id)
+      .maybeSingle();
     const signupDone =
       userRes.user.user_metadata?.signup_completed === true || !isProvisionalName(store?.name);
 
@@ -438,7 +481,7 @@ export const resendStoreInvite = createServerFn({ method: "POST" })
     };
   });
 
-export const listPlans =createServerFn({ method: "GET" })
+export const listPlans = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data } = await context.supabase.from("plans").select("*").order("max_products");
@@ -448,7 +491,9 @@ export const listPlans =createServerFn({ method: "GET" })
 export const listSubscriptions = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", {
+      _user_id: context.userId,
+    });
     if (!isAdmin) throw new Error("Forbidden");
     const { data } = await context.supabase
       .from("subscriptions")
@@ -461,7 +506,9 @@ export const listSubscriptions = createServerFn({ method: "GET" })
 export const listStoreUsersForMaster = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", { _user_id: context.userId });
+    const { data: isAdmin } = await context.supabase.rpc("is_platform_admin", {
+      _user_id: context.userId,
+    });
     if (!isAdmin) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -474,15 +521,21 @@ export const listStoreUsersForMaster = createServerFn({ method: "GET" })
 
     const userIds = [...new Set((members ?? []).map((m) => m.user_id as string))];
     const { data: profiles } = userIds.length
-      ? await supabaseAdmin.from("profiles").select("user_id, full_name, phone").in("user_id", userIds)
+      ? await supabaseAdmin
+          .from("profiles")
+          .select("user_id, full_name, phone")
+          .in("user_id", userIds)
       : { data: [] as { user_id: string; full_name: string | null; phone: string | null }[] };
 
     const authById = await getAuthUsersByIds(userIds);
 
     return (members ?? []).map((m) => {
-      const store = (Array.isArray(m.store) ? m.store[0] : m.store) as
-        | { id: string; name: string; slug: string; status: string }
-        | null;
+      const store = (Array.isArray(m.store) ? m.store[0] : m.store) as {
+        id: string;
+        name: string;
+        slug: string;
+        status: string;
+      } | null;
       const auth = authById.get(m.user_id as string);
       const profile = (profiles ?? []).find((p) => p.user_id === m.user_id);
       const signupDone = !!auth?.signup_completed || (!!store && !isProvisionalName(store.name));

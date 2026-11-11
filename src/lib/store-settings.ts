@@ -52,7 +52,12 @@ export type CatalogStyle = "minimal" | "elegant" | "commercial" | "editorial";
 export type ProductCardStyle = "large" | "compact";
 export type ProductLayout = "grid" | "list";
 export type CatalogSection =
-  "banner" | "description" | "categories" | "featured" | "products" | "promos";
+  | "banner"
+  | "description"
+  | "categories"
+  | "featured"
+  | "products"
+  | "promos";
 export type StoreFont =
   | "inter"
   | "montserrat"

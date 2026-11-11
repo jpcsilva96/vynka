@@ -194,7 +194,9 @@ function VendaDetalhe() {
                   <div className="space-y-1 text-[13px]">
                     <div className="font-medium text-foreground">{order.customer.name}</div>
                     {order.customer.phone && (
-                      <div className="text-muted-foreground">{formatPhone(order.customer.phone)}</div>
+                      <div className="text-muted-foreground">
+                        {formatPhone(order.customer.phone)}
+                      </div>
                     )}
                     {order.customer.email && (
                       <div className="text-muted-foreground">{order.customer.email}</div>

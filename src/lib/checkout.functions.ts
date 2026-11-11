@@ -176,16 +176,18 @@ async function computeOptions(
     subtotal,
     quotes,
     shippingUnavailable,
-    options: ((options ?? []) as any[]).map((option): DeliveryOption => ({
-      method: option.method,
-      service_id: option.service_id,
-      name: option.name,
-      price: Number(option.price),
-      original_price: Number(option.original_price),
-      min_days: option.min_days,
-      max_days: option.max_days,
-      free: !!option.free,
-    })),
+    options: ((options ?? []) as any[]).map(
+      (option): DeliveryOption => ({
+        method: option.method,
+        service_id: option.service_id,
+        name: option.name,
+        price: Number(option.price),
+        original_price: Number(option.original_price),
+        min_days: option.min_days,
+        max_days: option.max_days,
+        free: !!option.free,
+      }),
+    ),
   };
 }
 

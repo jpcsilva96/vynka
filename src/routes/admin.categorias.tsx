@@ -72,22 +72,26 @@ function Categorias() {
         setExpanded((current) => new Set(current).add(form.parent_id!));
       }
     },
-    onError: (error) => alert(error instanceof Error ? error.message : "Não foi possível salvar a categoria."),
+    onError: (error) =>
+      alert(error instanceof Error ? error.message : "Não foi possível salvar a categoria."),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, form }: { id: string; form: CategoryFormState }) => updateCategory(storeId, id, form),
+    mutationFn: ({ id, form }: { id: string; form: CategoryFormState }) =>
+      updateCategory(storeId, id, form),
     onSuccess: async () => {
       await refresh();
       setDraft(null);
     },
-    onError: (error) => alert(error instanceof Error ? error.message : "Não foi possível salvar a categoria."),
+    onError: (error) =>
+      alert(error instanceof Error ? error.message : "Não foi possível salvar a categoria."),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteCategory(storeId, id),
     onSuccess: () => refresh(),
-    onError: (error) => alert(error instanceof Error ? error.message : "Não foi possível excluir a categoria."),
+    onError: (error) =>
+      alert(error instanceof Error ? error.message : "Não foi possível excluir a categoria."),
   });
 
   const saving = createMutation.isPending || updateMutation.isPending;
@@ -187,7 +191,9 @@ function Categorias() {
                     return next;
                   })
                 }
-                onEdit={(category) => setDraft({ mode: "edit", category, name: category.name, active: category.active })}
+                onEdit={(category) =>
+                  setDraft({ mode: "edit", category, name: category.name, active: category.active })
+                }
                 onAddSubcategory={startSubcategory}
                 onDuplicate={duplicate}
                 onDelete={async (category) => {
@@ -217,7 +223,9 @@ function Categorias() {
       )}
 
       <div className="mt-8 flex items-center gap-3 text-[13px] text-primary">
-        <span className="grid h-8 w-8 place-items-center rounded-md bg-primary/5 text-foreground">?</span>
+        <span className="grid h-8 w-8 place-items-center rounded-md bg-primary/5 text-foreground">
+          ?
+        </span>
         <span>Mais sobre criar e organizar as categorias</span>
       </div>
     </PageShell>
@@ -322,7 +330,8 @@ function CategoryRow({
                 )}
               </div>
               <div className="mt-0.5 text-[12px] text-muted-foreground">
-                {node.product_count ?? 0} produto{node.product_count === 1 ? "" : "s"} · /categoria/{node.slug}
+                {node.product_count ?? 0} produto{node.product_count === 1 ? "" : "s"} · /categoria/
+                {node.slug}
               </div>
             </div>
           </div>
@@ -450,7 +459,11 @@ function InlineDraftRow({
           onClick={onSave}
           className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-graphite disabled:opacity-50"
         >
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} /> : <Check className="h-4 w-4" strokeWidth={1.5} />}
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
+          ) : (
+            <Check className="h-4 w-4" strokeWidth={1.5} />
+          )}
           Salvar
         </button>
       </div>

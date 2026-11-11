@@ -39,7 +39,17 @@ export function StoreLogo({
 
 type Corner = "nw" | "ne" | "sw" | "se";
 
-function ResizableLogo({ src, alt, visual, device }: { src: string; alt: string; visual: CatalogVisualSettings; device: PreviewDevice }) {
+function ResizableLogo({
+  src,
+  alt,
+  visual,
+  device,
+}: {
+  src: string;
+  alt: string;
+  visual: CatalogVisualSettings;
+  device: PreviewDevice;
+}) {
   const mobile = device === "mobile";
   const slot = logoSlot[device];
   const saved = mobile ? visual.header_logo_height_mobile : visual.header_logo_height_desktop;
@@ -47,11 +57,17 @@ function ResizableLogo({ src, alt, visual, device }: { src: string; alt: string;
   const [selected, setSelected] = useState(false);
   const [dragHeight, setDragHeight] = useState<number | null>(null);
   const boxRef = useRef<HTMLSpanElement>(null);
-  const drag = useRef<{ x: number; y: number; height: number; sx: number; sy: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; height: number; sx: number; sy: number } | null>(
+    null,
+  );
 
   // Maior altura que ainda cabe no espaço, mantendo a proporção da imagem.
-  const maxHeight = Math.max(logoSlot.minHeight, Math.min(slot.height, Math.floor(slot.width / ratio)));
-  const clamp = (value: number) => Math.round(Math.min(maxHeight, Math.max(logoSlot.minHeight, value)));
+  const maxHeight = Math.max(
+    logoSlot.minHeight,
+    Math.min(slot.height, Math.floor(slot.width / ratio)),
+  );
+  const clamp = (value: number) =>
+    Math.round(Math.min(maxHeight, Math.max(logoSlot.minHeight, value)));
   const height = clamp(dragHeight ?? saved);
 
   useEffect(() => {
@@ -91,14 +107,18 @@ function ResizableLogo({ src, alt, visual, device }: { src: string; alt: string;
   const endDrag = () => {
     if (!drag.current) return;
     drag.current = null;
-    if (dragHeight != null) postToEditor({ type: "vynka-preview:logo-size", device, height: dragHeight });
+    if (dragHeight != null)
+      postToEditor({ type: "vynka-preview:logo-size", device, height: dragHeight });
     setDragHeight(null);
   };
 
   return (
     <span
       ref={boxRef}
-      className={cn("relative inline-flex shrink-0 cursor-pointer", selected && "outline outline-2 outline-offset-2 outline-sky-500")}
+      className={cn(
+        "relative inline-flex shrink-0 cursor-pointer",
+        selected && "outline outline-2 outline-offset-2 outline-sky-500",
+      )}
       onClick={(event) => {
         // Na prévia, clicar no logo seleciona em vez de navegar.
         event.preventDefault();
@@ -113,7 +133,8 @@ function ResizableLogo({ src, alt, visual, device }: { src: string; alt: string;
         draggable={false}
         onLoad={(event) => {
           const image = event.currentTarget;
-          if (image.naturalWidth && image.naturalHeight) setRatio(image.naturalWidth / image.naturalHeight);
+          if (image.naturalWidth && image.naturalHeight)
+            setRatio(image.naturalWidth / image.naturalHeight);
         }}
         style={{ height, maxWidth: slot.width }}
         className="block w-auto object-contain"

@@ -110,7 +110,11 @@ function MasterLogin() {
                   className="absolute inset-y-0 right-0 grid w-10 place-items-center text-white/50 hover:text-white"
                   aria-label={showPass ? "Ocultar senha" : "Mostrar senha"}
                 >
-                  {showPass ? <EyeOff className="h-4 w-4" strokeWidth={1.5} /> : <Eye className="h-4 w-4" strokeWidth={1.5} />}
+                  {showPass ? (
+                    <EyeOff className="h-4 w-4" strokeWidth={1.5} />
+                  ) : (
+                    <Eye className="h-4 w-4" strokeWidth={1.5} />
+                  )}
                 </button>
               </div>
             </label>
@@ -133,9 +137,13 @@ function MasterLogin() {
         </div>
 
         <div className="mt-8 flex items-center justify-center gap-4 text-[11px] text-white/40">
-          <Link to="/" className="hover:text-white">Inicio</Link>
+          <Link to="/" className="hover:text-white">
+            Inicio
+          </Link>
           <span>.</span>
-          <Link to="/login" className="hover:text-white">Login da lojista</Link>
+          <Link to="/login" className="hover:text-white">
+            Login da lojista
+          </Link>
         </div>
       </div>
     </div>

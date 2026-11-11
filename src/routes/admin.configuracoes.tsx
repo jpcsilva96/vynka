@@ -149,9 +149,9 @@ function Configuracoes() {
           ? "logo_url"
           : variables.kind === "favicon"
             ? "favicon_url"
-          : variables.kind === "banner"
-            ? "banner_url"
-            : "og_image_url";
+            : variables.kind === "banner"
+              ? "banner_url"
+              : "og_image_url";
       setForm((current) => ({ ...current, [field]: url }));
       setUploadingImage(null);
     },
@@ -173,7 +173,10 @@ function Configuracoes() {
     setSaved(false);
     setForm((current) => ({ ...current, [key]: key === "slug" ? normalizeSlug(value) : value }));
   };
-  const patchPhone = (key: Extract<keyof GeneralSettingsForm, "phone" | "whatsapp">, value: string) => {
+  const patchPhone = (
+    key: Extract<keyof GeneralSettingsForm, "phone" | "whatsapp">,
+    value: string,
+  ) => {
     patch(key, digitsOnly(value).slice(0, 11));
   };
   const patchCep = (value: string) => {
@@ -260,9 +263,7 @@ function Configuracoes() {
                     <Store className="h-10 w-10" strokeWidth={1.3} />
                   )}
                 </div>
-                <h2 className="mt-3 text-[15px] font-semibold text-foreground">
-                  Loja e Catálogo
-                </h2>
+                <h2 className="mt-3 text-[15px] font-semibold text-foreground">Loja e Catálogo</h2>
                 <p className="mt-1 text-[12px] text-muted-foreground">
                   Edite os dados exibidos no catálogo público e nos canais de atendimento.
                 </p>
@@ -282,7 +283,11 @@ function Configuracoes() {
                       onChange={(value) => {
                         const currentAutoSlug = normalizeSlug(form.name);
                         patch("name", value);
-                        if (!form.slug || form.slug === currentAutoSlug || isProvisionalSlug(form.slug)) {
+                        if (
+                          !form.slug ||
+                          form.slug === currentAutoSlug ||
+                          isProvisionalSlug(form.slug)
+                        ) {
                           patch("slug", value);
                         }
                       }}
@@ -296,7 +301,9 @@ function Configuracoes() {
                           onChange={(event) => patch("slug", event.target.value)}
                           className="min-w-0 flex-1 bg-transparent text-[14px] outline-none placeholder:text-muted-foreground"
                         />
-                        <span className="shrink-0 text-[13px] text-muted-foreground">.vynka.com.br</span>
+                        <span className="shrink-0 text-[13px] text-muted-foreground">
+                          .vynka.com.br
+                        </span>
                       </div>
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
@@ -370,14 +377,18 @@ function Configuracoes() {
                     <TextInput
                       value={formatCep(form.zip_code)}
                       onChange={patchCep}
-                      trailing={cepLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" strokeWidth={1.5} /> : null}
+                      trailing={
+                        cepLoading ? (
+                          <Loader2
+                            className="h-4 w-4 animate-spin text-muted-foreground"
+                            strokeWidth={1.5}
+                          />
+                        ) : null
+                      }
                     />
                   </LabeledField>
                   <LabeledField label="Endereço da loja">
-                    <TextInput
-                      value={form.address}
-                      onChange={(value) => patch("address", value)}
-                    />
+                    <TextInput value={form.address} onChange={(value) => patch("address", value)} />
                   </LabeledField>
                   <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
                     <LabeledField label="Número">
@@ -395,10 +406,7 @@ function Configuracoes() {
                   </div>
                   <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_88px]">
                     <LabeledField label="Cidade">
-                      <TextInput
-                        value={form.city}
-                        onChange={(value) => patch("city", value)}
-                      />
+                      <TextInput value={form.city} onChange={(value) => patch("city", value)} />
                     </LabeledField>
                     <LabeledField label="UF">
                       <TextInput
@@ -476,7 +484,6 @@ function Configuracoes() {
                     </div>
                   </SettingsCard>
                 </div>
-
               </div>
 
               {saveMutation.error && (
@@ -510,9 +517,13 @@ function Configuracoes() {
               <div className="mx-auto grid h-16 w-16 place-items-center rounded-md bg-muted text-primary">
                 <LayoutTemplate className="h-8 w-8" strokeWidth={1.4} />
               </div>
-              <h2 className="mt-5 text-[18px] font-semibold text-foreground">Deixe a loja com a cara da sua marca</h2>
+              <h2 className="mt-5 text-[18px] font-semibold text-foreground">
+                Deixe a loja com a cara da sua marca
+              </h2>
               <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-                Escolha um tema pronto, troque cores e letras, coloque seu logo e os banners da página inicial. Você vê cada mudança na hora, no celular e no computador, e só vai para a loja quando publicar.
+                Escolha um tema pronto, troque cores e letras, coloque seu logo e os banners da
+                página inicial. Você vê cada mudança na hora, no celular e no computador, e só vai
+                para a loja quando publicar.
               </p>
               <a
                 href="/admin/editor-layout"
@@ -678,7 +689,14 @@ function ImageUploadField({
           )}
         >
           {value ? (
-            <img src={value} alt="" className={cn("h-full w-full", ratio === "icon" ? "object-contain p-8" : "object-cover")} />
+            <img
+              src={value}
+              alt=""
+              className={cn(
+                "h-full w-full",
+                ratio === "icon" ? "object-contain p-8" : "object-cover",
+              )}
+            />
           ) : (
             <div className="grid place-items-center text-muted-foreground">
               <ImageIcon className="h-7 w-7" strokeWidth={1.4} />

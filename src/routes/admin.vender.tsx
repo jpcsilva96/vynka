@@ -593,7 +593,9 @@ function CartHeader({
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13px] font-medium text-foreground">{customer.name}</div>
             {customer.phone && (
-              <div className="truncate text-[11.5px] text-muted-foreground">{formatPhone(customer.phone)}</div>
+              <div className="truncate text-[11.5px] text-muted-foreground">
+                {formatPhone(customer.phone)}
+              </div>
             )}
           </div>
           <button

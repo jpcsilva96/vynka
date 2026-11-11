@@ -4,7 +4,8 @@ export const PROVISIONAL_STORE_NAME = "Nova loja";
 
 const PROVISIONAL_SLUG = /^loja-[a-f0-9]{8}$/;
 
-export const makeProvisionalSlug = () => `loja-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
+export const makeProvisionalSlug = () =>
+  `loja-${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
 
 export const isProvisionalSlug = (slug: string | null | undefined) =>
   !!slug && PROVISIONAL_SLUG.test(slug);
