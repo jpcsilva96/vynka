@@ -138,8 +138,8 @@ async function computeOptions(
               height: Number(line.height_cm),
               width: Number(line.width_cm),
               length: Number(line.length_cm),
-              // Sem seguro (João, 11/11): a etiqueta sai sem valor declarado e o cliente paga o mesmo.
-              insurance_value: 0,
+              // Seguro pelo valor do produto, sempre (João, 11/11); a etiqueta sai com o mesmo valor.
+              insurance_value: Number(line.unit_price),
               quantity: line.quantity,
             })),
             services: services.join(","),
