@@ -199,7 +199,7 @@ export const PRODUCT_LIST_COLUMNS = `id, name, description, price, promo_price, 
 // Posição de cada produto em "Mais vendidos" (função do banco, só pedidos concluídos; 1 = mais vendido).
 // Sem a função ou com erro, devolve vazio e a ordem cai em Novidades.
 export async function listProductSalesRank(storeId: string): Promise<Record<string, number>> {
-  const { data, error } = await (supabase as any).rpc("public_product_sales_rank", {
+  const { data, error } = await supabase.rpc("public_product_sales_rank", {
     p_store_id: storeId,
   });
   if (error || !Array.isArray(data)) return {};
@@ -214,7 +214,7 @@ const STOREFRONT_COLUMNS =
 // Loja fora da visão (rascunho): só o dono ou o master a leem direto em stores, para a prévia do
 // editor; para os demais a leitura volta vazia ou recusada, e a loja fica "não encontrada".
 export async function getStoreBySlug(slug: string): Promise<StorefrontStore | null> {
-  const { data: published, error } = await (supabase as any)
+  const { data: published, error } = await supabase
     .from("storefront_stores")
     .select(STOREFRONT_COLUMNS)
     .eq("slug", slug)
@@ -222,14 +222,15 @@ export async function getStoreBySlug(slug: string): Promise<StorefrontStore | nu
   if (error) throw error;
   let data = published;
   if (!data) {
-    const { data: own } = await (supabase as any)
+    const { data: own } = await supabase
       .from("stores")
       .select(STOREFRONT_COLUMNS)
       .eq("slug", slug)
       .maybeSingle();
     data = own ?? null;
   }
-  if (!data) return null;
+  // Colunas de visão vêm como anuláveis nos tipos gerados; o id da loja nunca é nulo.
+  if (!data?.id) return null;
   const [{ data: visual, error: visualError }, { data: favicon, error: faviconError }] =
     await Promise.all([
       supabase
@@ -247,7 +248,7 @@ export async function getStoreBySlug(slug: string): Promise<StorefrontStore | nu
     ]);
   if (visualError) throw visualError;
   if (faviconError) throw faviconError;
-  const { data: banners, error: bannersError } = await (supabase as any)
+  const { data: banners, error: bannersError } = await supabase
     .from("store_banners")
     .select(
       "id,store_id,image_url,image_mobile_url,title,subtitle,button_label,link_type,link_target,sort_order,active",
@@ -292,7 +293,7 @@ function readPublicFaviconUrl(value: unknown) {
 }
 
 async function listPublicBannersFromSettings(storeId: string): Promise<StoreBanner[]> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("store_settings")
     .select("setting_value")
     .eq("store_id", storeId)
@@ -337,7 +338,7 @@ function isMissingStoreBannersTable(error: { code?: string; message?: string } |
 }
 
 export async function listActiveProducts(storeId: string): Promise<PublicProduct[]> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("products")
     .select(PRODUCT_LIST_COLUMNS)
     .eq("store_id", storeId)
@@ -420,7 +421,7 @@ export async function getPublicProduct(
   storeId: string,
   id: string,
 ): Promise<PublicProductDetail | null> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("products")
     .select(
       `id, name, description, price, promo_price, featured, status, created_at,
@@ -477,7 +478,7 @@ export async function listRelatedProducts(
   excludeId: string,
   limit = 4,
 ): Promise<PublicProduct[]> {
-  let q = (supabase as any)
+  let q = supabase
     .from("products")
     .select(PRODUCT_LIST_COLUMNS)
     .eq("store_id", storeId)
@@ -504,7 +505,7 @@ export async function listActiveProductsByCategorySlug(
   if (!target) return { category: null, products: [] };
 
   const ids = [target.id, ...descendantCategoryIds(target.id, flat)];
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("products")
     .select(PRODUCT_LIST_COLUMNS)
     .eq("store_id", storeId)

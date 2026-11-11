@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- store_checkout_settings ainda fora do types.ts gerado */
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -121,7 +120,7 @@ function CheckoutPage() {
   const { data: pickup } = useQuery({
     queryKey: ["checkout-pickup", store.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("store_checkout_settings")
         .select("pickup_address,pickup_instructions")
         .eq("store_id", store.id)

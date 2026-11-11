@@ -62,8 +62,9 @@ const homologClient = {
   enforce: "pre",
   transform(code, id) {
     if (!clientFile.test(id.split("?")[0].replace(/\\/g, "/"))) return null;
-    const urlLine = /const SUPABASE_URL = "[^"]*";/;
-    const keyLine = /const SUPABASE_PUBLISHABLE_KEY = "[^"]*";/;
+    const urlLine = /const SUPABASE_URL =\s*"[^"]*";/;
+    // \s*: o prettier quebra a chave longa na linha de baixo.
+    const keyLine = /const SUPABASE_PUBLISHABLE_KEY =\s*"[^"]*";/;
     if (!urlLine.test(code) || !keyLine.test(code)) {
       throw new Error(
         "dev-homolog: formato do client.ts mudou; troca para homologacao nao aplicada.",

@@ -45,18 +45,18 @@ export async function computeChecklist(store: StoreFullRow): Promise<Checklist> 
       .select("id", { count: "exact", head: true })
       .eq("store_id", store.id)
       .eq("status", "active"),
-    (supabase as any)
+    supabase
       .from("store_settings")
       .select("store_id")
       .eq("store_id", store.id)
       .eq("setting_key", "catalog_visual")
       .maybeSingle(),
-    (supabase as any)
+    supabase
       .from("store_banners")
       .select("id", { count: "exact", head: true })
       .eq("store_id", store.id)
       .eq("active", true),
-    (supabase as any).rpc("store_payment_connection_status", { _store_id: store.id }),
+    supabase.rpc("store_payment_connection_status", { _store_id: store.id }),
   ]);
   for (const result of [products, visual, banners, payment]) {
     if (result.error) throw result.error;

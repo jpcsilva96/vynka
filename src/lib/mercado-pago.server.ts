@@ -133,7 +133,7 @@ const liveMode = (tokens: TokenResponse) =>
 
 export async function saveConnection(storeId: string, userId: string, tokens: TokenResponse) {
   const account = await fetchAccount(tokens.access_token);
-  const { error } = await (supabaseAdmin as any).from("store_payment_connections").upsert(
+  const { error } = await supabaseAdmin.from("store_payment_connections").upsert(
     {
       store_id: storeId,
       mp_user_id: tokens.user_id,
@@ -163,7 +163,7 @@ interface ConnectionRow {
 }
 
 async function loadConnection(storeId: string) {
-  const { data, error } = await (supabaseAdmin as any)
+  const { data, error } = await supabaseAdmin
     .from("store_payment_connections")
     .select("access_token,refresh_token,expires_at")
     .eq("store_id", storeId)
@@ -174,7 +174,7 @@ async function loadConnection(storeId: string) {
 }
 
 async function markError(storeId: string, message: string) {
-  await (supabaseAdmin as any)
+  await supabaseAdmin
     .from("store_payment_connections")
     .update({ last_error: message, last_error_at: new Date().toISOString() })
     .eq("store_id", storeId);
@@ -186,7 +186,7 @@ async function refresh(cfg: MercadoPagoConfig, storeId: string, row: ConnectionR
       grant_type: "refresh_token",
       refresh_token: row.refresh_token,
     });
-    const { error } = await (supabaseAdmin as any)
+    const { error } = await supabaseAdmin
       .from("store_payment_connections")
       .update({
         access_token: tokens.access_token,
@@ -370,6 +370,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function applyPayment(storeId: string, payment: MpPayment) {
   const orderId = String(payment.external_reference ?? "");
   if (!UUID.test(orderId)) return { orderId: null, result: "no_reference" };
+  // Tipos gerados marcam os parâmetros como obrigatórios; a função do banco aceita nulo nos opcionais.
   const { data, error } = await (supabaseAdmin as any).rpc("record_order_payment", {
     _order_id: orderId,
     _store_id: storeId,
@@ -393,7 +394,7 @@ export async function applyPayment(storeId: string, payment: MpPayment) {
     !Number.isNaN(mpDue.getTime())
   ) {
     const due = mpDue.toISOString();
-    const { error: dueError } = await (supabaseAdmin as any)
+    const { error: dueError } = await supabaseAdmin
       .from("orders")
       .update({ payment_due_at: due })
       .eq("id", orderId)
@@ -449,6 +450,7 @@ export async function validWebhookSignature(
 // Loja dona da conta que recebeu o pagamento (user_id do aviso).
 export async function storeByMpUser(mpUserId: string) {
   if (!/^\d{1,20}$/.test(mpUserId)) return null;
+  // mp_user_id é bigint (tipo gerado: number); vai como texto para não perder dígitos.
   const { data } = await (supabaseAdmin as any)
     .from("store_payment_connections")
     .select("store_id")

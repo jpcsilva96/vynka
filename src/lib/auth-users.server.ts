@@ -10,7 +10,7 @@ export type AuthUserSummary = {
 
 export async function findAuthUserIdByEmail(email: string): Promise<string | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await (supabaseAdmin as any).rpc("admin_auth_user_id_by_email", {
+  const { data, error } = await supabaseAdmin.rpc("admin_auth_user_id_by_email", {
     _email: email,
   });
   if (error) throw error;
@@ -21,7 +21,7 @@ export async function getAuthUsersByIds(ids: string[]): Promise<Map<string, Auth
   const result = new Map<string, AuthUserSummary>();
   if (ids.length === 0) return result;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await (supabaseAdmin as any).rpc("admin_auth_users_by_ids", {
+  const { data, error } = await supabaseAdmin.rpc("admin_auth_users_by_ids", {
     _ids: [...new Set(ids)],
   });
   if (error) throw error;

@@ -104,8 +104,7 @@ export interface OrderStatusEvent {
 
 // Eventos gravados pelo banco a cada mudança de status (lê quem lê o pedido: loja e cliente).
 export async function listOrderStatusEvents(orderId: string): Promise<OrderStatusEvent[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- tabela ainda fora do types.ts
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from("order_status_events")
     .select("status, actor, created_at")
     .eq("order_id", orderId)

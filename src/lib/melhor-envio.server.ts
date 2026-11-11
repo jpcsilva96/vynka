@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- tabelas novas ainda fora do types.ts gerado (regenerar e pendencia) */
 // Só servidor. Conversa com a API do Melhor Envio usando a conta que CADA loja conectou (OAuth2).
 // Doc: https://docs.melhorenvio.com.br (chave de acesso vale 30 dias; a de renovação, 45).
 // Configuração (variáveis do servidor): MELHORENVIO_ENV (sandbox|production), MELHORENVIO_CLIENT_ID,
@@ -118,7 +117,7 @@ export async function saveConnection(
   tokens: TokenResponse,
 ) {
   const account = await fetchAccount(cfg, tokens.access_token);
-  const { error } = await (supabaseAdmin as any).from("store_shipping_connections").upsert(
+  const { error } = await supabaseAdmin.from("store_shipping_connections").upsert(
     {
       store_id: storeId,
       environment: cfg.env,
@@ -147,7 +146,7 @@ interface ConnectionRow {
 }
 
 async function loadConnection(cfg: MelhorEnvioConfig, storeId: string) {
-  const { data, error } = await (supabaseAdmin as any)
+  const { data, error } = await supabaseAdmin
     .from("store_shipping_connections")
     .select("environment,access_token,refresh_token,expires_at")
     .eq("store_id", storeId)
@@ -160,7 +159,7 @@ async function loadConnection(cfg: MelhorEnvioConfig, storeId: string) {
 }
 
 async function markError(storeId: string, message: string) {
-  await (supabaseAdmin as any)
+  await supabaseAdmin
     .from("store_shipping_connections")
     .update({ last_error: message, last_error_at: new Date().toISOString() })
     .eq("store_id", storeId);
@@ -172,7 +171,7 @@ async function refresh(cfg: MelhorEnvioConfig, storeId: string, row: ConnectionR
       grant_type: "refresh_token",
       refresh_token: row.refresh_token,
     });
-    const { error } = await (supabaseAdmin as any)
+    const { error } = await supabaseAdmin
       .from("store_shipping_connections")
       .update({
         access_token: tokens.access_token,
