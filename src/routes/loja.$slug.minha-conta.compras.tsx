@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AccountTitle } from "@/components/loja/account-ui";
+import { OrderTracking } from "@/components/loja/order-tracking";
+import { useCustomerShipments } from "@/lib/customer-shipments";
 import { listCustomerOrders, useStoreCustomer } from "@/lib/customer-account";
 import { deliveryMethodLabel, orderStatusLabelFor } from "@/lib/orders";
 import { formatBRL } from "@/lib/products";
@@ -18,6 +20,10 @@ function CustomerOrdersPage() {
     queryFn: () => listCustomerOrders(store.id),
     enabled: !!customer,
   });
+  const { data: shipments = [] } = useCustomerShipments(
+    store.id,
+    orders.some((order) => order.delivery_method === "shipping"),
+  );
 
   return (
     <div className="grid gap-5">
@@ -76,6 +82,10 @@ function CustomerOrdersPage() {
                   <div className="mt-3 text-[12px] text-neutral-500">Endereço salvo no pedido.</div>
                 )
               )}
+              <OrderTracking
+                compact
+                shipment={shipments.find((shipment) => shipment.order_id === order.id)}
+              />
             </article>
           ))}
         </div>

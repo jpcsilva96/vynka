@@ -7,6 +7,8 @@ import { buildWhatsAppLink, orderWhatsAppText } from "@/lib/cart";
 import { getCustomerOrder } from "@/lib/customer-account";
 import { startOrderPayment, syncOrderPayment } from "@/lib/order-payment.functions";
 import { OrderTimeline } from "@/components/order-timeline";
+import { OrderTracking } from "@/components/loja/order-tracking";
+import { useCustomerShipments } from "@/lib/customer-shipments";
 import {
   deliveryDaysLabel,
   deliveryMethodLabel,
@@ -41,6 +43,11 @@ function OrderPage() {
     queryFn: () => listOrderStatusEvents(id),
     enabled: hasTimeline,
   });
+  const { data: shipments = [] } = useCustomerShipments(
+    store.id,
+    hasTimeline && order?.delivery_method === "shipping",
+    id,
+  );
   const startPayment = useServerFn(startOrderPayment);
   const syncPayment = useServerFn(syncOrderPayment);
   const payMutation = useMutation({
@@ -211,6 +218,7 @@ function OrderPage() {
                   ? pickupMessage(order.status)
                   : formatDeliveryAddress(order.delivery_address)}
               </div>
+              <OrderTracking shipment={shipments[0]} />
             </div>
           )}
 
