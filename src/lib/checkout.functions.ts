@@ -145,7 +145,10 @@ async function computeOptions(
             services: services.join(","),
           },
         })) as any[];
-        quotes = (result ?? [])
+        // Com um serviço só ligado, a API devolve o objeto em vez de lista (medido em 11/11): sem
+        // isso o filtro quebrava e Correios/transportadora sumiam do checkout.
+        const list = Array.isArray(result) ? result : result ? [result] : [];
+        quotes = list
           .filter((quote) => !quote.error && (quote.custom_price ?? quote.price) != null)
           .map((quote) => {
             const range = quote.custom_delivery_range ?? quote.delivery_range ?? {};
