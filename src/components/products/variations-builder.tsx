@@ -1,12 +1,9 @@
 import { useEffect } from "react";
 import { Plus, X } from "lucide-react";
-import {
-  generateVariants,
-  formatBRL,
-  type ProductOption,
-  type ProductVariant,
-} from "@/lib/products";
+import { generateVariants, type ProductOption, type ProductVariant } from "@/lib/products";
+import { MoneyInput } from "@/components/admin/money-input";
 import { thumbUrl } from "@/lib/image-resize";
+import { moneyInputFromNumber, parseMoneyInput } from "@/lib/money-input";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -265,7 +262,7 @@ export function VariationsBuilder({
             </div>
           </div>
           <div className="divide-y divide-border">
-            <div className="grid grid-cols-[minmax(3.5rem,1fr)_minmax(0,6.5rem)_minmax(0,4.5rem)_auto] items-center gap-2 bg-background/40 px-3 py-2 text-[11px] uppercase tracking-[0.1em] text-muted-foreground sm:gap-3 sm:px-4">
+            <div className="grid grid-cols-[minmax(3.5rem,1fr)_minmax(0,7.5rem)_minmax(0,4rem)_auto] items-center gap-2 bg-background/40 px-3 py-2 text-[11px] uppercase tracking-[0.1em] text-muted-foreground sm:gap-3 sm:px-4">
               <span className="truncate">Combinacao</span>
               <span className="truncate">Preco</span>
               <span className="truncate">Estoque</span>
@@ -274,19 +271,16 @@ export function VariationsBuilder({
             {variants.map((variant, index) => (
               <div
                 key={variant.sku_key}
-                className="grid grid-cols-[minmax(3.5rem,1fr)_minmax(0,6.5rem)_minmax(0,4.5rem)_auto] items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4"
+                className="grid grid-cols-[minmax(3.5rem,1fr)_minmax(0,7.5rem)_minmax(0,4rem)_auto] items-center gap-2 px-3 py-3 sm:gap-3 sm:px-4"
               >
                 <div className="min-w-0 break-words text-[13px] font-medium text-foreground">
                   {variantLabel(variant)}
                 </div>
-                <input
-                  value={variant.price ?? ""}
-                  onChange={(event) => {
-                    const raw = event.target.value.replace(/[^\d.,]/g, "").replace(",", ".");
-                    updateVariant(index, { price: raw === "" ? null : Number(raw) });
-                  }}
-                  placeholder={formatBRL(0)}
-                  className="w-full min-w-0 rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] outline-none focus:border-foreground/40"
+                <MoneyInput
+                  compact
+                  aria-label={`Preço de ${variantLabel(variant)}`}
+                  value={moneyInputFromNumber(variant.price)}
+                  onChange={(text) => updateVariant(index, { price: parseMoneyInput(text) })}
                 />
                 <input
                   type="number"
@@ -304,9 +298,11 @@ export function VariationsBuilder({
                     type="checkbox"
                     checked={variant.available}
                     onChange={(event) => updateVariant(index, { available: event.target.checked })}
+                    aria-label={`${variantLabel(variant)} ativa`}
                     className="h-4 w-4 rounded border-border accent-foreground"
                   />
-                  <span className="text-muted-foreground">Sim</span>
+                  {/* No celular o espaço vai para o preço; o cabeçalho já diz "Ativa". */}
+                  <span className="hidden text-muted-foreground sm:inline">Sim</span>
                 </label>
               </div>
             ))}

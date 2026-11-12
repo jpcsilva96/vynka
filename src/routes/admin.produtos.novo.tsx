@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { MoneyInput } from "@/components/admin/money-input";
+import { moneyInputFromNumber, parseMoneyInput } from "@/lib/money-input";
 import { ImageUploader } from "@/components/products/image-uploader";
 import { RichEditor } from "@/components/products/rich-editor";
 import { VariationsBuilder } from "@/components/products/variations-builder";
@@ -46,7 +48,17 @@ function NovoProduto() {
     if (typeof window !== "undefined") {
       try {
         const raw = window.localStorage.getItem(DRAFT_KEY);
-        if (raw) return { ...emptyProductForm(), ...(JSON.parse(raw) as ProductFormState) };
+        if (raw) {
+          const draft = { ...emptyProductForm(), ...(JSON.parse(raw) as ProductFormState) };
+          // Rascunho de antes da máscara pode ter "49.9": volta no formato "49,90".
+          const money = (text: string) => moneyInputFromNumber(parseMoneyInput(text));
+          return {
+            ...draft,
+            price: money(draft.price),
+            promo_price: money(draft.promo_price),
+            cost_price: money(draft.cost_price),
+          };
+        }
       } catch {
         /* ignore */
       }
@@ -292,18 +304,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function PriceInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="flex items-center rounded-md border border-border bg-surface pl-3 focus-within:border-foreground/40">
-      <span className="text-[13px] text-muted-foreground">R$</span>
-      <input
-        inputMode="decimal"
-        value={value}
-        onChange={(e) => onChange(e.target.value.replace(/[^\d.,]/g, ""))}
-        placeholder="0,00"
-        className="w-full bg-transparent px-2 py-2.5 text-[14px] outline-none"
-      />
-    </div>
-  );
+  return <MoneyInput value={value} onChange={onChange} />;
 }
 
 function Toggle({

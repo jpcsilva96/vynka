@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { canResize, PRODUCT_FULL, PRODUCT_THUMB, resizeImage } from "@/lib/image-resize";
+import { moneyInputFromNumber, parseMoneyInput } from "@/lib/money-input";
 import { sanitizeRichText } from "@/lib/rich-text";
 
 export type ProductStatus = "active" | "draft" | "archived";
@@ -239,7 +240,8 @@ export const formatBRL = (v: number | null | undefined) =>
     ? "—"
     : new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
-const parseMoney = (value: string) => Number(value.replace(",", ".")) || 0;
+// Texto do campo com máscara ("1.299,90") -> reais.
+const parseMoney = (value: string) => parseMoneyInput(value) ?? 0;
 
 export function slugifyCategory(value: string) {
   return value
@@ -252,12 +254,7 @@ export function slugifyCategory(value: string) {
     .slice(0, 80);
 }
 
-const moneyToInput = (value: number | string | null | undefined) => {
-  if (value == null) return "";
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return "";
-  return parsed.toFixed(2);
-};
+const moneyToInput = moneyInputFromNumber;
 
 export async function uploadProductImage(storeId: string, file: File): Promise<ProductImage> {
   // A pasta da loja permite que a policy do bucket restrinja escrita por loja.
