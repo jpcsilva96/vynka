@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, Loader2, Star } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { MoneyInput } from "@/components/admin/money-input";
 import { ImageUploader } from "@/components/products/image-uploader";
 import { ProductPreview } from "@/components/products/product-preview";
 import { RichEditor } from "@/components/products/rich-editor";
@@ -309,18 +310,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function PriceInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="flex items-center rounded-md border border-border bg-surface pl-3 focus-within:border-foreground/40">
-      <span className="text-[13px] text-muted-foreground">R$</span>
-      <input
-        inputMode="decimal"
-        value={value}
-        onChange={(e) => onChange(e.target.value.replace(/[^\d.,]/g, ""))}
-        placeholder="0,00"
-        className="w-full bg-transparent px-2 py-2.5 text-[14px] outline-none"
-      />
-    </div>
-  );
+  return <MoneyInput value={value} onChange={onChange} />;
 }
 
 function Toggle({

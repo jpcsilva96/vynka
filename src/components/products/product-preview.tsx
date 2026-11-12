@@ -1,4 +1,5 @@
 import { formatBRL, type ProductFormState, type Category } from "@/lib/products";
+import { parseMoneyInput } from "@/lib/money-input";
 import { sanitizeRichText } from "@/lib/rich-text";
 
 interface Props {
@@ -7,8 +8,8 @@ interface Props {
 }
 
 export function ProductPreview({ form, categories }: Props) {
-  const price = Number(form.price.replace(",", ".")) || 0;
-  const promo = form.promo_price ? Number(form.promo_price.replace(",", ".")) : null;
+  const price = parseMoneyInput(form.price) ?? 0;
+  const promo = parseMoneyInput(form.promo_price);
   const showPromo = promo != null && promo > 0 && promo < price;
   const cat = categories.find((c) => c.id === form.category_id);
   const cover = form.images[0]?.url;
