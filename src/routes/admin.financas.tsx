@@ -15,6 +15,8 @@ import {
   Wallet,
 } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
+import { MoneyInput } from "@/components/admin/money-input";
+import { moneyInputFromNumber } from "@/lib/money-input";
 import {
   Dialog,
   DialogContent,
@@ -357,7 +359,7 @@ function Financas() {
                         setForm({
                           id: e.id,
                           kind: e.kind,
-                          amount: e.amount.toFixed(2).replace(".", ","),
+                          amount: moneyInputFromNumber(e.amount),
                           category_id: e.category_id ?? "",
                           newCategory: "",
                           newCategoryColor: "slate",
@@ -984,6 +986,8 @@ function EntryRow({
 
 const inputClass =
   "h-10 w-full rounded-md border border-border bg-background px-3 text-[14px] text-foreground outline-none focus:border-foreground";
+// Moldura do campo de dinheiro no mesmo visual dos campos desta tela.
+const moneyClass = "h-10 bg-background text-foreground focus-within:border-foreground";
 
 function EntryDialog({
   storeId,
@@ -1050,13 +1054,11 @@ function EntryDialog({
         </DialogHeader>
         <div className="grid gap-3">
           <label className="grid gap-1 text-[12px] text-muted-foreground">
-            Valor (R$)
-            <input
-              className={inputClass}
-              inputMode="decimal"
-              placeholder="0,00"
+            Valor
+            <MoneyInput
+              className={moneyClass}
               value={form.amount}
-              onChange={(e) => set({ amount: e.target.value })}
+              onChange={(amount) => set({ amount })}
             />
           </label>
           <label className="grid gap-1 text-[12px] text-muted-foreground">
@@ -1167,7 +1169,7 @@ function AdjustDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [value, setValue] = useState(current.toFixed(2).replace(".", ","));
+  const [value, setValue] = useState(moneyInputFromNumber(current, true));
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -1202,13 +1204,9 @@ function AdjustDialog({
         <div className="grid gap-3">
           <p className="text-[13px] text-muted-foreground">Saldo no Vynka: {formatBRL(current)}</p>
           <label className="grid gap-1 text-[12px] text-muted-foreground">
-            Saldo real (R$)
-            <input
-              className={inputClass}
-              inputMode="decimal"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-            />
+            Saldo real
+            <MoneyInput className={moneyClass} allowNegative value={value} onChange={setValue} />
+            <span>Saldo negativo: digite "-".</span>
           </label>
           <label className="grid gap-1 text-[12px] text-muted-foreground">
             Motivo (opcional)

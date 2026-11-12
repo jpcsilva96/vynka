@@ -40,6 +40,12 @@ import {
 } from "@/lib/sales";
 import type { OrderStatus } from "@/lib/orders";
 import { cn } from "@/lib/utils";
+import { maskMoneyInput, parseMoneyInput } from "@/lib/money-input";
+
+// Percentual: "10,5" -> 10.5. Valor: texto com máscara ("1.299,90") -> reais.
+const parsePercent = (s: string) => Number(s.replace(",", ".")) || 0;
+const parseAdjust = (s: string, mode: "value" | "percent") =>
+  mode === "percent" ? parsePercent(s) : (parseMoneyInput(s) ?? 0);
 
 export const Route = createFileRoute("/admin/vender")({
   head: () => ({
@@ -101,12 +107,12 @@ function VenderPage() {
 
   const subtotal = useMemo(() => cart.reduce((s, i) => s + i.unit_price * i.quantity, 0), [cart]);
   const discount = useMemo(() => {
-    const v = Number(discountInput.replace(",", ".")) || 0;
+    const v = parseAdjust(discountInput, discountMode);
     const d = discountMode === "percent" ? subtotal * (v / 100) : v;
     return Math.max(0, Math.min(subtotal, d));
   }, [discountInput, discountMode, subtotal]);
   const surcharge = useMemo(() => {
-    const v = Number(surchargeInput.replace(",", ".")) || 0;
+    const v = parseAdjust(surchargeInput, surchargeMode);
     return Math.max(0, surchargeMode === "percent" ? subtotal * (v / 100) : v);
   }, [surchargeInput, surchargeMode, subtotal]);
   const total = Math.max(0, subtotal - discount + surcharge);
@@ -793,9 +799,8 @@ function AdjustModal({
   const [percentInput, setPercentInput] = useState(initialMode === "percent" ? initialValue : "");
   const [mode, setMode] = useState<"value" | "percent">(initialMode);
 
-  const parseNum = (s: string) => Number(s.replace(",", ".")) || 0;
-  const valueNum = parseNum(valueInput);
-  const percentNum = parseNum(percentInput);
+  const valueNum = parseAdjust(valueInput, "value");
+  const percentNum = parsePercent(percentInput);
   const computed =
     mode === "value"
       ? Math.max(0, isDiscount ? Math.min(subtotal, valueNum) : valueNum)
@@ -845,11 +850,12 @@ function AdjustModal({
                 value={valueInput}
                 onFocus={() => setMode("value")}
                 onChange={(e) => {
-                  const v = e.target.value.replace(/[^0-9.,]/g, "");
+                  const v = maskMoneyInput(e.target.value);
                   setValueInput(v);
                   if (v) setPercentInput("");
                 }}
-                inputMode="decimal"
+                inputMode="numeric"
+                autoComplete="off"
                 placeholder="0,00"
                 className="w-full min-w-0 bg-transparent text-[16px] font-medium text-foreground outline-none placeholder:text-muted-foreground"
               />
@@ -1199,7 +1205,7 @@ function CheckoutScreen({
   const [showNoteOnReceipt, setShowNoteOnReceipt] = useState(false);
   const [itemsOpen, setItemsOpen] = useState(false);
 
-  const cashValue = Number(cashInput.replace(",", ".")) || 0;
+  const cashValue = parseMoneyInput(cashInput) ?? 0;
   const change = method === "cash" ? Math.max(0, cashValue - total) : 0;
   const cashInsufficient = method === "cash" && cashValue < total;
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
@@ -1478,11 +1484,10 @@ function CheckoutScreen({
                             <input
                               autoFocus
                               value={cashInput}
-                              onChange={(e) =>
-                                setCashInput(e.target.value.replace(/[^0-9.,]/g, ""))
-                              }
+                              onChange={(e) => setCashInput(maskMoneyInput(e.target.value))}
                               placeholder={formatBRL(total)}
-                              inputMode="decimal"
+                              inputMode="numeric"
+                              autoComplete="off"
                               className="w-full rounded-md border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/40"
                             />
                           </Field>

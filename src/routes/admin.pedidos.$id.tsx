@@ -48,6 +48,8 @@ import {
 } from "@/lib/orders";
 import { confirmAction } from "@/lib/confirm-dialog";
 import { OrderShipmentCard } from "@/components/admin/order-shipment-card";
+import { MoneyInput } from "@/components/admin/money-input";
+import { moneyInputFromNumber, parseMoneyInput } from "@/lib/money-input";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   head: () => ({ meta: [{ title: "Pedido - VYNKA" }] }),
@@ -194,8 +196,8 @@ function PedidoDetalhe() {
         product_id: item.product_id ?? "",
         product_name: item.product_name,
         quantity: String(item.quantity),
-        unit_price: String(item.unit_price),
-        unit_cost: String(item.unit_cost ?? 0),
+        unit_price: moneyInputFromNumber(item.unit_price),
+        unit_cost: moneyInputFromNumber(item.unit_cost ?? 0),
       })),
     );
   }, [order]);
@@ -282,8 +284,8 @@ function PedidoDetalhe() {
         product_id: item.product_id,
         product_name: item.product_name.trim(),
         quantity: Math.max(1, Number(item.quantity) || 1),
-        unit_price: Math.max(0, Number(item.unit_price.replace(",", ".")) || 0),
-        unit_cost: Math.max(0, Number(item.unit_cost.replace(",", ".")) || 0),
+        unit_price: Math.max(0, parseMoneyInput(item.unit_price) ?? 0),
+        unit_cost: Math.max(0, parseMoneyInput(item.unit_cost) ?? 0),
       }));
     if (items.length === 0) {
       alert("Inclua ao menos um produto no pedido.");
@@ -310,8 +312,10 @@ function PedidoDetalhe() {
               ...item,
               product_id: productId,
               product_name: product?.name ?? "",
-              unit_price: String(product?.promo_price ?? product?.price ?? item.unit_price),
-              unit_cost: String(product?.cost_price ?? item.unit_cost),
+              unit_price: product
+                ? moneyInputFromNumber(product.promo_price ?? product.price)
+                : item.unit_price,
+              unit_cost: product ? moneyInputFromNumber(product.cost_price) : item.unit_cost,
             }
           : item,
       ),
@@ -951,19 +955,20 @@ function PedidoDetalhe() {
                         )
                       }
                     />
-                    <TextField
-                      label="Preço"
-                      value={item.unit_price}
-                      onChange={(value) =>
-                        setItemDrafts((current) =>
-                          current.map((draft, i) =>
-                            i === index
-                              ? { ...draft, unit_price: value.replace(/[^0-9.,]/g, "") }
-                              : draft,
-                          ),
-                        )
-                      }
-                    />
+                    <label className="block">
+                      <span className="mb-1.5 block text-[12px] text-foreground">Preço</span>
+                      <MoneyInput
+                        className="h-10 bg-background"
+                        value={item.unit_price}
+                        onChange={(value) =>
+                          setItemDrafts((current) =>
+                            current.map((draft, i) =>
+                              i === index ? { ...draft, unit_price: value } : draft,
+                            ),
+                          )
+                        }
+                      />
+                    </label>
                     <button
                       type="button"
                       onClick={() =>
@@ -989,8 +994,8 @@ function PedidoDetalhe() {
                     product_id: "",
                     product_name: "",
                     quantity: "1",
-                    unit_price: "0",
-                    unit_cost: "0",
+                    unit_price: "",
+                    unit_cost: "",
                   },
                 ])
               }
