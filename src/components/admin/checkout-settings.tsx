@@ -49,6 +49,8 @@ import {
   type DeliveryCity,
 } from "@/lib/checkout-settings";
 import { parseMoney } from "@/lib/finance";
+import { moneyInputFromNumber } from "@/lib/money-input";
+import { MoneyInput } from "@/components/admin/money-input";
 import {
   disconnectShipping,
   getShippingIntegration,
@@ -70,8 +72,8 @@ import { confirmAction } from "@/lib/confirm-dialog";
 // Telas das configurações de checkout (lote A): aba Entrega e Retirada, aba Pedidos e Vendas
 // (estoque e prazos) e aba Pagamentos. Cada aba salva só os próprios campos.
 
-const moneyText = (value: number | null) =>
-  value == null ? "" : value.toFixed(2).replace(".", ",");
+// Mesmo formato da máscara do campo ("1.299,90").
+const moneyText = (value: number | null) => moneyInputFromNumber(value);
 const decimalText = (value: number) => String(value).replace(".", ",");
 const parseDecimal = (value: string) => {
   const n = Number(value.trim().replace(",", "."));
@@ -1523,29 +1525,6 @@ function Field({
       <div className="mb-1.5 text-[12px] font-medium text-foreground">{label}</div>
       {children}
       {hint && <p className="mt-1 text-[12px] text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
-function MoneyInput({
-  value,
-  onChange,
-  placeholder = "0,00",
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <div className="flex items-center rounded-md border border-border bg-surface px-3 focus-within:border-foreground/40">
-      <span className="text-[13px] text-muted-foreground">R$</span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        inputMode="decimal"
-        placeholder={placeholder}
-        className="min-w-0 flex-1 bg-transparent px-2 py-2.5 text-[14px] outline-none placeholder:text-muted-foreground"
-      />
     </div>
   );
 }
